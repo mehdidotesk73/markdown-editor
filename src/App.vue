@@ -184,11 +184,11 @@ const helpDoc = ref('overview')
       </div>
 
       <div v-if="active" class="toolbar" role="toolbar" aria-label="File actions">
-        <UiButton size="compact" icon="📂" title="Open a local file (Ctrl/⌘+O)" @click="onOpen">Open</UiButton>
+        <UiButton size="compact" title="Open a local file (Ctrl/⌘+O)" @click="onOpen">Open</UiButton>
         <UiButton
           size="compact"
           :tone="savedFlash ? 'ok' : activeDirty ? 'attention' : 'neutral'"
-          :icon="savedFlash ? '✓' : activeDirty ? '●' : '💾'"
+          :icon="savedFlash ? '✓' : activeDirty ? '●' : undefined"
           :title="`${saveLabel} (Ctrl/⌘+S)`"
           @click="onSave(false)"
         >
@@ -205,7 +205,6 @@ const helpDoc = ref('overview')
         <UiButton
           size="compact"
           tone="primary"
-          icon="⤓"
           :disabled="exporting"
           title="Download the document as a PDF (Ctrl/⌘+P)"
           @click="onExport"
@@ -220,7 +219,6 @@ const helpDoc = ref('overview')
             v-if="updateAvailable"
             size="compact"
             tone="primary"
-            icon="↻"
             :active="showUpdatePanel"
             @click="showUpdatePanel = !showUpdatePanel"
           >
@@ -235,7 +233,6 @@ const helpDoc = ref('overview')
         <UiButton
           v-if="active"
           size="compact"
-          :icon="paper === 'light' ? '☀' : '☾'"
           :title="`Panel theme: ${paper}. Click for ${paper === 'light' ? 'dark' : 'light'}.`"
           :aria-label="`Switch panels to ${paper === 'light' ? 'dark' : 'light'}`"
           @click="togglePaper"
@@ -265,8 +262,8 @@ const helpDoc = ref('overview')
           right. <strong>Save</strong> writes straight back to the file. Each tab is its own file.
         </p>
         <div class="empty-actions">
-          <UiButton size="large" tone="primary" icon="📂" @click="onOpen">Open a file</UiButton>
-          <UiButton size="large" icon="＋" @click="tabs.newTab">New file</UiButton>
+          <UiButton size="large" tone="primary" @click="onOpen">Open a file</UiButton>
+          <UiButton size="large" @click="tabs.newTab">New file</UiButton>
         </div>
         <p v-if="!supportsFileSystemAccess" class="note">
           <span aria-hidden="true">⚠</span> This browser can't write to files on your computer, so Save will

@@ -48,10 +48,18 @@ How files work (see `src/lib/fileAccess.ts`, `src/lib/useTabs.ts`):
 Accents have one job each — blue = interaction, green = saved, amber = unsaved / needs
 attention (always with a ● or ⚠ mark), red = errors. Use tokens, never colour literals.
 **Every button** goes through `components/ui/UiButton.vue` (sizes tag/compact/regular/large,
-tones by job) — no hand-styled `<button>`s in the chrome. The look is **liquid glass**:
-translucent frosted pills (`--glass-*` tokens in `vars.css`: gradient fill, lit top edge,
-`backdrop-filter` blur); tones *tint* the glass rather than fill it. The tab bar is a glass
-track whose active tab is a raised, blue-tinted bubble (`TabBar.vue`).
+tones by job) — no hand-styled `<button>`s in the chrome. The look is **liquid glass**: each
+tone sets a hue (`--h/--s/--l`) the glass is lit with — layered inset light (lit top edge, glow
+pooling at the bottom), a glow cast on the surface below (`::before`), a light streak that sweeps
+across on hover (`::after`), and a slight sink when pressed. **No emoji icons** (they render as
+pictures and break the glass): button labels are text; `icon` is only for plain Unicode marks
+(⇤ ⇥ ● ✓ ✕).
+
+**Tab bar (`TabBar.vue`) is a liquid nav:** a frosted glass bar drawn as an SVG path with a dent;
+the active tab rides in a glass bubble above it. Switching tabs springs the bubble (and the dent)
+to the new tab; each name in the bar sinks and fades in proportion to the bubble's distance, and
+the bubble's own label rises in as it arrives. Geometry + spring live in `src/lib/liquidTabs.ts`
+(`dentPath`, `labelSink`, `Spring`; unit-tested). Respects `prefers-reduced-motion`.
 
 **Panel ("paper") theme:** the inside of the editor and preview panes uses its own
 `--paper-*` tokens (`vars.css`): dark by default, `.paper-light` swaps in a warm light page.
@@ -148,10 +156,11 @@ src/
     pdf/math.ts            display TeX → SVG via MathJax (lazy chunk)
     pdf/inlineMath.ts      inline TeX → Unicode text
     usePaperTheme.ts       Light/Dark panel theme (localStorage)
+    liquidTabs.ts          tab bar geometry (dent path), label sink, spring (pure; tested)
     useVersionCheck.ts     compares the running build with the live one
   components/
     Workspace.vue          editor + preview panes, collapse rails, draggable divider, scroll sync
-    TabBar.vue             file tabs
+    TabBar.vue             liquid-glass tab bar: dented glass bar + springing bubble
     HelpModal.vue          renders docs/concepts/*.md into the Help modal
     ui/UiButton.vue        the app's button (sizes + tones)
   styles/

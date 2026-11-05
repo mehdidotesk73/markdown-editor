@@ -1,15 +1,21 @@
 <script setup lang="ts">
-// The app's one button — every button in the chrome goes through it, so they
-// all share the liquid-glass look (translucent, frosted, lit top edge) and
-// size their icon and label together.
+// The app's one button. Every button in the chrome goes through it, so they all
+// share the same "liquid glass" look: a translucent body lit by layered inner
+// light (top edge, bottom glow), a soft glow cast on the surface below, and a
+// light streak that sweeps across on hover. Pressing sinks it a little.
+//
 //   size  tag      — footer pills: View logs, Reload latest, Copy log
 //         compact  — top bar + pane controls
 //         regular  — the default
 //         large    — empty-state actions
-//   tone  neutral, primary (blue: the action), ok (green), attention (amber), danger (red)
-//         — tones tint the glass rather than fill it
+//   tone  neutral, primary (blue: the action), ok (green), attention (amber),
+//         danger (red) — each sets the hue the glass is lit with
 //   active  — on / selected (toggles): lit with the accent
-// An `icon` with no label makes a round button; give it an aria-label.
+//
+// Labels are text. Use `icon` only for plain Unicode marks that render as
+// text everywhere (⇤ ⇥ ● ✕), never emoji: emoji render as pictures and
+// break the glass. An icon with no label makes a round button; give it an
+// aria-label.
 withDefaults(
   defineProps<{
     size?: 'tag' | 'compact' | 'regular' | 'large'
@@ -36,81 +42,165 @@ defineSlots<{ default?(): unknown }>()
 
 <style scoped>
 .ui-btn {
-  /* --k: the tint (accent) mixed into the glass; --c: text colour */
-  --k: transparent;
-  --c: var(--text);
+  /* The light the glass is lit with: hue, saturation, lightness. */
+  --h: 222;
+  --s: 30%;
+  --l: 84%;
+  --fill: 0.07; /* how much of that light tints the body */
+  --c: hsl(var(--h) calc(var(--s) * 0.6) 90% / 0.9);
+
   position: relative;
+  isolation: isolate;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.35em;
-  border: 1px solid var(--glass-border);
+  gap: 0.4em;
+  border: 0;
   border-radius: 999px;
-  background:
-    linear-gradient(0deg, color-mix(in srgb, var(--k) 22%, transparent), color-mix(in srgb, var(--k) 22%, transparent)),
-    var(--glass-bg);
-  box-shadow: var(--glass-edge), var(--glass-shadow);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
   color: var(--c);
   font-family: inherit;
   font-weight: 600;
   line-height: 1;
+  letter-spacing: 0.01em;
   white-space: nowrap;
   cursor: pointer;
-  transition:
-    background 0.18s,
-    border-color 0.18s,
-    box-shadow 0.18s,
-    color 0.18s,
-    transform 0.12s;
-}
-.ui-btn:not(:disabled):hover {
-  background:
-    linear-gradient(0deg, color-mix(in srgb, var(--k) 30%, transparent), color-mix(in srgb, var(--k) 30%, transparent)),
-    var(--glass-bg-hover);
-  border-color: var(--glass-border-hover);
+  text-shadow:
+    0 0.05em 0.05em rgba(0, 0, 0, 0.45),
+    0 -0.03em 0 rgba(255, 255, 255, 0.08);
+
+  background-color: hsl(var(--h) var(--s) var(--body, 55%) / var(--fill));
+  background-image: linear-gradient(hsl(0 0% 100% / 0.13), hsl(0 0% 100% / 0.02) 55%, hsl(0 0% 0% / 0.12));
+  backdrop-filter: blur(12px) saturate(170%);
+  -webkit-backdrop-filter: blur(12px) saturate(170%);
   box-shadow:
-    var(--glass-edge),
-    var(--glass-shadow),
-    0 0 0 3px color-mix(in srgb, var(--k) 18%, transparent);
+    /* hairline rim */
+    0 0 0 0.06em hsl(var(--h) var(--s) var(--l) / 0.28),
+    /* lit top edge, inside */
+    0 0.12em 0.2em -0.02em hsl(0 0% 100% / 0.38) inset,
+    0 -0.03em 0.15em hsl(var(--h) var(--s) var(--l) / 0.28) inset,
+    /* glow pooling at the bottom, inside */
+    0 -0.35em 0.9em -0.2em hsl(var(--h) var(--s) var(--l) / 0.22) inset,
+    /* depth */
+    0 -0.1em 0.25em rgba(0, 0, 0, 0.18),
+    0 0.55em 1em -0.25em rgba(0, 0, 0, 0.55);
+  transition:
+    box-shadow 0.25s ease,
+    background-color 0.25s ease,
+    color 0.25s ease,
+    translate 0.15s ease,
+    backdrop-filter 0.25s ease;
 }
+
+/* Glow cast on the surface just below the button. */
+.ui-btn::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  top: 88%;
+  left: 12%;
+  width: 76%;
+  height: 1.1em;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, hsl(var(--h) var(--s) var(--l) / 0.28), hsl(var(--h) var(--s) var(--l) / 0));
+  opacity: 0.55;
+  filter: blur(2px);
+  transition: opacity 0.25s ease;
+  pointer-events: none;
+}
+
+/* A light streak, parked off to the right; it sweeps across on hover. */
+.ui-btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-image: linear-gradient(
+    105deg,
+    transparent 22%,
+    hsl(0 0% 100% / 0.16) 22%,
+    hsl(0 0% 100% / 0.16) 31%,
+    transparent 31%,
+    transparent 34%,
+    hsl(0 0% 100% / 0.1) 34%,
+    hsl(0 0% 100% / 0.1) 38%,
+    transparent 38%
+  );
+  background-size: 400% 100%;
+  background-position: 100% 0;
+  transition: background-position 0.65s ease;
+  pointer-events: none;
+}
+
+.label,
+.glyph {
+  position: relative;
+  z-index: 1;
+}
+.glyph {
+  font-size: 1.15em;
+  line-height: 1;
+}
+
+.ui-btn:not(:disabled):hover {
+  --c: hsl(var(--h) calc(var(--s) * 0.6) 96% / 1);
+  background-color: hsl(var(--h) var(--s) 58% / calc(var(--fill) + 0.06));
+  box-shadow:
+    0 0 0 0.06em hsl(var(--h) var(--s) var(--l) / 0.45),
+    0 0.12em 0.2em -0.02em hsl(0 0% 100% / 0.5) inset,
+    0 -0.03em 0.15em hsl(var(--h) var(--s) var(--l) / 0.4) inset,
+    0 -0.4em 1em -0.2em hsl(var(--h) var(--s) var(--l) / 0.32) inset,
+    0 -0.1em 0.25em rgba(0, 0, 0, 0.18),
+    0 0.6em 1.2em -0.25em rgba(0, 0, 0, 0.6),
+    0 0 1em -0.2em hsl(var(--h) var(--s) var(--l) / 0.3);
+}
+.ui-btn:not(:disabled):hover::before {
+  opacity: 1;
+}
+.ui-btn:not(:disabled):hover::after {
+  background-position: -45% 0;
+}
+
+/* Pressed: sinks a little, the inner light tightens. */
 .ui-btn:not(:disabled):active {
-  transform: scale(0.96);
+  translate: 0 0.08em;
+  backdrop-filter: blur(6px) saturate(170%);
+  -webkit-backdrop-filter: blur(6px) saturate(170%);
+  box-shadow:
+    0 0 0 0.06em hsl(var(--h) var(--s) var(--l) / 0.45),
+    0 0.15em 0.3em hsl(0 0% 0% / 0.3) inset,
+    0 -0.3em 0.8em -0.2em hsl(var(--h) var(--s) var(--l) / 0.35) inset,
+    0 0.25em 0.5em -0.15em rgba(0, 0, 0, 0.5);
 }
+
 .ui-btn:disabled {
   opacity: 0.45;
   cursor: default;
 }
 .ui-btn:focus-visible {
-  outline: 2px solid var(--accent-blue);
-  outline-offset: 2px;
-}
-.glyph {
-  font-size: 1.2em;
-  line-height: 1;
+  outline: 2px solid hsl(217 92% 68%);
+  outline-offset: 3px;
 }
 
 /* sizes */
 .sz-tag {
-  height: 1.55rem;
-  padding: 0 0.6rem;
+  height: 1.6rem;
+  padding: 0 0.7rem;
   font-size: 0.7rem;
   font-weight: 550;
 }
 .sz-compact {
-  height: 2rem;
-  padding: 0 0.8rem;
+  height: 2.05rem;
+  padding: 0 0.95rem;
   font-size: 0.8rem;
 }
 .sz-regular {
-  height: 2.4rem;
-  padding: 0 0.95rem;
+  height: 2.45rem;
+  padding: 0 1.1rem;
   font-size: 0.9rem;
 }
 .sz-large {
-  height: 2.9rem;
-  padding: 0 1.25rem;
+  height: 3rem;
+  padding: 0 1.5rem;
   font-size: 1.02rem;
 }
 .square {
@@ -118,49 +208,50 @@ defineSlots<{ default?(): unknown }>()
   aspect-ratio: 1;
 }
 
-/* tones: tint the glass, colour the label */
-.t-neutral {
-  --c: color-mix(in srgb, var(--text) 82%, transparent);
-}
-.t-neutral:not(:disabled):hover,
+/* tones: the hue the glass is lit with */
+.t-primary,
 .t-neutral.active {
-  --c: var(--text);
+  --h: 217;
+  --s: 92%;
+  --l: 74%;
+  --body: 60%;
+  --fill: 0.62;
+  --c: hsl(217 100% 98%);
 }
-.t-neutral.active,
-.t-primary {
-  --k: var(--accent-blue);
-}
-.t-primary {
-  --c: var(--on-accent);
-  border-color: color-mix(in srgb, var(--accent-blue) 55%, var(--glass-border));
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--accent-blue) 78%, white 6%), color-mix(in srgb, var(--accent-blue) 58%, transparent)),
-    var(--glass-bg);
-  box-shadow:
-    var(--glass-edge),
-    0 6px 20px color-mix(in srgb, var(--accent-blue) 30%, transparent);
-}
-.t-primary:not(:disabled):hover {
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--accent-blue) 88%, white 10%), color-mix(in srgb, var(--accent-blue) 68%, transparent)),
-    var(--glass-bg-hover);
-  border-color: color-mix(in srgb, var(--accent-blue) 70%, white 20%);
+.t-neutral.active {
+  --fill: 0.22;
 }
 .t-ok {
-  --k: var(--ok);
-  --c: var(--ok);
+  --h: 158;
+  --s: 64%;
+  --l: 62%;
+  --fill: 0.16;
+  --c: hsl(158 70% 72%);
 }
 .t-attention {
-  --k: var(--warn);
-  --c: var(--warn);
+  --h: 40;
+  --s: 100%;
+  --l: 60%;
+  --body: 50%;
+  --fill: 0.24;
+  --c: hsl(42 100% 64%);
 }
 .t-danger {
-  --k: var(--danger);
-  --c: var(--danger);
+  --h: 0;
+  --s: 90%;
+  --l: 72%;
+  --fill: 0.16;
+  --c: hsl(0 90% 78%);
 }
-.t-ok,
-.t-attention,
-.t-danger {
-  border-color: color-mix(in srgb, var(--k) 40%, var(--glass-border));
+.t-ok:not(:disabled):hover,
+.t-attention:not(:disabled):hover,
+.t-danger:not(:disabled):hover {
+  --c: hsl(var(--h) var(--s) 82%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-btn::after {
+    display: none;
+  }
 }
 </style>

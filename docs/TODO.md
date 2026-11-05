@@ -14,10 +14,12 @@ theme from power-gis, Help modal now renders `docs/concepts/*.md`.
 
 ### v0.4.0 — Liquid-glass buttons and tabs (2026-11-05)
 
-Every button now uses the shared `UiButton` with a liquid-glass look (`--glass-*` tokens in
-`vars.css`), including the formerly hand-styled Update available, popover reload and footer
-buttons (new `tag` size). The tab bar is a frosted glass track with a raised, blue-tinted
-active tab and a round ＋.
+Every button uses the shared `UiButton`, restyled as hue-lit liquid glass (layered inner
+light, glow below, hover light sweep, press sink), including the formerly hand-styled Update
+available, popover reload and footer buttons (new `tag` size). Emoji icons removed — text
+labels only. The tab bar is a liquid nav: a glass bubble carries the active tab above a
+dented glass bar and springs to the next tab, the dent following; bar labels sink and fade
+by distance (`dentPath`, `labelSink`, `Spring` in `src/lib/liquidTabs.ts`, 6 tests).
 
 ### v0.3.0 — Export PDF downloads directly, as real text (2026-11-05)
 

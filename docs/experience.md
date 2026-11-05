@@ -356,10 +356,22 @@ browser's default serif. **Build the PDF in the page and download it** (pdfmake,
   marked-katex-extension, not `blockKatex` — split the paragraph around it.
 - **MathJax's `AllPackages` isn't what makes it big**; the SVG glyph data is (~600 KB gz either way).
 
+## What didn't work: flat "glass" and emoji icons
+
+The first glass pass (translucent pill + one highlight line + `color-mix` tint) read as rounded
+old-macOS buttons, not glass. What sells glass is **layered light**: several inset shadows in the
+button's own hue (lit top edge, glow pooling at the bottom), a glow cast *below* the element, a
+moving specular streak, and a coloured backdrop to blur. Emoji icons (📂 💾 ⤓) render as bitmaps
+and broke the look — keep labels as text, Unicode marks only.
+
+Headless screenshots catch colour transitions mid-flight: a button that just changed tone can
+look wrong in a shot taken <0.25 s later. Wait out the transition before judging colour.
+
 ## Version History
 
 ### v0.4.0 — 2026-11-05
-- **Changed:** Liquid-glass styling for all buttons (one `UiButton`, new `tag` size) and the tab bar
+- **Changed:** Liquid-glass buttons (one `UiButton`, hue-lit, hover sweep; new `tag` size; no emoji icons)
+- **Added:** Liquid tab bar — springing glass bubble with a travelling dent; labels sink by distance
 - **Docs:** CLAUDE.md, system-design styling, TODO
 
 ### v0.3.0 — 2026-11-05
