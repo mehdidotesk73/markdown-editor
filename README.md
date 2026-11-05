@@ -1,7 +1,7 @@
 # Markdown Editor
 
 A simple markdown editor for **files on your own computer**, hosted as a static site on
-Netlify. Open a local `.md` file, write on the left, see it rendered on the right, and
+Netlify at **https://markdown-lab.netlify.app**. Open a local `.md` file, write on the left, see it rendered on the right, and
 **Save** writes straight back to the file. Nothing is uploaded anywhere.
 
 ## Features
@@ -41,7 +41,8 @@ npm run build    # type-check + production build (the CI gate)
 
 ## Hosting
 
-Netlify builds `main` as the production site and every pull request as a Deploy Preview
+Netlify builds `main` as the production site (https://markdown-lab.netlify.app) and every
+pull request as a Deploy Preview at `deploy-preview-<n>--markdown-lab.netlify.app`
 (`netlify.toml`). CI (`.github/workflows/ci.yml`) runs the build on every PR.
 
 ## Docs

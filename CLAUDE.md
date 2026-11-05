@@ -99,9 +99,9 @@ whatever they're actually asking about.
 
 ## Deploys
 
-- **Netlify does both jobs** (`netlify.toml`; record the site name here once it's connected): pushes to `main` build the **production** site at
-  `https://<site-name>.netlify.app`; every other branch/PR gets its own **Deploy Preview**
-  at `deploy-preview-<n>--<site-name>.netlify.app`. One host, one build pipeline — nothing
+- **Netlify does both jobs** (`netlify.toml`): pushes to `main` build the **production** site at
+  `https://markdown-lab.netlify.app`; every other branch/PR gets its own **Deploy Preview**
+  at `deploy-preview-<n>--markdown-lab.netlify.app`. One host, one build pipeline — nothing
   else to configure for hosting.
 - **`.github/workflows/ci.yml` only runs the build check on PRs** — it doesn't deploy anything. Its
   sole job is the `build` status check the branch ruleset requires (see Build & verify).

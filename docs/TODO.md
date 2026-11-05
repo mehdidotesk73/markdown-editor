@@ -16,7 +16,7 @@ theme from power-gis, Help modal now renders `docs/concepts/*.md`.
 
 One-time setup — tick these off as they're done:
 
-- [ ] Connect Netlify (finish-setup) — required; gives previews AND the production site
+- [x] Connect Netlify (finish-setup) — https://markdown-lab.netlify.app — required; gives previews AND the production site
 - [ ] Protect `main` (finish-setup) — required; this is what makes changes arrive as PRs with
       preview links, instead of going straight to the live site
 
