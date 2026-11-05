@@ -34,7 +34,7 @@ This is a Vue 3 + TypeScript + Vite single-page app (SPA) that works as a progre
 │  │  ├─ useTabs (store + IndexedDB)   │  │
 │  │  ├─ fileAccess (FS Access API)    │  │
 │  │  ├─ markdown (marked+DOMPurify)   │  │
-│  │  └─ exportPdf (print iframe)      │  │
+│  │  └─ exportPdf → pdf/ (pdfmake)    │  │
 │  └───────────────────────────────────┘  │
 │  ┌───────────────────────────────────┐  │
 │  │  Local files on the user's disk   │  │
@@ -55,13 +55,37 @@ This is a Vue 3 + TypeScript + Vite single-page app (SPA) that works as a progre
   file. A clean tab follows the disk; a dirty tab keeps the draft and compares against the new
   disk text.
 - **Save:** linked → `createWritable()`; unlinked → `showSaveFilePicker` (links the tab); no API →
-  download. **Export PDF** builds a hidden iframe: the app's stylesheets are cloned in (with a
-  `<base>` so their relative URLs and KaTeX fonts resolve), `@page { size: A4; margin: 16mm 15mm }`
-  and `color-scheme: light` are added, the markdown is rendered into `.md-body.md-print`, and
-  after stylesheets + fonts load the iframe's `print()` opens the dialog. The parent's
-  `document.title` is set to the file name for the duration, since Chrome names the PDF after it.
-- **Math:** `marked-katex-extension` (standard mode) runs inside the `marked` instance in
-  `lib/markdown.ts`; KaTeX's HTML+MathML output passes DOMPurify unchanged.
+  download.
+- **Math:** `marked-katex-extension` (standard mode) runs inside the shared `marked` instance in
+  `lib/markdownParser.ts`; KaTeX's HTML+MathML output passes DOMPurify unchanged in the preview.
+
+## §1c — PDF export (direct download, real text)
+
+```
+markdown ─ lexMarkdown() ─▶ tokens ─┬─ walk: display math, images, inline math?
+                                    ├─ MathJax tex→SVG (lazy, only if $$)     ┐
+                                    ├─ fetch images → PNG data URLs (CORS)    ├─ PdfAssets
+                                    └─ unicodeit for inline $…$ (lazy)        ┘
+            buildDocument(tokens, title, assets)  ── pure, unit-tested ──▶ pdfmake doc
+            pdfMake.createPdf(doc).getBlob()  ──▶ downloadBlob("name.pdf")
+```
+
+- **Layout** (`pdf/markdownToPdf.ts`): A4, margins 54/56/54/60 pt, DejaVu Sans 10.5 pt, line
+  height 1.32. h1/h2 get a rule; a heading with nothing after it on its page moves to the next
+  (`pageBreakBefore`). Code blocks and quotes are one-cell tables; checklists draw ☑/☐ instead
+  of bullets; table rows don't split; page numbers in the footer when there's more than one page.
+  pdfmake breaks pages between lines, so text is never cut.
+- **Math:** display (`blockKatex`, and `$$…$$` inside a line, which the extension emits as an
+  `inlineKatex` token with `displayMode`) → MathJax SVG with `fontCache: 'none'` (inline paths),
+  `currentColor` replaced, sized from MathJax's ex units. Inline `$…$` → Unicode text via
+  unicodeit (a pdfmake text run can't hold an image). Unrenderable TeX falls back to its source.
+- **Fonts:** DejaVu subsets (Latin, Greek, Cyrillic, punctuation, arrows, math operators, shapes)
+  as `.woff`, ~890 KB for six files, fetched by URL; `setUrlAccessPolicy` allows only our origin.
+- **Loading:** pdfmake (~295 KB gz) on first export; MathJax (~600 KB gz) only for docs with
+  display math. Neither is precached; a Workbox `CacheFirst` route (`pdf-export` cache) keeps
+  them and the fonts after first use, so export works offline afterwards.
+- **Cost:** a short doc exports in ~0.2 s; a long one using all five font styles ~1.5 s in the
+  sandbox (font subsetting/embedding per export dominates).
 
 ## §2 — Header/Footer Wrapper Template
 

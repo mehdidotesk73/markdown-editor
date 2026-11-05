@@ -1,5 +1,5 @@
 import type { Token, Tokens } from 'marked'
-import { lexMarkdown } from './markdown'
+import { lexMarkdown } from './markdownParser'
 import { buildDocument, isDisplayInline, BASE_SIZE, type PdfAssets, type RenderedMath } from './pdf/markdownToPdf'
 import { downloadBlob } from './fileAccess'
 
@@ -83,20 +83,6 @@ function decode(s: string): string {
   return textarea.value
 }
 
-async function inlineMathConverter(): Promise<(tex: string) => string> {
-  const { replace } = await import('unicodeit')
-  return (tex) =>
-    replace(
-      tex
-        .replace(/\\frac\{([^{}]*)\}\{([^{}]*)\}/g, '($1)/($2)')
-        .replace(/\\(left|right|big|Big|bigl|bigr|Bigl|Bigr)\b/g, '')
-        .replace(/\\[,;:! ]/g, ' '),
-    )
-      .replace(/[{}]/g, '')
-      .replace(/\s+/g, ' ')
-      .trim()
-}
-
 /**
  * Build a real-text PDF of the markdown and download it straight away.
  * Heavy pieces load on first use only: pdfmake (~1 MB) on the first export,
@@ -117,7 +103,7 @@ export async function exportMarkdownToPdf(markdown: string, fileName: string): P
   const [pdfMake, texToSvg, inlineMath, images] = await Promise.all([
     loadPdfMake(),
     display.size ? import('./pdf/math').then((m) => m.texToSvg) : null,
-    hasInlineMath ? inlineMathConverter() : (s: string) => s,
+    hasInlineMath ? import('./pdf/inlineMath').then((m) => m.texToUnicode) : (s: string) => s,
     Promise.all([...imageUrls].map(async (u) => [u, await loadImage(u)] as const)),
   ])
 
