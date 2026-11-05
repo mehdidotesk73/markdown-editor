@@ -69,9 +69,26 @@ export default defineConfig({
         cleanupOutdatedCaches: true,
         // KaTeX's math fonts are .woff2; precache them so math renders offline.
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        // PDF export pulls in heavy pieces only when used: pdfmake / MathJax
+        // chunks and the PDF fonts. Don't precache them for everyone; cache
+        // them the first time someone exports, so export also works offline.
+        globIgnores: ['**/pdfmake-*.js', '**/math-*.js', '**/fonts/**'],
+        runtimeCaching: [
+          {
+            urlPattern: ({ url }) =>
+              url.origin === self.location.origin &&
+              (/\/fonts\/.+\.woff$/.test(url.pathname) || /\/assets\/(pdfmake|math)-.+\.js$/.test(url.pathname)),
+            handler: 'CacheFirst',
+            options: { cacheName: 'pdf-export', expiration: { maxEntries: 20 } },
+          },
+        ],
       },
     }),
   ],
+  build: {
+    // pdfmake and MathJax are lazy chunks, loaded only on PDF export.
+    chunkSizeWarningLimit: 1800,
+  },
   define: {
     __BUILD_ID__: JSON.stringify(buildId),
     __BUILD_TIME__: JSON.stringify(buildTime),

@@ -12,6 +12,14 @@ collapsible panes and a draggable divider, Save / Save as / Export PDF (html2pdf
 drafts + file handles persisted in IndexedDB, external-change pickup on focus, dark slate
 theme from power-gis, Help modal now renders `docs/concepts/*.md`.
 
+### v0.3.0 — Export PDF downloads directly, as real text (2026-11-05)
+
+No more print window: `exportMarkdownToPdf` builds the PDF with pdfmake and downloads it.
+`buildDocument` in `src/lib/pdf/markdownToPdf.ts` maps the preview's `marked` tokens to a
+pdfmake document; display math via MathJax SVG (`texToSvg`), inline math via Unicode
+(`texToUnicode`); DejaVu fonts in `public/fonts`. First unit tests (Vitest, 19 tests on layout
+and math), run in CI's `build` job.
+
 ### v0.2.0 — Clean PDF export, math, panel theme (2026-11-05)
 
 Export PDF now goes through the browser's print engine (`exportMarkdownToPdf` in
@@ -50,8 +58,9 @@ One-time setup — tick these off as they're done:
 
 - Relative image paths (`./pic.png`) don't render — the page can't read the file's folder.
   Could be fixed by also asking for directory access (`showDirectoryPicker`).
-- Export PDF needs one click in the print window ("Save as PDF"); browsers don't allow a
-  print-quality PDF to download silently.
+- PDF: inline math is approximated as Unicode text (`$\frac{a}{b}$` → "(a)/(b)"); only display
+  math is fully typeset. Web images whose host blocks cross-site requests (CORS) show their alt
+  text instead. Very long unbroken words or code lines overflow rather than wrap.
 
 ## Ideas / Backlog (Low Priority)
 

@@ -11,3 +11,6 @@ declare module '*.vue' {
   const component: DefineComponent<Record<string, unknown>, Record<string, unknown>, unknown>
   export default component
 }
+
+// pdfmake 0.3 ships no type declarations; it's used through a thin wrapper in lib/exportPdf.ts.
+declare module 'pdfmake/build/pdfmake'

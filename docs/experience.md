@@ -340,7 +340,29 @@ patching the parent's `Window.prototype` does nothing), capture its HTML, and re
 Playwright's `page.pdf({ preferCSSPageSize: true })` from the app's origin in a context with
 service workers blocked (otherwise the SW's navigate fallback serves the app instead).
 
+## What didn't work: PDF via the browser's print dialog
+
+The second Export PDF printed a hidden iframe (`print()`, user picks "Save as PDF"). Clean page
+breaks and real text — but the user rejected it: an extra dialog step for what should be a
+download, and on their machine the iframe's stylesheets didn't apply, so the PDF came out in the
+browser's default serif. **Build the PDF in the page and download it** (pdfmake, see
+`docs/system-design.md` §1c). Lessons from getting there:
+
+- **pdfmake 0.3 can't read woff2** ("Cannot read properties of undefined (reading 'version')");
+  `.woff` and `.ttf` work. Subset with fontTools, then save with `flavor = 'woff'`.
+- **Font coverage decides the font**, not looks: Noto Sans (Latin subset) lacks ∩ → ∈ ≤ etc.;
+  DejaVu Sans/Mono cover everything except ⨄ (which only appears inside math → MathJax paths).
+- **`$$ … $$` on one line is an inline token** (`inlineKatex` with `displayMode: true`) in
+  marked-katex-extension, not `blockKatex` — split the paragraph around it.
+- **MathJax's `AllPackages` isn't what makes it big**; the SVG glyph data is (~600 KB gz either way).
+
 ## Version History
+
+### v0.3.0 — 2026-11-05
+- **Changed:** Export PDF downloads a real-text PDF directly (pdfmake); print-dialog export removed
+- **Added:** Typeset display math in PDFs (MathJax SVG), DejaVu fonts, offline caching of export pieces
+- **Infrastructure:** Vitest unit tests (`npm test`), run in the CI `build` job
+- **Docs:** Help, README, CLAUDE.md, system-design §1c
 
 ### v0.2.0 — 2026-11-05
 - **Changed:** Export PDF uses the browser print engine (clean page breaks, selectable text); html2pdf.js removed

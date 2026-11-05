@@ -114,7 +114,7 @@ async function onExport() {
   exporting.value = true
   try {
     await exportMarkdownToPdf(active.value.content, active.value.name)
-    logDebug(`Opened the print window for ${active.value.name}`)
+    logDebug(`Exported ${active.value.name} to PDF`)
   } catch (e) {
     logDebug(`PDF export failed: ${(e as Error).message}`, 'error')
   } finally {
@@ -207,10 +207,10 @@ const helpDoc = ref('overview')
           tone="primary"
           icon="⤓"
           :disabled="exporting"
-          title="Export as PDF — opens the print window; choose “Save as PDF” (Ctrl/⌘+P)"
+          title="Download the document as a PDF (Ctrl/⌘+P)"
           @click="onExport"
         >
-          {{ exporting ? 'Preparing…' : 'Export PDF' }}
+          {{ exporting ? 'Exporting…' : 'Export PDF' }}
         </UiButton>
       </div>
 

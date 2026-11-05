@@ -11,7 +11,7 @@ A markdown editor for files on **your own computer**. The app runs entirely in y
 - **Focus modes:** click **⇤** on the Markdown pane to hide the editor and read the document full-width. Click **⇥** on the Preview pane to hide the preview and write full-width. Click the thin bar on the side to bring a pane back.
 - **Save** (or `Ctrl/⌘ S`) writes your changes back to the file on your computer. A tab with unsaved changes shows an amber ●.
 - **New file** (＋ on the tab bar) starts an empty tab; the first Save asks where to put the file.
-- **Export PDF** opens your browser's print window. Choose **Save as PDF** as the destination and click Save. The PDF keeps real, selectable text and never cuts a line in half between pages.
+- **Export PDF** downloads the document as a PDF straight away. The text in it is real (you can select and search it), pages never cut a line in half, and formulas are typeset. The first export takes a moment longer while the PDF tools and fonts load; after that they're kept for offline use too.
 - **Light / Dark** (top bar) switches the background inside the editor and preview between a soft light page and a dark one. Your choice is remembered.
 - **Math:** write LaTeX between dollar signs — `$x^2$` inside a sentence, or `$$ E = mc^2 $$` for a formula on its own line.
 
@@ -30,6 +30,10 @@ A: For your security the browser forgets permission to a file when the page relo
 **Q: I edited the file in another app. Will the editor see it?**
 
 A: Yes — when you switch back to the editor it re-reads the file. If you also had unsaved changes in that tab, your changes are kept and the tab stays marked unsaved.
+
+**Q: An image is missing from my PDF.**
+
+A: Images from the web are included when the site that hosts them allows it. Some sites block other pages from copying their images; the PDF then shows the image's description in its place.
 
 **Q: Images in my markdown don't show.**
 

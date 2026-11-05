@@ -1,80 +1,128 @@
-import { renderMarkdown } from './markdown'
+import type { Token, Tokens } from 'marked'
+import { lexMarkdown } from './markdownParser'
+import { buildDocument, isDisplayInline, BASE_SIZE, type PdfAssets, type RenderedMath } from './pdf/markdownToPdf'
+import { downloadBlob } from './fileAccess'
 
-/** "notes.md" → "notes" (the browser adds .pdf) */
-export function pdfTitle(name: string): string {
-  return name.replace(/\.(md|markdown|mdx|txt)$/i, '')
+/** "notes.md" → "notes.pdf" */
+export function pdfName(name: string): string {
+  return name.replace(/\.(md|markdown|mdx|txt)$/i, '') + '.pdf'
+}
+
+// Fonts live in public/fonts (DejaVu, subset to Latin/Greek/Cyrillic plus
+// punctuation, arrows and math symbols). pdfmake fetches them by URL on the
+// first export; the service worker caches them for later and offline use.
+function fontUrl(file: string) {
+  return new URL(`fonts/${file}`, document.baseURI).href
+}
+const FONTS = {
+  Sans: {
+    normal: fontUrl('DejaVuSans.woff'),
+    bold: fontUrl('DejaVuSans-Bold.woff'),
+    italics: fontUrl('DejaVuSans-Oblique.woff'),
+    bolditalics: fontUrl('DejaVuSans-BoldOblique.woff'),
+  },
+  Mono: {
+    normal: fontUrl('DejaVuSansMono.woff'),
+    bold: fontUrl('DejaVuSansMono-Bold.woff'),
+    italics: fontUrl('DejaVuSansMono.woff'),
+    bolditalics: fontUrl('DejaVuSansMono-Bold.woff'),
+  },
+}
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+let pdfMakePromise: Promise<any> | null = null
+function loadPdfMake() {
+  pdfMakePromise ??= import('pdfmake/build/pdfmake').then((m: any) => {
+    const pdfMake = m.default ?? m
+    pdfMake.addFonts(FONTS)
+    // Only our own font files may be fetched; images are inlined beforehand.
+    const origin = location.origin
+    pdfMake.setUrlAccessPolicy((url: string) => url.startsWith(origin + '/'))
+    return pdfMake
+  })
+  return pdfMakePromise
+}
+
+// ---- collect what needs async work ------------------------------------------
+
+function walk(tokens: Token[], visit: (t: Token) => void) {
+  for (const t of tokens) {
+    visit(t)
+    const anyT = t as any
+    if (Array.isArray(anyT.tokens)) walk(anyT.tokens, visit)
+    if (t.type === 'list') for (const item of (t as Tokens.List).items) walk(item.tokens, visit)
+    if (t.type === 'table') {
+      const tb = t as Tokens.Table
+      for (const c of tb.header) walk(c.tokens, visit)
+      for (const r of tb.rows) for (const c of r) walk(c.tokens, visit)
+    }
+  }
+}
+
+async function loadImage(url: string): Promise<{ dataUrl: string; width: number; height: number } | null> {
+  try {
+    const res = await fetch(url, { mode: 'cors' })
+    if (!res.ok) return null
+    const blob = await res.blob()
+    const bitmap = await createImageBitmap(blob)
+    // Re-encode to PNG: pdfmake only takes JPEG/PNG, and this also handles WebP/GIF/SVG.
+    const canvas = document.createElement('canvas')
+    canvas.width = bitmap.width
+    canvas.height = bitmap.height
+    canvas.getContext('2d')!.drawImage(bitmap, 0, 0)
+    return { dataUrl: canvas.toDataURL('image/png'), width: bitmap.width, height: bitmap.height }
+  } catch {
+    return null // CORS-blocked, offline, or not an image: the PDF shows the alt text
+  }
+}
+
+const textarea = document.createElement('textarea')
+function decode(s: string): string {
+  if (!s.includes('&')) return s
+  textarea.innerHTML = s
+  return textarea.value
 }
 
 /**
- * Export via the browser's own print engine: the rendered markdown goes into
- * a hidden iframe and its print dialog opens, where "Save as PDF" writes the
- * file. Unlike a screenshot-based PDF, pages break between lines (never
- * through them), text stays real and selectable, and math stays sharp.
- *
- * The iframe reuses the app's own stylesheets (markdown + KaTeX), and
- * `.md-print` forces black-on-white whatever the panel theme.
+ * Build a real-text PDF of the markdown and download it straight away.
+ * Heavy pieces load on first use only: pdfmake (~1 MB) on the first export,
+ * MathJax (~1.5 MB) only when a document has display math.
  */
 export async function exportMarkdownToPdf(markdown: string, fileName: string): Promise<void> {
-  const title = pdfTitle(fileName)
-  const frame = document.createElement('iframe')
-  frame.setAttribute('aria-hidden', 'true')
-  frame.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden'
-  document.body.appendChild(frame)
+  const tokens = lexMarkdown(markdown)
 
-  try {
-    const doc = frame.contentDocument!
-    doc.open()
-    doc.write('<!doctype html><html><head><meta charset="utf-8"></head><body></body></html>')
-    doc.close()
-    doc.title = title
-    // Resolve the app's relative asset URLs (CSS, KaTeX fonts) from here.
-    const base = doc.createElement('base')
-    base.href = location.href
-    doc.head.appendChild(base)
+  const display = new Set<string>()
+  const imageUrls = new Set<string>()
+  let hasInlineMath = false
+  walk(tokens, (t) => {
+    if (t.type === 'blockKatex' || isDisplayInline(t)) display.add((t as any).text)
+    else if (t.type === 'inlineKatex') hasInlineMath = true
+    if (t.type === 'image') imageUrls.add((t as Tokens.Image).href)
+  })
 
-    // Same CSS as the app (Vite bundles markdown.css + KaTeX into these).
-    const loads: Promise<unknown>[] = []
-    for (const node of document.querySelectorAll('link[rel="stylesheet"], style')) {
-      const copy = doc.importNode(node, true) as HTMLElement
-      if (copy instanceof HTMLLinkElement) {
-        loads.push(
-          new Promise((done) => {
-            copy.addEventListener('load', done)
-            copy.addEventListener('error', done)
-            setTimeout(done, 3000) // never hang the export on one stylesheet
-          }),
-        )
-      }
-      doc.head.appendChild(copy)
+  const [pdfMake, texToSvg, inlineMath, images] = await Promise.all([
+    loadPdfMake(),
+    display.size ? import('./pdf/math').then((m) => m.texToSvg) : null,
+    hasInlineMath ? import('./pdf/inlineMath').then((m) => m.texToUnicode) : (s: string) => s,
+    Promise.all([...imageUrls].map(async (u) => [u, await loadImage(u)] as const)),
+  ])
+
+  const math = new Map<string, RenderedMath>()
+  if (texToSvg) {
+    for (const tex of display) {
+      const r = texToSvg(tex, BASE_SIZE, '#1f2328')
+      if (r) math.set(tex, r)
     }
-    const page = doc.createElement('style')
-    page.textContent = `
-      @page { size: A4; margin: 16mm 15mm; }
-      :root { color-scheme: light; background: #ffffff !important; }
-      html, body { background: #ffffff !important; margin: 0; padding: 0; }
-      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    `
-    doc.head.appendChild(page)
-
-    const article = doc.createElement('article')
-    article.className = 'md-body md-print'
-    article.innerHTML = renderMarkdown(markdown)
-    doc.body.appendChild(article)
-
-    await Promise.all(loads)
-    await doc.fonts?.ready
-
-    // Chrome names the PDF after the top-level page title.
-    const appTitle = document.title
-    document.title = title
-    try {
-      frame.contentWindow!.focus()
-      frame.contentWindow!.print() // blocks until the dialog closes
-    } finally {
-      document.title = appTitle
-    }
-  } finally {
-    // Some browsers return from print() before printing; give them a moment.
-    setTimeout(() => frame.remove(), 1000)
   }
+
+  const assets: PdfAssets = {
+    math,
+    images: new Map(images.filter((e): e is [string, NonNullable<(typeof e)[1]>] => !!e[1])),
+    inlineMath,
+    decode,
+  }
+  const name = pdfName(fileName)
+  const def = buildDocument(tokens, name.replace(/\.pdf$/, ''), assets)
+  const blob: Blob = await pdfMake.createPdf(def).getBlob()
+  downloadBlob(name, blob)
 }
