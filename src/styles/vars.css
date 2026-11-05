@@ -66,12 +66,14 @@
      carried by light and shadow alone. Ordinary glass is clear and faintly
      smoky with a bright rim and milky light at its bottom edge; the main /
      selected element is *deep* glass the colour of the background, set apart
-     by a brighter rim, a crisp highlight and cool white light inside. */
+     by a brighter rim, a crisp highlight and warm off-white light inside. */
   --liquid-smoke: rgba(78, 72, 68, 0.16);
-  --liquid-rim: rgba(255, 255, 255, 0.5);
+  --liquid-white: 42 40% 95%; /* "H S% L%": every light on the glass — warm off-white,
+                                 like the light panel's page, never pure white */
+  --liquid-rim: hsl(var(--liquid-white) / 0.5);
   --liquid-milk: rgba(255, 244, 232, 0.2);
   --liquid-deep: 224 38% 9%; /* "H S% L%": the background, deeper */
-  --liquid-light: 214 45% 90%; /* "H S% L%": cool white light */
+  --liquid-light: 40 38% 88%; /* "H S% L%": the light collected inside — warm off-white */
 
   --mono: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
 

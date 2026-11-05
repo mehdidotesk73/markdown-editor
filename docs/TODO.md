@@ -20,7 +20,7 @@ available, popover reload and footer buttons (new `tag` size). Emoji icons remov
 labels only. The tab bar is a liquid nav: a clear glass pill where the active tab sits in a deep
 well pressed into the glass, springing to the next tab; names light up by distance
 (`labelSink`, `Spring` in `src/lib/liquidTabs.ts`, 3 tests).
-Main-action buttons are deep, background-coloured glass lit with cool white (`--liquid-deep`, `--liquid-light`); no accent hue in the glass, amber only as the small ● mark.
+Main-action buttons are deep, background-coloured glass (`--liquid-deep`); all light on the glass is warm off-white (`--liquid-white`, `--liquid-light`); no accent hue in the glass, amber only as the small ● mark.
 
 ### v0.3.0 — Export PDF downloads directly, as real text (2026-11-05)
 

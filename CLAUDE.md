@@ -50,7 +50,9 @@ needs attention (always with a ● or ⚠ mark), red = errors. Liquid-glass pale
 glass — selection is carried by light and shadow.** Ordinary buttons and the tab bar are clear,
 faintly smoky glass with a bright rim and milky light at the bottom; the main action and the
 selected tab use **deep glass the colour of the background** (`--liquid-deep`), set apart by a
-brighter rim, a crisp highlight and cool white light inside (`--liquid-light`). Status colours stay
+brighter rim, a crisp highlight and light collected inside (`--liquid-light`). **All light on the
+glass is warm off-white** (`--liquid-white`, matching the light panel's page) — never pure or cool
+white. Status colours stay
 as small marks (the amber ● on Save and unsaved tabs), never as tinted glass. The user rejected, in
 turn: saturated blue (dated), pale aqua, and teal + amber glass (clashed with the dark blue). Use tokens, never colour literals.
 **Every button** goes through `components/ui/UiButton.vue` (sizes tag/compact/regular/large,

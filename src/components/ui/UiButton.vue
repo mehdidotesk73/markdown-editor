@@ -75,7 +75,7 @@ defineSlots<{ default?(): unknown }>()
 
   background:
     /* specular highlight across the top */
-    radial-gradient(120% 75% at 50% -18%, hsl(0 0% 100% / var(--spec)), hsl(0 0% 100% / 0) 62%),
+    radial-gradient(120% 75% at 50% -18%, hsl(var(--liquid-white) / var(--spec)), hsl(var(--liquid-white) / 0) 62%),
     /* light collected along the bottom */
     radial-gradient(95% 85% at 50% 128%, hsl(var(--tint) / var(--glow)), hsl(var(--tint) / 0) 62%),
     /* the (mostly clear) body */
@@ -84,14 +84,14 @@ defineSlots<{ default?(): unknown }>()
   -webkit-backdrop-filter: blur(14px) saturate(185%) brightness(1.1);
   box-shadow:
     /* rim: brightest along the top, catching light down the sides and bottom */
-    inset 0 1px 0 hsl(0 0% 100% / 0.6),
-    inset 1px 0 0 hsl(0 0% 100% / 0.16),
-    inset -1px 0 0 hsl(0 0% 100% / 0.12),
+    inset 0 1px 0 hsl(var(--liquid-white) / 0.6),
+    inset 1px 0 0 hsl(var(--liquid-white) / 0.16),
+    inset -1px 0 0 hsl(var(--liquid-white) / 0.12),
     inset 0 -1px 0 hsl(var(--tint) / 0.38),
     /* internal glow rising from the bottom edge */
     inset 0 -0.55em 0.9em -0.45em hsl(var(--tint) / calc(var(--glow) * 1.4)),
     /* hairline outside, and depth */
-    0 0 0 0.5px hsl(0 0% 100% / 0.22),
+    0 0 0 0.5px hsl(var(--liquid-white) / 0.22),
     0 0.6em 1.1em -0.4em rgba(0, 0, 0, 0.5);
   transition:
     box-shadow 0.25s ease,
@@ -127,12 +127,12 @@ defineSlots<{ default?(): unknown }>()
   background-image: linear-gradient(
     105deg,
     transparent 22%,
-    hsl(0 0% 100% / 0.2) 22%,
-    hsl(0 0% 100% / 0.2) 31%,
+    hsl(var(--liquid-white) / 0.2) 22%,
+    hsl(var(--liquid-white) / 0.2) 31%,
     transparent 31%,
     transparent 34%,
-    hsl(0 0% 100% / 0.12) 34%,
-    hsl(0 0% 100% / 0.12) 38%,
+    hsl(var(--liquid-white) / 0.12) 34%,
+    hsl(var(--liquid-white) / 0.12) 38%,
     transparent 38%
   );
   background-size: 400% 100%;
@@ -154,14 +154,14 @@ defineSlots<{ default?(): unknown }>()
 .ui-btn:not(:disabled):hover {
   --spec: 0.58;
   --glow: calc(0.22 + 0.16);
-  --c: #fff;
+  --c: hsl(var(--liquid-white));
   box-shadow:
-    inset 0 1px 0 hsl(0 0% 100% / 0.78),
-    inset 1px 0 0 hsl(0 0% 100% / 0.22),
-    inset -1px 0 0 hsl(0 0% 100% / 0.18),
+    inset 0 1px 0 hsl(var(--liquid-white) / 0.78),
+    inset 1px 0 0 hsl(var(--liquid-white) / 0.22),
+    inset -1px 0 0 hsl(var(--liquid-white) / 0.18),
     inset 0 -1px 0 hsl(var(--tint) / 0.55),
     inset 0 -0.6em 1em -0.45em hsl(var(--tint) / 0.6),
-    0 0 0 0.5px hsl(0 0% 100% / 0.35),
+    0 0 0 0.5px hsl(var(--liquid-white) / 0.35),
     0 0.65em 1.2em -0.4em rgba(0, 0, 0, 0.55),
     0 0 1.1em -0.3em hsl(var(--tint) / 0.35);
 }
@@ -176,10 +176,10 @@ defineSlots<{ default?(): unknown }>()
 .ui-btn:not(:disabled):active {
   translate: 0 0.08em;
   box-shadow:
-    inset 0 1px 0 hsl(0 0% 100% / 0.4),
+    inset 0 1px 0 hsl(var(--liquid-white) / 0.4),
     inset 0 0.15em 0.35em hsl(0 0% 0% / 0.3),
     inset 0 -0.45em 0.8em -0.4em hsl(var(--tint) / 0.6),
-    0 0 0 0.5px hsl(0 0% 100% / 0.3),
+    0 0 0 0.5px hsl(var(--liquid-white) / 0.3),
     0 0.25em 0.5em -0.15em rgba(0, 0, 0, 0.5);
 }
 
@@ -222,7 +222,7 @@ defineSlots<{ default?(): unknown }>()
 /* tones */
 /* Main action / toggles that are on: deep glass the colour of the background.
    No hue — it stands out by light and shadow: a brighter rim, a crisp top
-   highlight, cool white light collected inside, and a deeper drop shadow. */
+   highlight, warm off-white light collected inside, and a deeper drop shadow. */
 .t-primary,
 .t-neutral.active {
   --tint: var(--liquid-light);
@@ -230,14 +230,14 @@ defineSlots<{ default?(): unknown }>()
   --body: 0.72;
   --glow: 0.3;
   --spec: 0.5;
-  --c: #fff;
+  --c: hsl(var(--liquid-white));
   box-shadow:
-    inset 0 1px 0 hsl(0 0% 100% / 0.75),
-    inset 1px 0 0 hsl(0 0% 100% / 0.22),
-    inset -1px 0 0 hsl(0 0% 100% / 0.18),
+    inset 0 1px 0 hsl(var(--liquid-white) / 0.75),
+    inset 1px 0 0 hsl(var(--liquid-white) / 0.22),
+    inset -1px 0 0 hsl(var(--liquid-white) / 0.18),
     inset 0 -1px 0 hsl(var(--tint) / 0.6),
     inset 0 -0.6em 1em -0.45em hsl(var(--tint) / 0.38),
-    0 0 0 0.5px hsl(0 0% 100% / 0.4),
+    0 0 0 0.5px hsl(var(--liquid-white) / 0.4),
     0 0.7em 1.3em -0.4em rgba(0, 0, 0, 0.75);
 }
 .t-primary:not(:disabled):hover,
@@ -245,12 +245,12 @@ defineSlots<{ default?(): unknown }>()
   --glow: 0.42;
   --spec: 0.62;
   box-shadow:
-    inset 0 1px 0 hsl(0 0% 100% / 0.9),
-    inset 1px 0 0 hsl(0 0% 100% / 0.28),
-    inset -1px 0 0 hsl(0 0% 100% / 0.24),
+    inset 0 1px 0 hsl(var(--liquid-white) / 0.9),
+    inset 1px 0 0 hsl(var(--liquid-white) / 0.28),
+    inset -1px 0 0 hsl(var(--liquid-white) / 0.24),
     inset 0 -1px 0 hsl(var(--tint) / 0.75),
     inset 0 -0.65em 1.1em -0.45em hsl(var(--tint) / 0.5),
-    0 0 0 0.5px hsl(0 0% 100% / 0.5),
+    0 0 0 0.5px hsl(var(--liquid-white) / 0.5),
     0 0.75em 1.4em -0.4em rgba(0, 0, 0, 0.8),
     0 0 1.1em -0.3em hsl(var(--tint) / 0.25);
 }
