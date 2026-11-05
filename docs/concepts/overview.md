@@ -1,4 +1,4 @@
-# About Markdown Editor
+# About Markdown Lab
 
 ## What is this app?
 

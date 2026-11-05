@@ -1,4 +1,4 @@
-# Markdown Editor
+# Markdown Lab
 
 A simple markdown editor for **files on your own computer**, hosted as a static site on
 Netlify at **https://markdown-lab.netlify.app**. Open a local `.md` file, write on the left, see it rendered on the right, and

@@ -189,9 +189,8 @@ onBeforeUnmount(endDrag)
 
       <!-- Preview -->
       <div v-if="layout.preview" class="pane preview-pane">
-        <header class="pane-head">
-          <span class="pane-title">Preview</span>
-          <span class="pane-meta" />
+        <!-- Collapse button on the inner edge, mirroring the editor's. -->
+        <header class="pane-head preview-head">
           <UiButton
             size="compact"
             icon="⇥"
@@ -199,6 +198,8 @@ onBeforeUnmount(endDrag)
             title="Collapse preview — edit focus"
             @click="togglePreview"
           />
+          <span class="pane-title">Preview</span>
+          <span class="pane-meta" />
         </header>
         <div ref="preview" class="preview-scroll">
           <!-- eslint-disable-next-line vue/no-v-html — sanitized by DOMPurify in lib/markdown.ts -->
@@ -285,6 +286,9 @@ onBeforeUnmount(endDrag)
 .pane-head :deep(.ui-btn:hover) {
   --c: var(--paper-text);
   border-color: var(--accent-blue);
+}
+.preview-head {
+  padding: 0 0.8rem 0 0.35rem;
 }
 .pane-title {
   font-size: 0.68rem;

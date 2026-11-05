@@ -43,8 +43,8 @@ export default defineConfig({
       injectRegister: false,
       includeAssets: ['favicon.svg'],
       manifest: {
-        name: 'Markdown Editor',
-        short_name: 'Markdown',
+        name: 'Markdown Lab',
+        short_name: 'Markdown Lab',
         description: 'Edit local markdown files side by side with a live preview',
         theme_color: '#0b0f18',
         background_color: '#0b0f18',

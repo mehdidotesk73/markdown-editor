@@ -180,7 +180,7 @@ const helpDoc = ref('overview')
     <header class="topbar">
       <div class="brand">
         <img src="/favicon.svg" alt="" class="logo" />
-        <h1 class="app-title">Markdown Editor</h1>
+        <h1 class="app-title">Markdown Lab</h1>
       </div>
 
       <div v-if="active" class="toolbar" role="toolbar" aria-label="File actions">
