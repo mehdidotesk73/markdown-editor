@@ -18,6 +18,11 @@ DOMPurify.addHook('afterSanitizeAttributes', (node) => {
   }
 })
 
+/** The same parse the preview uses, as tokens (for the PDF export). */
+export function lexMarkdown(md: string) {
+  return marked.lexer(md)
+}
+
 /** Markdown (GitHub-flavoured, with math) → sanitized HTML. Safe to bind with v-html. */
 export function renderMarkdown(md: string): string {
   return DOMPurify.sanitize(marked.parse(md) as string)

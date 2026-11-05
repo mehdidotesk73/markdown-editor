@@ -1,6 +1,6 @@
-/* Rendered-markdown styles, shared by the preview pane, the Help modal and
-   the PDF export. `.md-body` follows the app theme; `.md-body.md-print`
-   forces black-on-white for the PDF regardless of the on-screen theme. */
+/* Rendered-markdown styles, shared by the preview pane and the Help modal.
+   `.md-body` follows the panel ("paper") theme. The PDF export doesn't use
+   these: it lays the document out itself (src/lib/pdf/markdownToPdf.ts). */
 
 .md-body {
   --md-text: var(--paper-text);
@@ -14,17 +14,6 @@
   font-size: 1rem;
   line-height: 1.65;
   word-wrap: break-word;
-}
-
-.md-body.md-print {
-  --md-text: #1a1a1a;
-  --md-muted: #555b66;
-  --md-border: #d5d9e0;
-  --md-code-bg: #f3f5f8;
-  --md-quote: #4f8ef7;
-  --md-link: #1f5fd1;
-  background: #ffffff;
-  font-size: 11pt;
 }
 
 .md-body > :first-child {
@@ -122,9 +111,6 @@
   padding: 0;
   font-size: 0.85em;
 }
-.md-body.md-print pre {
-  white-space: pre-wrap;
-}
 
 .md-body table {
   border-collapse: collapse;
@@ -158,33 +144,4 @@
   overflow-x: auto;
   overflow-y: hidden;
   padding: 0.2em 0;
-}
-.md-body.md-print .katex-display {
-  overflow: visible;
-}
-
-/* PDF (print): keep atomic blocks whole and avoid lone lines at page edges.
-   The print engine never splits a line of text across pages. */
-.md-print pre,
-.md-print blockquote,
-.md-print img,
-.md-print tr,
-.md-print li,
-.md-print .katex-display {
-  break-inside: avoid;
-}
-.md-print p,
-.md-print li {
-  orphans: 3;
-  widows: 3;
-}
-.md-print h1,
-.md-print h2,
-.md-print h3,
-.md-print h4 {
-  break-after: avoid;
-  break-inside: avoid;
-}
-.md-print a {
-  text-decoration: none;
 }
