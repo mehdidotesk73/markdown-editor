@@ -67,16 +67,11 @@ export default defineConfig({
       },
       workbox: {
         cleanupOutdatedCaches: true,
-        // html2pdf (PDF export) is a lazy chunk over Workbox's 2 MB default;
-        // precache it too so export works offline.
-        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
+        // KaTeX's math fonts are .woff2; precache them so math renders offline.
+        globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
       },
     }),
   ],
-  build: {
-    // html2pdf (PDF export) is ~1 MB but lazy-loaded on first export.
-    chunkSizeWarningLimit: 1100,
-  },
   define: {
     __BUILD_ID__: JSON.stringify(buildId),
     __BUILD_TIME__: JSON.stringify(buildTime),
