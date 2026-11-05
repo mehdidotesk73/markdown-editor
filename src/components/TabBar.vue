@@ -229,12 +229,12 @@ function onKey(e: KeyboardEvent, t: Tab) {
         <svg class="bar-edge" :width="barW" :height="BAR_H" :viewBox="`0 0 ${barW} ${BAR_H}`" aria-hidden="true">
           <defs>
             <linearGradient id="tab-edge" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0" stop-color="#fff" stop-opacity="0.55" />
-              <stop offset="0.45" stop-color="#fff" stop-opacity="0.08" />
-              <stop offset="1" stop-color="#fff" stop-opacity="0.22" />
+              <stop offset="0" stop-color="#fff" stop-opacity="0.62" />
+              <stop offset="0.5" stop-color="#fff" stop-opacity="0.22" />
+              <stop offset="1" stop-color="#fff" stop-opacity="0.6" />
             </linearGradient>
           </defs>
-          <path :d="barPath" fill="none" stroke="url(#tab-edge)" stroke-width="1.2" />
+          <path :d="barPath" fill="none" stroke="url(#tab-edge)" stroke-width="1.5" />
         </svg>
 
         <div
@@ -326,10 +326,13 @@ function onKey(e: KeyboardEvent, t: Tab) {
   height: var(--bar-h);
   pointer-events: none;
 }
+/* Smoky glass: a sheen along the top, milky light pooling along the bottom. */
 .bar-glass {
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0.04) 55%, rgba(255, 255, 255, 0.08)),
-    rgba(20, 27, 42, 0.35);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0) 38%),
+    radial-gradient(130% 80% at 50% 135%, var(--liquid-milk), transparent 62%),
+    linear-gradient(180deg, rgba(255, 250, 245, 0.04), rgba(255, 250, 245, 0.1)),
+    var(--liquid-smoke);
   backdrop-filter: blur(18px) saturate(180%);
   -webkit-backdrop-filter: blur(18px) saturate(180%);
 }
@@ -443,9 +446,9 @@ function onKey(e: KeyboardEvent, t: Tab) {
   color: var(--text-muted);
   font-size: 1.1rem;
   font-weight: 400;
-  background: linear-gradient(hsl(0 0% 100% / 0.12), hsl(0 0% 100% / 0.02));
+  background: linear-gradient(hsl(0 0% 100% / 0.12), hsl(0 0% 100% / 0.02)), var(--liquid-smoke);
   box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.14),
+    0 0 0 1px rgba(255, 255, 255, 0.32),
     0 1px 2px rgba(255, 255, 255, 0.25) inset,
     0 3px 8px rgba(0, 0, 0, 0.35);
   transition:
@@ -454,8 +457,12 @@ function onKey(e: KeyboardEvent, t: Tab) {
     translate 0.15s;
 }
 .add:hover {
-  color: hsl(196 62% 20%);
-  background: linear-gradient(hsl(188 70% 95% / 0.9), hsl(186 78% 76% / 0.85));
+  color: var(--liquid-ink);
+  background: linear-gradient(var(--liquid-teal-top), var(--liquid-teal-bottom));
+  box-shadow:
+    0 0 0 1px var(--liquid-rim),
+    0 1px 1px rgba(255, 255, 255, 0.5) inset,
+    0 0 14px hsl(162 72% 62% / 0.35);
 }
 .add:active {
   translate: 0 1px;
@@ -482,8 +489,8 @@ function onKey(e: KeyboardEvent, t: Tab) {
   overflow: visible;
 }
 
-/* The bubble: a drop of pale, milky aqua glass — glossy highlight across the
-   top, light pooling at the bottom, darker text — sitting deep in the bar. */
+/* The bubble: a drop of deep teal glass — white rim, a soft highlight on
+   top, mint light pooling at the bottom and glowing around it. */
 .bubble {
   position: absolute;
   z-index: 2;
@@ -495,28 +502,26 @@ function onKey(e: KeyboardEvent, t: Tab) {
   justify-content: center;
   padding: 0 0.35rem 0 1rem;
   border-radius: 999px;
-  color: hsl(196 62% 20%);
+  color: var(--liquid-ink);
   font-size: 0.84rem;
   font-weight: 650;
-  text-shadow: 0 1px 0 hsl(0 0% 100% / 0.55);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
   background:
-    /* gloss band */
-    radial-gradient(90% 55% at 50% 8%, hsl(0 0% 100% / 0.85), hsl(0 0% 100% / 0) 70%),
-    /* body: milky ice to aqua */
-    linear-gradient(180deg, hsl(188 70% 95% / 0.92), hsl(190 72% 84% / 0.86) 55%, hsl(186 78% 74% / 0.9));
-  backdrop-filter: blur(10px) saturate(180%);
-  -webkit-backdrop-filter: blur(10px) saturate(180%);
+    radial-gradient(85% 55% at 50% 0%, hsl(0 0% 100% / 0.32), hsl(0 0% 100% / 0) 70%),
+    radial-gradient(90% 70% at 50% 120%, hsl(162 72% 70% / 0.35), transparent 65%),
+    linear-gradient(180deg, var(--liquid-teal-top), var(--liquid-teal-bottom));
+  backdrop-filter: blur(10px) saturate(160%);
+  -webkit-backdrop-filter: blur(10px) saturate(160%);
   box-shadow:
-    0 0 0 1px hsl(190 60% 92% / 0.8),
-    0 1px 1px hsl(0 0% 100% / 0.9) inset,
-    0 -6px 12px -4px hsl(180 85% 62% / 0.75) inset,
-    0 3px 6px -2px hsl(0 0% 100% / 0.5) inset,
+    0 0 0 1px var(--liquid-rim),
+    0 1px 1px hsl(0 0% 100% / 0.55) inset,
+    0 -5px 10px -4px hsl(162 72% 70% / 0.55) inset,
     0 10px 18px -8px rgba(0, 0, 0, 0.65),
-    0 0 22px hsl(185 90% 75% / 0.28);
+    0 0 20px hsl(162 72% 62% / 0.3);
   will-change: transform, width;
 }
 .bubble::before {
-  /* the light it casts down into the dent */
+  /* the mint light it casts down into the dent */
   content: '';
   position: absolute;
   z-index: -1;
@@ -525,7 +530,7 @@ function onKey(e: KeyboardEvent, t: Tab) {
   top: 90%;
   height: 12px;
   border-radius: 50%;
-  background: radial-gradient(closest-side, hsl(185 90% 78% / 0.55), transparent);
+  background: radial-gradient(closest-side, hsl(162 72% 66% / 0.55), transparent);
   filter: blur(2px);
 }
 .bubble-label {
@@ -541,12 +546,10 @@ function onKey(e: KeyboardEvent, t: Tab) {
   pointer-events: auto;
 }
 .bubble .x:hover {
-  background: hsl(196 60% 30% / 0.14);
+  background: hsl(0 0% 100% / 0.18);
 }
-.bubble .x .dot {
-  color: hsl(32 95% 46%);
-}
+.bubble .x .dot,
 .bubble .warn {
-  color: hsl(32 95% 42%);
+  color: hsl(43 100% 66%);
 }
 </style>

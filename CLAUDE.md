@@ -46,9 +46,11 @@ How files work (see `src/lib/fileAccess.ts`, `src/lib/useTabs.ts`):
 
 **Theme:** dark-only slate palette borrowed from `mehdidotesk73/power-gis` (`src/styles/vars.css`).
 Accents have one job each — blue = interaction (links, focus), green = saved, amber = unsaved /
-needs attention (always with a ● or ⚠ mark), red = errors. The main action and the active tab
-use **pale liquid aqua glass** (milky ice→aqua body, glossy top band, dark teal text) — the user
-found saturated blue buttons dated. Use tokens, never colour literals.
+needs attention (always with a ● or ⚠ mark), red = errors. Liquid-glass palette (`--liquid-*` in `vars.css`, from the user's
+reference navs): **smoky warm-neutral glass** with a bright white rim and milky light pooling at
+the bottom for the tab bar and ordinary buttons; **deep teal glass with a mint glow and white text**
+for the selected tab's bubble and the main action. The user rejected saturated blue (dated) and
+pale aqua. Use tokens, never colour literals.
 **Every button** goes through `components/ui/UiButton.vue` (sizes tag/compact/regular/large,
 tones by job) — no hand-styled `<button>`s in the chrome. The look is **liquid glass**: each
 tone sets a hue (`--h/--s/--l`) the glass is lit with — layered inset light (lit top edge, glow
@@ -59,7 +61,7 @@ pictures and break the glass): button labels are text; `icon` is only for plain 
 
 **Tab bar (`TabBar.vue`) is a liquid nav:** a frosted glass bar drawn as an SVG path with a deep
 dent that follows the bubble's own outline (arcs around its round ends, rounded lips at the top
-edge); the active tab rides in a pale aqua glass bubble sitting deep in it. Tabs are spaced from
+edge); the active tab rides in a teal glass bubble sitting deep in it. Tabs are spaced from
 `dentSpread()` so neighbours clear the dent; the bubble is sized from hidden measuring copies of
 its (bolder) label. Switching tabs springs the bubble (and the dent)
 to the new tab; each name in the bar sinks and fades in proportion to the bubble's distance, and
