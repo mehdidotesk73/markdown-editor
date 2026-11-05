@@ -34,7 +34,7 @@ This is a Vue 3 + TypeScript + Vite single-page app (SPA) that works as a progre
 │  │  ├─ useTabs (store + IndexedDB)   │  │
 │  │  ├─ fileAccess (FS Access API)    │  │
 │  │  ├─ markdown (marked+DOMPurify)   │  │
-│  │  └─ exportPdf (html2pdf, lazy)    │  │
+│  │  └─ exportPdf (print iframe)      │  │
 │  └───────────────────────────────────┘  │
 │  ┌───────────────────────────────────┐  │
 │  │  Local files on the user's disk   │  │
@@ -55,8 +55,13 @@ This is a Vue 3 + TypeScript + Vite single-page app (SPA) that works as a progre
   file. A clean tab follows the disk; a dirty tab keeps the draft and compares against the new
   disk text.
 - **Save:** linked → `createWritable()`; unlinked → `showSaveFilePicker` (links the tab); no API →
-  download. **Export PDF** renders the markdown into a detached `.md-body.md-print` element and
-  hands it to html2pdf (A4, 15 mm margins, raster pages).
+  download. **Export PDF** builds a hidden iframe: the app's stylesheets are cloned in (with a
+  `<base>` so their relative URLs and KaTeX fonts resolve), `@page { size: A4; margin: 16mm 15mm }`
+  and `color-scheme: light` are added, the markdown is rendered into `.md-body.md-print`, and
+  after stylesheets + fonts load the iframe's `print()` opens the dialog. The parent's
+  `document.title` is set to the file name for the duration, since Chrome names the PDF after it.
+- **Math:** `marked-katex-extension` (standard mode) runs inside the `marked` instance in
+  `lib/markdown.ts`; KaTeX's HTML+MathML output passes DOMPurify unchanged.
 
 ## §2 — Header/Footer Wrapper Template
 
@@ -96,7 +101,7 @@ This is the shell that wraps every page/tab. It provides version checking, updat
 
 ### Styling
 
-Uses CSS custom properties (`--bg-elev`, `--text`, `--border`, etc.) for theming — a dark-only slate palette from power-gis (`src/styles/vars.css`). Rendered markdown uses `src/styles/markdown.css` (`.md-body` on screen, `.md-body.md-print` forced black-on-white for PDF). Mobile-safe padding with `safe-area-inset` for notch/bottom-bar devices.
+Uses CSS custom properties (`--bg-elev`, `--text`, `--border`, etc.) for theming — a dark-only slate palette from power-gis (`src/styles/vars.css`). The inside of the editor/preview panes uses a separate **paper** layer — `--paper-*` tokens, dark by default, `.paper-light` on `Workspace.vue`'s root for the light page (toggle: `lib/usePaperTheme.ts`). Neither variant uses pure white. Rendered markdown uses `src/styles/markdown.css` (`.md-body` reads the paper tokens on screen; `.md-body.md-print` forces black-on-white for PDF). Mobile-safe padding with `safe-area-inset` for notch/bottom-bar devices.
 
 ## §3 — Data Layer (api/)
 

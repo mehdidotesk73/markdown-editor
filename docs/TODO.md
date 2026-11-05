@@ -12,6 +12,14 @@ collapsible panes and a draggable divider, Save / Save as / Export PDF (html2pdf
 drafts + file handles persisted in IndexedDB, external-change pickup on focus, dark slate
 theme from power-gis, Help modal now renders `docs/concepts/*.md`.
 
+### v0.2.0 — Clean PDF export, math, panel theme (2026-11-05)
+
+Export PDF now goes through the browser's print engine (`exportMarkdownToPdf` in
+`src/lib/exportPdf.ts`: hidden iframe + `print()`), replacing html2pdf — no more lines cut in
+half at page breaks, text is selectable, ~1 MB lighter. LaTeX math via KaTeX
+(`marked-katex-extension` in `src/lib/markdown.ts`). Light/Dark panel theme
+(`src/lib/usePaperTheme.ts`, `--paper-*` tokens) with off-white tones in both modes.
+
 ## Next (Current Sprint)
 
 One-time setup — tick these off as they're done:
@@ -24,7 +32,6 @@ One-time setup — tick these off as they're done:
 
 ## Code
 
-- Offer a vector (selectable-text) PDF option via the browser's print dialog
 - Syntax highlighting in code blocks (preview + PDF)
 
 ## Docs
@@ -43,10 +50,11 @@ One-time setup — tick these off as they're done:
 
 - Relative image paths (`./pic.png`) don't render — the page can't read the file's folder.
   Could be fixed by also asking for directory access (`showDirectoryPicker`).
-- PDF pages are images (html2canvas), so text in the PDF isn't selectable.
+- Export PDF needs one click in the print window ("Save as PDF"); browsers don't allow a
+  print-quality PDF to download silently.
 
 ## Ideas / Backlog (Low Priority)
 
 - Open a whole folder as a sidebar of files
 - PWA `file_handlers` so .md files can be opened from the OS straight into the installed app
-- Light theme toggle
+- Light theme for the app chrome too (the panels already have one)

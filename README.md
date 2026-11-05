@@ -10,7 +10,11 @@ Netlify at **https://markdown-lab.netlify.app**. Open a local `.md` file, write 
 - **Tabs** — each tab points to its own local file. Amber ● = unsaved changes.
 - **Split view** — markdown source on the left, live preview on the right, draggable divider.
 - **Focus modes** — collapse the editor for read focus, or the preview for edit focus.
-- **Export PDF** — downloads the rendered document as an A4 PDF.
+- **Export PDF** — opens the print window; choose **Save as PDF**. Pages break cleanly and
+  the text stays selectable.
+- **Math** — LaTeX via KaTeX: `$x^2$` inline, `$$ … $$` for display formulas.
+- **Panel theme** — Light or Dark paper inside the editor and preview (off-white, never
+  pure white); the rest of the app stays dark.
 - **Nothing lost** — tabs and unsaved drafts survive reloads; the app warns before
   closing a tab or the window with unsaved edits.
 - Picks up changes made to the file in other apps when you switch back to the editor.
@@ -31,7 +35,7 @@ on the banner.
 ## Development
 
 Built with Vue 3 + TypeScript + Vite (PWA), `marked` + `DOMPurify` for rendering,
-`html2pdf.js` for PDF export, `idb-keyval` for storing tabs.
+KaTeX for math, the browser's print engine for PDF export, `idb-keyval` for storing tabs.
 
 ```bash
 npm install

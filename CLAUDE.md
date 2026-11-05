@@ -12,7 +12,8 @@ runs in the browser and reads/writes local files through the File System Access 
 
 UI structure:
 
-- **Top bar** — title, file actions (Open, Save, Save as…, Export PDF), Help.
+- **Top bar** — title, file actions (Open, Save, Save as…, Export PDF), panel theme
+  toggle (Light/Dark), Help.
 - **Tab bar** — one tab per open file; amber ● = unsaved, ⚠ = needs reconnecting, italic =
   not linked to a file yet; ＋ makes a new untitled tab.
 - **Workspace** (`Workspace.vue`) — markdown source (left) and rendered preview (right),
@@ -29,15 +30,25 @@ How files work (see `src/lib/fileAccess.ts`, `src/lib/useTabs.ts`):
   other apps show up (unless the tab has unsaved edits — then the draft wins).
 - **Safari / Firefox / phones:** no File System Access API. Open uses a file input; Save
   downloads a copy. Drafts still persist in IndexedDB.
-- **PDF export** (`src/lib/exportPdf.ts`) uses `html2pdf.js` (lazy-loaded, ~1 MB) to render
-  the preview to an A4 PDF, always black-on-white via `.md-print` in `styles/markdown.css`.
-  The PDF is an image per page (text isn't selectable).
-- Markdown rendering: `marked` (GFM) → `DOMPurify` (`src/lib/markdown.ts`).
+- **PDF export** (`src/lib/exportPdf.ts`) uses the browser's print engine: the rendered
+  markdown goes into a hidden iframe (reusing the app's stylesheets, `<base>` set to the app
+  URL) and its print dialog opens — the user picks "Save as PDF". Always black-on-white via
+  `.md-print` in `styles/markdown.css`, A4 via `@page`. Pages break between lines and text is
+  selectable. Don't go back to html2pdf/html2canvas — see `docs/experience.md`.
+- **Math:** KaTeX via `marked-katex-extension` in standard mode (`$x$`, `$$ … $$`; "$5 and
+  $10" stays text). Its `.woff2` fonts are precached by Workbox for offline use.
+- Markdown rendering: `marked` (GFM + KaTeX) → `DOMPurify` (`src/lib/markdown.ts`).
 
 **Theme:** dark-only slate palette borrowed from `mehdidotesk73/power-gis` (`src/styles/vars.css`).
 Accents have one job each — blue = interaction, green = saved, amber = unsaved / needs
 attention (always with a ● or ⚠ mark), red = errors. Use tokens, never colour literals.
 Buttons go through `components/ui/UiButton.vue` (sizes compact/regular/large, tones by job).
+
+**Panel ("paper") theme:** the inside of the editor and preview panes uses its own
+`--paper-*` tokens (`vars.css`): dark by default, `.paper-light` swaps in a warm light page.
+Neither uses pure white text or background — the user asked for off-white on both. Toggle state
+lives in `src/lib/usePaperTheme.ts` (localStorage). `.md-body` reads `--paper-*`, so the Help
+modal follows the dark default.
 
 The app is wrapped in the template's header/footer shell. The top bar carries the Help button (renders `docs/concepts/*.md`) and an "Update available" affordance when a newer PWA build is live — a background update never auto-reloads while a tab has unsaved edits. The footer provides the current build id/timestamp, version-check status against the live origin, a "Reload latest" button to force-refresh a stale cache, and a collapsible debug log with copy-to-clipboard support. See `docs/system-design.md` §2 for the full wrapper template and implementation details.
 
@@ -120,8 +131,9 @@ src/
   lib/
     fileAccess.ts          File System Access API + fallbacks (file input / download)
     useTabs.ts             tab store: open/new/save/close, IndexedDB persistence, disk refresh
-    markdown.ts            marked (GFM) + DOMPurify
-    exportPdf.ts           html2pdf.js (lazy) → A4 PDF download
+    markdown.ts            marked (GFM + KaTeX math) + DOMPurify
+    exportPdf.ts           hidden iframe → browser print dialog ("Save as PDF")
+    usePaperTheme.ts       Light/Dark panel theme (localStorage)
     useVersionCheck.ts     compares the running build with the live one
   components/
     Workspace.vue          editor + preview panes, collapse rails, draggable divider, scroll sync
@@ -129,7 +141,7 @@ src/
     HelpModal.vue          renders docs/concepts/*.md into the Help modal
     ui/UiButton.vue        the app's button (sizes + tones)
   styles/
-    vars.css               theme tokens (dark slate, from power-gis)
+    vars.css               theme tokens (dark slate, from power-gis) + --paper-* panel tokens
     markdown.css           rendered-markdown styles: .md-body (screen) / .md-print (PDF)
 .claude/skills/            finish-setup, ship-feature, add-github-pages, add-statefulness,
                            add-database, update-skills, share-pattern
