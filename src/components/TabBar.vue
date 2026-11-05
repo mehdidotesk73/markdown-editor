@@ -17,18 +17,18 @@ const emit = defineEmits<{
   (e: 'new'): void
 }>()
 
-// Geometry (px). The bubble sits deep in the bar — only its top third rises
-// above — and the dent follows its outline at a small gap.
-const PAD_TOP = 12 // room above the bar for the bubble
+// Geometry (px). The bubble rides mostly above the bar, pressing a smooth
+// valley into its top edge, like a drop sitting in liquid.
+const PAD_TOP = 22 // room above the bar for the bubble
 const BAR_H = 48
 const BUBBLE_H = 36
 const BUBBLE_CY = BUBBLE_H / 2 - PAD_TOP // bubble centre line, relative to the bar's top edge
-const GAP = 5 // between bubble and dent
-const FILLET = 11 // rounded lip where the dent meets the bar's top edge
+const GAP = 5 // between the bubble's underside and the valley floor
+const SHOULDER = 1.15 // how gently the valley's sides run out (× bubble radius)
 const BUBBLE_EXTRA = 8 // bubble is at least this much wider than the tab under it
 const BOLD_SLACK = 14 // the bubble's bolder label can run this much wider again
 // Tabs sit far enough apart that a neighbour's name clears the dent's lip.
-const SPREAD = dentSpread({ bubbleHeight: BUBBLE_H, bubbleCenterY: BUBBLE_CY, gap: GAP, fillet: FILLET })
+const SPREAD = dentSpread({ bubbleHeight: BUBBLE_H, gap: GAP, shoulder: SHOULDER })
 const TAB_GAP = Math.ceil((BUBBLE_EXTRA + BOLD_SLACK) / 2 + SPREAD + 2)
 
 const scroller = ref<HTMLElement>()
@@ -163,7 +163,7 @@ const barPath = computed(() =>
     bubbleHeight: BUBBLE_H,
     bubbleCenterY: BUBBLE_CY,
     gap: GAP,
-    fillet: FILLET,
+    shoulder: SHOULDER,
   }),
 )
 
@@ -326,12 +326,13 @@ function onKey(e: KeyboardEvent, t: Tab) {
   height: var(--bar-h);
   pointer-events: none;
 }
-/* Smoky glass: a sheen along the top, milky light pooling along the bottom. */
+/* Clear, faintly smoky glass: a sheen along the top, milky light collected
+   inside along the bottom edge. The backdrop blurs through it. */
 .bar-glass {
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0) 38%),
-    radial-gradient(130% 80% at 50% 135%, var(--liquid-milk), transparent 62%),
-    linear-gradient(180deg, rgba(255, 250, 245, 0.04), rgba(255, 250, 245, 0.1)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0) 34%),
+    radial-gradient(120% 95% at 50% 140%, rgba(255, 246, 236, 0.3), transparent 60%),
+    linear-gradient(180deg, rgba(255, 250, 245, 0.02), rgba(255, 250, 245, 0.07)),
     var(--liquid-smoke);
   backdrop-filter: blur(18px) saturate(180%);
   -webkit-backdrop-filter: blur(18px) saturate(180%);
@@ -457,8 +458,10 @@ function onKey(e: KeyboardEvent, t: Tab) {
     translate 0.15s;
 }
 .add:hover {
-  color: var(--liquid-ink);
-  background: linear-gradient(var(--liquid-teal-top), var(--liquid-teal-bottom));
+  color: #fff;
+  background:
+    radial-gradient(95% 85% at 50% 128%, hsl(162 75% 66% / 0.6), transparent 62%),
+    linear-gradient(180deg, hsl(166 55% 50% / 0.18), hsl(168 60% 42% / 0.36));
   box-shadow:
     0 0 0 1px var(--liquid-rim),
     0 1px 1px rgba(255, 255, 255, 0.5) inset,
@@ -489,8 +492,8 @@ function onKey(e: KeyboardEvent, t: Tab) {
   overflow: visible;
 }
 
-/* The bubble: a drop of deep teal glass — white rim, a soft highlight on
-   top, mint light pooling at the bottom and glowing around it. */
+/* The bubble: a drop of teal-tinted clear glass — specular highlight on
+   top, a bright rim, mint light collected inside along the bottom. */
 .bubble {
   position: absolute;
   z-index: 2;
@@ -502,22 +505,25 @@ function onKey(e: KeyboardEvent, t: Tab) {
   justify-content: center;
   padding: 0 0.35rem 0 1rem;
   border-radius: 999px;
-  color: var(--liquid-ink);
+  color: #fff;
   font-size: 0.84rem;
   font-weight: 650;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
   background:
-    radial-gradient(85% 55% at 50% 0%, hsl(0 0% 100% / 0.32), hsl(0 0% 100% / 0) 70%),
-    radial-gradient(90% 70% at 50% 120%, hsl(162 72% 70% / 0.35), transparent 65%),
-    linear-gradient(180deg, var(--liquid-teal-top), var(--liquid-teal-bottom));
-  backdrop-filter: blur(10px) saturate(160%);
-  -webkit-backdrop-filter: blur(10px) saturate(160%);
+    radial-gradient(120% 75% at 50% -18%, hsl(0 0% 100% / 0.5), hsl(0 0% 100% / 0) 60%),
+    radial-gradient(95% 85% at 50% 128%, hsl(162 75% 66% / 0.7), hsl(162 75% 66% / 0) 62%),
+    linear-gradient(180deg, hsl(166 55% 50% / 0.18), hsl(168 60% 42% / 0.36));
+  backdrop-filter: blur(12px) saturate(190%) brightness(1.1);
+  -webkit-backdrop-filter: blur(12px) saturate(190%) brightness(1.1);
   box-shadow:
-    0 0 0 1px var(--liquid-rim),
-    0 1px 1px hsl(0 0% 100% / 0.55) inset,
-    0 -5px 10px -4px hsl(162 72% 70% / 0.55) inset,
-    0 10px 18px -8px rgba(0, 0, 0, 0.65),
-    0 0 20px hsl(162 72% 62% / 0.3);
+    inset 0 1px 0 hsl(0 0% 100% / 0.75),
+    inset 1px 0 0 hsl(0 0% 100% / 0.22),
+    inset -1px 0 0 hsl(0 0% 100% / 0.18),
+    inset 0 -1px 0 hsl(162 75% 75% / 0.6),
+    inset 0 -0.6em 1em -0.45em hsl(162 75% 66% / 0.75),
+    0 0 0 0.5px hsl(0 0% 100% / 0.35),
+    0 12px 20px -10px rgba(0, 0, 0, 0.6),
+    0 0 22px hsl(162 72% 62% / 0.3);
   will-change: transform, width;
 }
 .bubble::before {

@@ -1,34 +1,49 @@
 import { describe, it, expect } from 'vitest'
-import { dentPath, dentSpread, labelSink, Spring } from './liquidTabs'
+import { dentGeometry, dentPath, dentSpread, labelSink, Spring } from './liquidTabs'
 
 describe('liquid tab bar', () => {
-  const base = { width: 600, height: 46, center: 300, bubbleWidth: 120, bubbleHeight: 36, bubbleCenterY: -6, gap: 5 }
+  const base = { width: 600, height: 48, center: 300, bubbleWidth: 120, bubbleHeight: 36, bubbleCenterY: -4, gap: 5 }
 
-  it('draws a closed pill whose top edge dips around the bubble', () => {
+  it('draws a closed pill whose top edge flows down into a valley and back', () => {
     const d = dentPath(base)
-    expect(d.startsWith('M23,0')).toBe(true)
+    expect(d.startsWith('M24,0')).toBe(true)
     expect(d.endsWith('Z')).toBe(true)
-    // the floor runs under the bubble at centre + radius + gap = -6 + 18 + 5
-    expect(d).toContain(',17 L')
+    // floor sits gap below the bubble's bottom: -4 + 18 + 5
+    expect(d).toContain(',19 L')
+    // smooth S-curves, no arcs, inside the valley
+    expect((d.match(/C/g) ?? []).length).toBe(2)
+    expect(d.indexOf('A')).toBeGreaterThan(d.lastIndexOf('C')) // arcs only at the bar's ends
   })
 
-  it('hugs the bubble: the floor spans its flat bottom, the arcs its round ends', () => {
-    const d = dentPath(base)
-    // bubble 120 wide with radius 18 → round-end centres at 258 and 342
-    expect(d).toContain('258,17 L342,17')
-    expect(d).toContain('A23,23 0 0 0') // arcs of radius 18 + 5 around each end
+  it('keeps the bubble clear of the valley all the way along', () => {
+    const g = dentGeometry(base)
+    const c = base.center
+    // left S-curve as a cubic Bézier, sampled
+    const a = c - g.flat - g.side
+    const b = c - g.flat
+    const m = g.side / 2
+    const P = [[a, 0], [a + m, 0], [b - m, g.depth], [b, g.depth]]
+    // the bubble's left round end: circle at (b, cy) radius R
+    for (let i = 0; i <= 40; i++) {
+      const t = i / 40
+      const u = 1 - t
+      const x = u ** 3 * P[0][0] + 3 * u * u * t * P[1][0] + 3 * u * t * t * P[2][0] + t ** 3 * P[3][0]
+      const y = u ** 3 * P[0][1] + 3 * u * u * t * P[1][1] + 3 * u * t * t * P[2][1] + t ** 3 * P[3][1]
+      const dist = Math.hypot(x - b, y - base.bubbleCenterY) - g.R
+      expect(dist).toBeGreaterThan(base.gap * 0.5)
+    }
   })
 
-  it('reports how far the dent spreads past the bubble, for spacing tabs', () => {
+  it('reports how far the valley reaches past the bubble, for spacing tabs', () => {
     const s = dentSpread(base)
-    expect(s).toBeGreaterThan(base.gap) // wider than the gap alone: the lip rolls out too
-    expect(s).toBeLessThan(25)
+    expect(s).toBeGreaterThan(base.gap)
+    expect(s).toBeLessThan(30)
   })
 
-  it('keeps the dent off the rounded ends of the bar', () => {
+  it('keeps the valley off the rounded ends of the bar', () => {
     const d = dentPath({ ...base, center: 10 })
-    const lipStart = Number(/L([\d.]+),0/.exec(d)![1])
-    expect(lipStart).toBeGreaterThanOrEqual(23)
+    const start = Number(/L([\d.]+),0/.exec(d)![1])
+    expect(start).toBeGreaterThanOrEqual(24)
   })
 
   it('draws nothing for a bar too small to have a straight edge', () => {

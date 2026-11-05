@@ -5,72 +5,68 @@ export interface DentOptions {
   /** Bar width and height (px). The bar's ends are fully rounded. */
   width: number
   height: number
-  /** The bubble: centre x, width, and the y of its centre line relative to
-   *  the bar's top edge (negative = above the bar). Its ends are round. */
+  /** The bubble: centre x, width, height, and the y of its centre line
+   *  relative to the bar's top edge (negative = above the bar). */
   center: number
   bubbleWidth: number
   bubbleHeight: number
   bubbleCenterY: number
-  /** Clearance between the bubble and the dent around it. */
+  /** Clearance between the bubble's underside and the dent's floor. */
   gap: number
-  /** Radius of the rounded lip where the dent meets the bar's top edge. */
-  fillet?: number
+  /** Extra run of each side of the valley beyond the bubble's round end,
+   *  as a fraction of the bubble's radius — wider is gentler. */
+  shoulder?: number
 }
 
 const f = (n: number) => (Math.round(n * 10) / 10).toString()
 
 /**
- * How far the dent spreads past each side of the bubble along the bar's top
- * edge (so tabs can be spaced to clear it).
+ * The dent as a smooth valley in the bar's top edge, as if the bubble were
+ * pressing into liquid: each side is an S-curve (horizontal at both ends)
+ * from the top edge down to a gentle floor under the bubble's flat bottom.
+ * Returns the control points, so tests can check the bubble clears it.
  */
-export function dentSpread(o: Pick<DentOptions, 'bubbleHeight' | 'bubbleCenterY' | 'gap' | 'fillet'>): number {
+export function dentGeometry(o: DentOptions) {
   const R = o.bubbleHeight / 2
-  const Ro = R + o.gap
-  const rf = o.fillet ?? 10
-  const reach = Math.sqrt(Math.max(0, (Ro + rf) ** 2 - (rf - o.bubbleCenterY) ** 2))
-  return reach - R
+  const flat = Math.max(0, o.bubbleWidth / 2 - R) // half the bubble's flat bottom
+  const depth = Math.max(0, o.bubbleCenterY + R + o.gap)
+  const side = R + o.gap + R * (o.shoulder ?? 1.15) // run of each S-curve
+  return { R, flat, depth, side }
+}
+
+/** How far the valley reaches past each side of the bubble (to space tabs). */
+export function dentSpread(o: Pick<DentOptions, 'bubbleHeight' | 'gap' | 'shoulder'>): number {
+  const R = o.bubbleHeight / 2
+  return o.gap + R * (o.shoulder ?? 1.15)
 }
 
 /**
- * SVG path of the bar: a pill whose top edge dips into a dent that follows
- * the bubble's own contour — two arcs hugging its round ends and a floor
- * under its flat bottom, offset by `gap` — with rounded lips where the dent
- * meets the top edge. Used for both the glass (clip-path) and its lit edge.
+ * SVG path of the bar: a pill whose top edge flows down into the valley.
+ * Used for both the glass (clip-path) and its lit rim.
  */
 export function dentPath(o: DentOptions): string {
   const { width: W, height: H } = o
   const r = H / 2
   if (W <= 2 * r) return ''
-  const R = o.bubbleHeight / 2
-  const Ro = R + o.gap // dent radius around each round end
-  const rf = o.fillet ?? 10
-  const cy = o.bubbleCenterY
-  const half = Math.max(R, o.bubbleWidth / 2)
-  const spread = dentSpread(o)
+  const { flat, depth: d0, side } = dentGeometry(o)
+  const d = Math.min(d0, H - 8)
 
-  // Keep the whole dent on the straight part of the top edge.
-  const lo = r + half + spread
-  const hi = W - r - half - spread
+  // Keep the whole valley on the straight part of the top edge.
+  const lo = r + flat + side
+  const hi = W - r - flat - side
   const c = lo <= hi ? Math.max(lo, Math.min(o.center, hi)) : W / 2
 
-  const cL = c - half + R // centres of the bubble's round ends
-  const cR = c + half - R
-  const floor = cy + Ro
-  const reach = spread + R // from an end's centre to where the lip leaves the top edge
-  // Where each lip (fillet circle at height rf) touches the dent arc.
-  const k = Ro / (Ro + rf)
-  const tLx = cL + (-reach) * k
-  const tRx = cR + reach * k
-  const tY = cy + (rf - cy) * k
-
+  const a = c - flat - side // valley starts
+  const b = c - flat // floor starts
+  const e = c + flat // floor ends
+  const z = c + flat + side // valley ends
+  const m = side / 2 // S-curve handles: halfway along each side
   return [
     `M${f(r)},0`,
-    `L${f(cL - reach)},0`,
-    `A${f(rf)},${f(rf)} 0 0 1 ${f(tLx)},${f(tY)}`, // lip rolls over the edge
-    `A${f(Ro)},${f(Ro)} 0 0 0 ${f(cL)},${f(floor)}`, // down around the bubble's left end
-    `L${f(cR)},${f(floor)}`, // under its flat bottom
-    `A${f(Ro)},${f(Ro)} 0 0 0 ${f(tRx)},${f(tY)}`, // up around its right end
-    `A${f(rf)},${f(rf)} 0 0 1 ${f(cR + reach)},0`, // and over the lip
+    `L${f(a)},0`,
+    `C${f(a + m)},0 ${f(b - m)},${f(d)} ${f(b)},${f(d)}`,
+    `L${f(e)},${f(d)}`,
+    `C${f(e + m)},${f(d)} ${f(z - m)},0 ${f(z)},0`,
     `L${f(W - r)},0`,
     `A${f(r)},${f(r)} 0 0 1 ${f(W - r)},${f(H)}`,
     `L${f(r)},${f(H)}`,

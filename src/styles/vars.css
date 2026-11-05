@@ -65,7 +65,7 @@
   /* Liquid glass palette (tab bar + buttons): smoky warm-neutral glass with
      a bright white rim and milky light pooling at its bottom edge; the
      selected / main element is deep teal glass with a mint glow. */
-  --liquid-smoke: rgba(78, 72, 68, 0.34);
+  --liquid-smoke: rgba(78, 72, 68, 0.16);
   --liquid-rim: rgba(255, 255, 255, 0.5);
   --liquid-milk: rgba(255, 244, 232, 0.2);
   --liquid-teal-top: hsl(166 38% 42% / 0.88);

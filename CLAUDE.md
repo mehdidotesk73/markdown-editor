@@ -48,25 +48,27 @@ How files work (see `src/lib/fileAccess.ts`, `src/lib/useTabs.ts`):
 Accents have one job each — blue = interaction (links, focus), green = saved, amber = unsaved /
 needs attention (always with a ● or ⚠ mark), red = errors. Liquid-glass palette (`--liquid-*` in `vars.css`, from the user's
 reference navs): **smoky warm-neutral glass** with a bright white rim and milky light pooling at
-the bottom for the tab bar and ordinary buttons; **deep teal glass with a mint glow and white text**
+the bottom for the tab bar and ordinary buttons; **teal-tinted clear glass with mint light inside and white text**
 for the selected tab's bubble and the main action. The user rejected saturated blue (dated) and
 pale aqua. Use tokens, never colour literals.
 **Every button** goes through `components/ui/UiButton.vue` (sizes tag/compact/regular/large,
-tones by job) — no hand-styled `<button>`s in the chrome. The look is **liquid glass**: each
-tone sets a hue (`--h/--s/--l`) the glass is lit with — layered inset light (lit top edge, glow
-pooling at the bottom), a glow cast on the surface below (`::before`), a light streak that sweeps
-across on hover (`::after`), and a slight sink when pressed. **No emoji icons** (they render as
+tones by job) — no hand-styled `<button>`s in the chrome. The look is **liquid glass**, and it
+must stay **translucent**: a mostly clear body (backdrop blurs through; tone sets `--tint` and a
+small `--body` alpha), a specular highlight across the top, a bright rim strongest on the top
+edge, and light collected *inside* along the bottom edge (`--glow`). Plus a glow cast below
+(`::before`), a light streak sweeping across on hover (`::after`), and a slight sink when pressed.
+Opaque fills are what made earlier passes look flat. **No emoji icons** (they render as
 pictures and break the glass): button labels are text; `icon` is only for plain Unicode marks
 (⇤ ⇥ ● ✓ ✕).
 
-**Tab bar (`TabBar.vue`) is a liquid nav:** a frosted glass bar drawn as an SVG path with a deep
-dent that follows the bubble's own outline (arcs around its round ends, rounded lips at the top
-edge); the active tab rides in a teal glass bubble sitting deep in it. Tabs are spaced from
-`dentSpread()` so neighbours clear the dent; the bubble is sized from hidden measuring copies of
+**Tab bar (`TabBar.vue`) is a liquid nav:** a clear glass bar drawn as an SVG path whose top edge
+flows into a smooth valley (S-curves into a gentle floor, like liquid displaced) under the active
+tab's teal glass bubble, which rides mostly above the bar. Tabs are spaced from
+`dentSpread()` so neighbours clear the valley; the bubble is sized from hidden measuring copies of
 its (bolder) label. Switching tabs springs the bubble (and the dent)
 to the new tab; each name in the bar sinks and fades in proportion to the bubble's distance, and
 the bubble's own label rises in as it arrives. Geometry + spring live in `src/lib/liquidTabs.ts`
-(`dentPath`, `labelSink`, `Spring`; unit-tested). Respects `prefers-reduced-motion`.
+(`dentGeometry`, `dentPath`, `dentSpread`, `labelSink`, `Spring`; unit-tested). Respects `prefers-reduced-motion`.
 
 **Panel ("paper") theme:** the inside of the editor and preview panes uses its own
 `--paper-*` tokens (`vars.css`): dark by default, `.paper-light` swaps in a warm light page.

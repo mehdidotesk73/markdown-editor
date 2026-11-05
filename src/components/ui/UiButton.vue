@@ -41,13 +41,19 @@ defineSlots<{ default?(): unknown }>()
 </template>
 
 <style scoped>
+/* Clear glass with internal light. The body is mostly see-through (the
+   backdrop blurs through it), lightly tinted per tone. Light enters at the
+   top — a specular highlight and a bright rim along the upper edge — and
+   collects inside along the bottom edge, as it does in real glass.
+   Per tone:  --tint   "H S% L%"  colour of the glass and its inner light
+              --body   tint alpha of the body (0 = clear)
+              --glow   alpha of the light collected at the bottom          */
 .ui-btn {
-  /* The light the glass is lit with: hue, saturation, lightness. */
-  --h: 30;
-  --s: 12%;
-  --l: 88%;
-  --fill: 0.1; /* how much of that light tints the body */
-  --c: hsl(30 20% 94% / 0.92);
+  --tint: 30 20% 88%;
+  --body: 0.05;
+  --glow: 0.22;
+  --spec: 0.42;
+  --c: hsl(30 25% 96% / 0.92);
 
   position: relative;
   isolation: isolate;
@@ -64,45 +70,48 @@ defineSlots<{ default?(): unknown }>()
   letter-spacing: 0.01em;
   white-space: nowrap;
   cursor: pointer;
-  text-shadow:
-    0 0.05em 0.05em rgba(0, 0, 0, 0.45),
-    0 -0.03em 0 rgba(255, 255, 255, 0.08);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
 
-  background-color: hsl(var(--h) var(--s) var(--body, 55%) / var(--fill));
-  background-image: linear-gradient(hsl(0 0% 100% / 0.13), hsl(0 0% 100% / 0.02) 55%, hsl(0 0% 0% / 0.12));
-  backdrop-filter: blur(12px) saturate(170%);
-  -webkit-backdrop-filter: blur(12px) saturate(170%);
+  background:
+    /* specular highlight across the top */
+    radial-gradient(120% 75% at 50% -18%, hsl(0 0% 100% / var(--spec)), hsl(0 0% 100% / 0) 62%),
+    /* light collected along the bottom */
+    radial-gradient(95% 85% at 50% 128%, hsl(var(--tint) / var(--glow)), hsl(var(--tint) / 0) 62%),
+    /* the (mostly clear) body */
+    linear-gradient(180deg, hsl(var(--tint) / calc(var(--body) * 0.55)), hsl(var(--tint) / var(--body)));
+  backdrop-filter: blur(14px) saturate(185%) brightness(1.1);
+  -webkit-backdrop-filter: blur(14px) saturate(185%) brightness(1.1);
   box-shadow:
-    /* bright hairline rim */
-    0 0 0 0.06em hsl(0 0% 100% / 0.34),
-    /* lit top edge, inside */
-    0 0.12em 0.2em -0.02em hsl(0 0% 100% / 0.38) inset,
-    0 -0.03em 0.15em hsl(var(--h) var(--s) var(--l) / 0.28) inset,
-    /* glow pooling at the bottom, inside */
-    0 -0.35em 0.9em -0.2em hsl(var(--h) var(--s) var(--l) / 0.22) inset,
-    /* depth */
-    0 -0.1em 0.25em rgba(0, 0, 0, 0.18),
-    0 0.55em 1em -0.25em rgba(0, 0, 0, 0.55);
+    /* rim: brightest along the top, catching light down the sides and bottom */
+    inset 0 1px 0 hsl(0 0% 100% / 0.6),
+    inset 1px 0 0 hsl(0 0% 100% / 0.16),
+    inset -1px 0 0 hsl(0 0% 100% / 0.12),
+    inset 0 -1px 0 hsl(var(--tint) / 0.38),
+    /* internal glow rising from the bottom edge */
+    inset 0 -0.55em 0.9em -0.45em hsl(var(--tint) / calc(var(--glow) * 1.4)),
+    /* hairline outside, and depth */
+    0 0 0 0.5px hsl(0 0% 100% / 0.22),
+    0 0.6em 1.1em -0.4em rgba(0, 0, 0, 0.5);
   transition:
     box-shadow 0.25s ease,
-    background-color 0.25s ease,
     color 0.25s ease,
     translate 0.15s ease,
-    backdrop-filter 0.25s ease;
+    --spec 0.25s ease,
+    --glow 0.25s ease;
 }
 
-/* Glow cast on the surface just below the button. */
+/* Light cast on the surface just below the button. */
 .ui-btn::before {
   content: '';
   position: absolute;
   z-index: -1;
-  top: 88%;
-  left: 12%;
-  width: 76%;
+  top: 86%;
+  left: 14%;
+  width: 72%;
   height: 1.1em;
   border-radius: 50%;
-  background: radial-gradient(closest-side, hsl(var(--h) var(--s) var(--l) / 0.28), hsl(var(--h) var(--s) var(--l) / 0));
-  opacity: 0.55;
+  background: radial-gradient(closest-side, hsl(var(--tint) / 0.32), hsl(var(--tint) / 0));
+  opacity: 0.5;
   filter: blur(2px);
   transition: opacity 0.25s ease;
   pointer-events: none;
@@ -117,12 +126,12 @@ defineSlots<{ default?(): unknown }>()
   background-image: linear-gradient(
     105deg,
     transparent 22%,
-    hsl(0 0% 100% / 0.16) 22%,
-    hsl(0 0% 100% / 0.16) 31%,
+    hsl(0 0% 100% / 0.2) 22%,
+    hsl(0 0% 100% / 0.2) 31%,
     transparent 31%,
     transparent 34%,
-    hsl(0 0% 100% / 0.1) 34%,
-    hsl(0 0% 100% / 0.1) 38%,
+    hsl(0 0% 100% / 0.12) 34%,
+    hsl(0 0% 100% / 0.12) 38%,
     transparent 38%
   );
   background-size: 400% 100%;
@@ -142,16 +151,18 @@ defineSlots<{ default?(): unknown }>()
 }
 
 .ui-btn:not(:disabled):hover {
+  --spec: 0.58;
+  --glow: calc(0.22 + 0.16);
   --c: #fff;
-  background-color: hsl(var(--h) var(--s) 58% / calc(var(--fill) + 0.06));
   box-shadow:
-    0 0 0 0.06em hsl(0 0% 100% / 0.5),
-    0 0.12em 0.2em -0.02em hsl(0 0% 100% / 0.5) inset,
-    0 -0.03em 0.15em hsl(var(--h) var(--s) var(--l) / 0.4) inset,
-    0 -0.4em 1em -0.2em hsl(var(--h) var(--s) var(--l) / 0.32) inset,
-    0 -0.1em 0.25em rgba(0, 0, 0, 0.18),
-    0 0.6em 1.2em -0.25em rgba(0, 0, 0, 0.6),
-    0 0 1em -0.2em hsl(var(--h) var(--s) var(--l) / 0.3);
+    inset 0 1px 0 hsl(0 0% 100% / 0.78),
+    inset 1px 0 0 hsl(0 0% 100% / 0.22),
+    inset -1px 0 0 hsl(0 0% 100% / 0.18),
+    inset 0 -1px 0 hsl(var(--tint) / 0.55),
+    inset 0 -0.6em 1em -0.45em hsl(var(--tint) / 0.6),
+    0 0 0 0.5px hsl(0 0% 100% / 0.35),
+    0 0.65em 1.2em -0.4em rgba(0, 0, 0, 0.55),
+    0 0 1.1em -0.3em hsl(var(--tint) / 0.35);
 }
 .ui-btn:not(:disabled):hover::before {
   opacity: 1;
@@ -160,15 +171,14 @@ defineSlots<{ default?(): unknown }>()
   background-position: -45% 0;
 }
 
-/* Pressed: sinks a little, the inner light tightens. */
+/* Pressed: sinks a little; the light inside tightens. */
 .ui-btn:not(:disabled):active {
   translate: 0 0.08em;
-  backdrop-filter: blur(6px) saturate(170%);
-  -webkit-backdrop-filter: blur(6px) saturate(170%);
   box-shadow:
-    0 0 0 0.06em hsl(var(--h) var(--s) var(--l) / 0.45),
-    0 0.15em 0.3em hsl(0 0% 0% / 0.3) inset,
-    0 -0.3em 0.8em -0.2em hsl(var(--h) var(--s) var(--l) / 0.35) inset,
+    inset 0 1px 0 hsl(0 0% 100% / 0.4),
+    inset 0 0.15em 0.35em hsl(0 0% 0% / 0.3),
+    inset 0 -0.45em 0.8em -0.4em hsl(var(--tint) / 0.6),
+    0 0 0 0.5px hsl(0 0% 100% / 0.3),
     0 0.25em 0.5em -0.15em rgba(0, 0, 0, 0.5);
 }
 
@@ -208,77 +218,36 @@ defineSlots<{ default?(): unknown }>()
   aspect-ratio: 1;
 }
 
-/* tones: the hue the glass is lit with */
-
-/* Primary (and toggles that are on): deep teal glass, like the tab bar's
-   bubble — white rim, soft top highlight, mint light at the bottom. */
+/* tones */
+/* Main action / toggles that are on: teal-tinted glass, mint light inside. */
 .t-primary,
 .t-neutral.active {
-  --h: 162;
-  --s: 72%;
-  --l: 70%;
-  --c: var(--liquid-ink);
-  background-color: transparent;
-  background-image:
-    radial-gradient(85% 60% at 50% 0%, hsl(0 0% 100% / 0.3), hsl(0 0% 100% / 0) 70%),
-    radial-gradient(90% 70% at 50% 125%, hsl(162 72% 70% / 0.35), transparent 65%),
-    linear-gradient(180deg, var(--liquid-teal-top), var(--liquid-teal-bottom));
-  box-shadow:
-    0 0 0 0.06em var(--liquid-rim),
-    0 0.06em 0.06em hsl(0 0% 100% / 0.55) inset,
-    0 -0.35em 0.7em -0.25em hsl(162 72% 70% / 0.6) inset,
-    0 0.55em 1em -0.3em rgba(0, 0, 0, 0.6),
-    0 0 1.1em -0.2em hsl(162 72% 62% / 0.32);
+  --tint: 164 62% 56%;
+  --body: 0.34;
+  --glow: 0.6;
+  --c: #fff;
 }
 .t-primary:not(:disabled):hover,
 .t-neutral.active:not(:disabled):hover {
-  --c: #fff;
-  background-color: transparent;
-  background-image:
-    radial-gradient(85% 60% at 50% 0%, hsl(0 0% 100% / 0.4), hsl(0 0% 100% / 0) 70%),
-    radial-gradient(90% 70% at 50% 125%, hsl(162 72% 72% / 0.5), transparent 65%),
-    linear-gradient(180deg, hsl(166 40% 46% / 0.92), hsl(170 52% 26% / 0.94));
-  box-shadow:
-    0 0 0 0.06em hsl(0 0% 100% / 0.65),
-    0 0.06em 0.06em hsl(0 0% 100% / 0.65) inset,
-    0 -0.4em 0.8em -0.25em hsl(162 72% 72% / 0.7) inset,
-    0 0.6em 1.2em -0.3em rgba(0, 0, 0, 0.6),
-    0 0 1.4em -0.1em hsl(162 72% 62% / 0.45);
-}
-.t-primary:not(:disabled):active,
-.t-neutral.active:not(:disabled):active {
-  box-shadow:
-    0 0 0 0.06em var(--liquid-rim),
-    0 0.12em 0.25em rgba(0, 0, 0, 0.35) inset,
-    0 -0.3em 0.7em -0.25em hsl(162 72% 70% / 0.6) inset,
-    0 0.25em 0.5em -0.15em rgba(0, 0, 0, 0.5);
+  --glow: 0.78;
 }
 .t-ok {
-  --h: 158;
-  --s: 64%;
-  --l: 62%;
-  --fill: 0.16;
-  --c: hsl(158 70% 72%);
+  --tint: 158 64% 60%;
+  --body: 0.14;
+  --glow: 0.4;
+  --c: hsl(158 75% 76%);
 }
 .t-attention {
-  --h: 40;
-  --s: 100%;
-  --l: 60%;
-  --body: 50%;
-  --fill: 0.24;
-  --c: hsl(42 100% 64%);
+  --tint: 40 100% 60%;
+  --body: 0.16;
+  --glow: 0.42;
+  --c: hsl(42 100% 68%);
 }
 .t-danger {
-  --h: 0;
-  --s: 90%;
-  --l: 72%;
-  --fill: 0.16;
-  --c: hsl(0 90% 78%);
-}
-.t-ok:not(:disabled):hover,
-.t-attention:not(:disabled):hover,
-.t-danger:not(:disabled):hover {
-  --c: hsl(var(--h) var(--s) 82%);
+  --tint: 0 90% 66%;
+  --body: 0.16;
+  --glow: 0.42;
+  --c: hsl(0 90% 80%);
 }
 
 @media (prefers-reduced-motion: reduce) {
