@@ -320,7 +320,32 @@ Two additions from reviewing it here, beyond what the originating project report
 - **Exposure and pollution are different risks.** "No more exposed than any other row" is true, and separate from the fact that test rows are *live data*: if the app lists rows rather than fetching by id, test sessions appear in real users' UI. Check whether any screen enumerates before pointing a suite at production.
 - **Fix cleanup drift by importing, not by verifying.** The stated gap — the harness's copy of the app's derivation silently going out of sync — can't be closed by re-querying after delete, since the check would use the same stale derivation and report success. **Import the derivation from the app's own source.** If it genuinely can't be imported, pin the two together with a unit test asserting both produce the same output for a fixed input; that fails loudly on the next change instead of orphaning rows in silence.
 
+## What didn't work: screenshot-based PDF export (html2pdf.js)
+
+The first Export PDF used html2pdf.js (html2canvas + jsPDF): it screenshots the rendered page
+and slices the image into A4 pages. Two problems that can't be fixed in that approach:
+
+- **Lines cut in half at page breaks.** The slicer cuts the image at fixed heights; `pagebreak`
+  `avoid` rules only protect whole elements, and a paragraph longer than the gap still splits
+  mid-line.
+- **Garbled text on real machines** — inline `code` that wraps across lines (plus symbols like
+  `∩`, `→`) rendered in the wrong place on Windows. html2canvas re-implements text layout and
+  gets it wrong.
+
+Also: text not selectable, ~1 MB of JS. **Use the browser's print engine instead** (hidden iframe
++ `print()`, `@page` for size/margins). Cost: one click on "Save as PDF" in the print window.
+
+Testing it headlessly: patch the iframe's own `contentWindow.print` (it's a separate realm —
+patching the parent's `Window.prototype` does nothing), capture its HTML, and render it with
+Playwright's `page.pdf({ preferCSSPageSize: true })` from the app's origin in a context with
+service workers blocked (otherwise the SW's navigate fallback serves the app instead).
+
 ## Version History
+
+### v0.2.0 — 2026-11-05
+- **Changed:** Export PDF uses the browser print engine (clean page breaks, selectable text); html2pdf.js removed
+- **Added:** LaTeX math (KaTeX); Light/Dark panel theme with off-white tones
+- **Docs:** Help, README, CLAUDE.md, system-design updated
 
 ### v0.1.0 — 2026-11-05
 - **Added:** Markdown editor — local-file tabs, split editor/preview with collapsible panes, Save / Save as, PDF export

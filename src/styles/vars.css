@@ -1,4 +1,4 @@
-/* Markdown Editor theme — dark only, borrowed from PowerGIS. Deep slate
+/* Markdown Lab theme — dark only, borrowed from PowerGIS. Deep slate
    surfaces stepping lighter as they rise, and accents with one job each:
    blue = interaction, green = saved / success, amber = unsaved changes
    (always with a ● mark too), red = errors / destructive.
@@ -37,6 +37,20 @@
   --shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
   --radius: 0.55rem;
 
+  /* "Paper": the inside of the editor + preview panes. Dark by default;
+     .paper-light (Workspace.vue, toggled from the top bar) swaps it for a
+     warm light page. Neither uses pure white — text or background — to
+     keep the contrast easy on the eyes. */
+  --paper-bg: #141b2a;
+  --paper-head: #1b2334;
+  --paper-text: #d3d8e2;
+  --paper-muted: #8b94ac;
+  --paper-border: #28324a;
+  --paper-code-bg: #1e2738;
+  --paper-link: #6ea1f8;
+  --paper-quote: #4f8ef7;
+  --paper-selection: rgba(79, 142, 247, 0.32);
+
   --mono: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
 
   /* Typography */
@@ -48,6 +62,18 @@
   background: var(--bg);
   color-scheme: dark;
   -webkit-font-smoothing: antialiased;
+}
+
+.paper-light {
+  --paper-bg: #f4f1ea;
+  --paper-head: #ebe7dd;
+  --paper-text: #33363d;
+  --paper-muted: #737785;
+  --paper-border: #dcd6c9;
+  --paper-code-bg: #e9e4d8;
+  --paper-link: #2a63c4;
+  --paper-quote: #4f8ef7;
+  --paper-selection: rgba(79, 142, 247, 0.22);
 }
 
 /* Global styles */

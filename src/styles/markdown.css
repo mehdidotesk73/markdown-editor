@@ -3,12 +3,12 @@
    forces black-on-white for the PDF regardless of the on-screen theme. */
 
 .md-body {
-  --md-text: var(--text);
-  --md-muted: var(--text-muted);
-  --md-border: var(--border);
-  --md-code-bg: var(--bg-elev-2);
-  --md-quote: var(--accent-blue);
-  --md-link: var(--accent-blue);
+  --md-text: var(--paper-text);
+  --md-muted: var(--paper-muted);
+  --md-border: var(--paper-border);
+  --md-code-bg: var(--paper-code-bg);
+  --md-quote: var(--paper-quote);
+  --md-link: var(--paper-link);
 
   color: var(--md-text);
   font-size: 1rem;
@@ -152,17 +152,39 @@
   max-width: 100%;
 }
 
-/* Keep atomic blocks whole across PDF pages. */
+/* Math (KaTeX): wide display formulas scroll instead of overflowing. */
+.md-body .katex-display {
+  margin: 1em 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.2em 0;
+}
+.md-body.md-print .katex-display {
+  overflow: visible;
+}
+
+/* PDF (print): keep atomic blocks whole and avoid lone lines at page edges.
+   The print engine never splits a line of text across pages. */
 .md-print pre,
 .md-print blockquote,
-.md-print table,
 .md-print img,
-.md-print tr {
+.md-print tr,
+.md-print li,
+.md-print .katex-display {
   break-inside: avoid;
+}
+.md-print p,
+.md-print li {
+  orphans: 3;
+  widows: 3;
 }
 .md-print h1,
 .md-print h2,
 .md-print h3,
 .md-print h4 {
   break-after: avoid;
+  break-inside: avoid;
+}
+.md-print a {
+  text-decoration: none;
 }

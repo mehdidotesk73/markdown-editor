@@ -1,4 +1,4 @@
-# About Markdown Editor
+# About Markdown Lab
 
 ## What is this app?
 
@@ -11,7 +11,9 @@ A markdown editor for files on **your own computer**. The app runs entirely in y
 - **Focus modes:** click **⇤** on the Markdown pane to hide the editor and read the document full-width. Click **⇥** on the Preview pane to hide the preview and write full-width. Click the thin bar on the side to bring a pane back.
 - **Save** (or `Ctrl/⌘ S`) writes your changes back to the file on your computer. A tab with unsaved changes shows an amber ●.
 - **New file** (＋ on the tab bar) starts an empty tab; the first Save asks where to put the file.
-- **Export PDF** downloads the rendered document as a PDF.
+- **Export PDF** opens your browser's print window. Choose **Save as PDF** as the destination and click Save. The PDF keeps real, selectable text and never cuts a line in half between pages.
+- **Light / Dark** (top bar) switches the background inside the editor and preview between a soft light page and a dark one. Your choice is remembered.
+- **Math:** write LaTeX between dollar signs — `$x^2$` inside a sentence, or `$$ E = mc^2 $$` for a formula on its own line.
 
 **Shortcuts:** `Ctrl/⌘ S` save · `Ctrl/⌘ ⇧ S` save as · `Ctrl/⌘ O` open · `Ctrl/⌘ P` export PDF · `Ctrl/⌘ \` hide/show editor · `Ctrl/⌘ ⇧ \` hide/show preview.
 
