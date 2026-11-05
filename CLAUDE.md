@@ -49,7 +49,7 @@ Accents have one job each — blue = interaction (links, focus), green = saved, 
 needs attention (always with a ● or ⚠ mark), red = errors. Liquid-glass palette (`--liquid-*` in `vars.css`, from the user's
 reference navs): **smoky warm-neutral glass** with a bright white rim and milky light pooling at
 the bottom for the tab bar and ordinary buttons; **teal-tinted clear glass with mint light inside and white text**
-for the selected tab's bubble and the main action. The user rejected saturated blue (dated) and
+for the main action (the selected tab sits in a mint-outlined recess). The user rejected saturated blue (dated) and
 pale aqua. Use tokens, never colour literals.
 **Every button** goes through `components/ui/UiButton.vue` (sizes tag/compact/regular/large,
 tones by job) — no hand-styled `<button>`s in the chrome. The look is **liquid glass**, and it
@@ -61,14 +61,13 @@ Opaque fills are what made earlier passes look flat. **No emoji icons** (they re
 pictures and break the glass): button labels are text; `icon` is only for plain Unicode marks
 (⇤ ⇥ ● ✓ ✕).
 
-**Tab bar (`TabBar.vue`) is a liquid nav:** a clear glass bar drawn as an SVG path whose top edge
-flows into a smooth valley (S-curves into a gentle floor, like liquid displaced) under the active
-tab's teal glass bubble, which rides mostly above the bar. Tabs are spaced from
-`dentSpread()` so neighbours clear the valley; the bubble is sized from hidden measuring copies of
-its (bolder) label. Switching tabs springs the bubble (and the dent)
-to the new tab; each name in the bar sinks and fades in proportion to the bubble's distance, and
-the bubble's own label rises in as it arrives. Geometry + spring live in `src/lib/liquidTabs.ts`
-(`dentGeometry`, `dentPath`, `dentSpread`, `labelSink`, `Spring`; unit-tested). Respects `prefers-reduced-motion`.
+**Tab bar (`TabBar.vue`) is a liquid nav:** a pill of clear glass; the active tab sits in a
+**well pressed into the glass** — a recess with a shadowed upper inner edge, a lit lower lip and a
+thin mint outline. Switching tabs springs the well to the new tab; each name lights up (white, mint
+glow, pressed 1px) in proportion to how much of the well is under it (`--lit`). `labelSink` +
+`Spring` in `src/lib/liquidTabs.ts` (unit-tested). Respects `prefers-reduced-motion`.
+An earlier version had a bubble floating *above* the bar with a dent/valley in the bar's edge; the
+user preferred the recess (the raised bubble misaligned at the bar's ends) — see `docs/experience.md`.
 
 **Panel ("paper") theme:** the inside of the editor and preview panes uses its own
 `--paper-*` tokens (`vars.css`): dark by default, `.paper-light` swaps in a warm light page.
@@ -165,11 +164,11 @@ src/
     pdf/math.ts            display TeX → SVG via MathJax (lazy chunk)
     pdf/inlineMath.ts      inline TeX → Unicode text
     usePaperTheme.ts       Light/Dark panel theme (localStorage)
-    liquidTabs.ts          tab bar geometry (dent path), label sink, spring (pure; tested)
+    liquidTabs.ts          tab bar motion: how lit each tab is, the spring (pure; tested)
     useVersionCheck.ts     compares the running build with the live one
   components/
     Workspace.vue          editor + preview panes, collapse rails, draggable divider, scroll sync
-    TabBar.vue             liquid-glass tab bar: dented glass bar + springing bubble
+    TabBar.vue             liquid-glass tab bar: glass pill + springing recessed well
     HelpModal.vue          renders docs/concepts/*.md into the Help modal
     ui/UiButton.vue        the app's button (sizes + tones)
   styles/

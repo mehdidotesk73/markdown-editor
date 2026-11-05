@@ -1,14 +1,13 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { isDirty, type Tab } from '../lib/useTabs'
-import { dentPath, dentSpread, labelSink, Spring } from '../lib/liquidTabs'
+import { labelSink, Spring } from '../lib/liquidTabs'
 
-// Liquid-glass tab bar. A frosted glass bar holds the tab names; the active
-// tab rides in a glass bubble floating above the bar, which presses a dent
-// into the bar's top edge. Picking another tab springs the bubble across and
-// the dent travels with it. Each name in the bar sinks and fades as the
-// bubble comes over it, and rises back as the bubble moves away: in
-// proportion to the distance, frame by frame (see lib/liquidTabs.ts).
+// Liquid-glass tab bar. A clear glass bar holds the tab names; the active tab
+// sits in a well pressed into the glass — a recess with a shadowed upper edge,
+// a lit lower lip and a thin mint outline. Picking another tab springs the
+// well across; each name lights up as the well arrives under it and dims as
+// it leaves, in proportion to the distance, frame by frame.
 
 const props = defineProps<{ tabs: Tab[]; activeId: string | null }>()
 const emit = defineEmits<{
@@ -17,19 +16,9 @@ const emit = defineEmits<{
   (e: 'new'): void
 }>()
 
-// Geometry (px). The bubble rides mostly above the bar, pressing a smooth
-// valley into its top edge, like a drop sitting in liquid.
-const PAD_TOP = 22 // room above the bar for the bubble
-const BAR_H = 48
-const BUBBLE_H = 36
-const BUBBLE_CY = BUBBLE_H / 2 - PAD_TOP // bubble centre line, relative to the bar's top edge
-const GAP = 5 // between the bubble's underside and the valley floor
-const SHOULDER = 1.15 // how gently the valley's sides run out (× bubble radius)
-const BUBBLE_EXTRA = 8 // bubble is at least this much wider than the tab under it
-const BOLD_SLACK = 14 // the bubble's bolder label can run this much wider again
-// Tabs sit far enough apart that a neighbour's name clears the dent's lip.
-const SPREAD = dentSpread({ bubbleHeight: BUBBLE_H, gap: GAP, shoulder: SHOULDER })
-const TAB_GAP = Math.ceil((BUBBLE_EXTRA + BOLD_SLACK) / 2 + SPREAD + 2)
+const BAR_H = 46
+const WELL_H = 34
+const WELL_EXTRA = 6 // the well is this much wider than the tab it holds
 
 const scroller = ref<HTMLElement>()
 const track = ref<HTMLElement>()
@@ -38,39 +27,23 @@ function setTabEl(id: string, el: unknown) {
   if (el instanceof HTMLElement) tabEls.set(id, el)
   else tabEls.delete(id)
 }
-// Invisible copies of each tab as the bubble would show it (bolder text,
-// roomier padding), so the bubble is sized to fit its label, not the tab's.
-const ghostEls = new Map<string, HTMLElement>()
-function setGhostEl(id: string, el: unknown) {
-  if (el instanceof HTMLElement) ghostEls.set(id, el)
-  else ghostEls.delete(id)
-}
 
-// Measured layout: each tab's centre and width, and the bar's width.
-const geo = ref<Record<string, { c: number; w: number; bubble: number }>>({})
-const barW = ref(0)
+// Measured layout: each tab's centre and width.
+const geo = ref<Record<string, { c: number; w: number }>>({})
 
-// Animated bubble: centre x and width.
+// The well, animated: centre x and width.
 const x = new Spring(0)
 const w = new Spring(0)
 const pos = ref(0)
-const bw = ref(0)
-let from = 0 // where the current move started, for the bubble label's fade-in
-
-const active = computed(() => props.tabs.find((t) => t.id === props.activeId) ?? null)
+const ww = ref(0)
 
 function measure() {
-  if (!track.value) return
-  const g: Record<string, { c: number; w: number; bubble: number }> = {}
+  const g: Record<string, { c: number; w: number }> = {}
   for (const t of props.tabs) {
     const el = tabEls.get(t.id)
-    if (!el) continue
-    // Round up and add a hair of slack: an exact fit can tip into an ellipsis at sub-pixel sizes.
-    const ghost = Math.ceil(ghostEls.get(t.id)?.getBoundingClientRect().width ?? 0) + 2
-    g[t.id] = { c: el.offsetLeft + el.offsetWidth / 2, w: el.offsetWidth, bubble: Math.max(el.offsetWidth + BUBBLE_EXTRA, ghost) }
+    if (el) g[t.id] = { c: el.offsetLeft + el.offsetWidth / 2, w: el.offsetWidth }
   }
   geo.value = g
-  barW.value = track.value.scrollWidth
 }
 
 const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
@@ -79,21 +52,19 @@ let last = 0
 
 function target() {
   const g = props.activeId ? geo.value[props.activeId] : undefined
-  return g ? { c: g.c, w: g.bubble } : null
+  return g ? { c: g.c, w: g.w + WELL_EXTRA } : null
 }
 
 function animate(jump = false) {
   const t = target()
   if (!t) return
-  if (jump || reduceMotion || bw.value === 0) {
+  if (jump || reduceMotion || ww.value === 0) {
     x.set(t.c)
     w.set(t.w)
     pos.value = t.c
-    bw.value = t.w
-    from = t.c
+    ww.value = t.w
     return
   }
-  from = pos.value
   x.target = t.c
   w.target = t.w
   if (!raf) {
@@ -108,7 +79,7 @@ function step(now: number) {
   const a = x.step(dt)
   const b = w.step(dt)
   pos.value = x.value
-  bw.value = w.value
+  ww.value = w.value
   raf = a && b ? 0 : requestAnimationFrame(step)
 }
 
@@ -117,8 +88,8 @@ function reveal() {
   const sc = scroller.value
   const g = props.activeId ? geo.value[props.activeId] : undefined
   if (!sc || !g) return
-  const left = g.c - g.w / 2 - 60
-  const right = g.c + g.w / 2 + 60
+  const left = g.c - g.w / 2 - 40
+  const right = g.c + g.w / 2 + 40
   if (left < sc.scrollLeft) sc.scrollTo({ left, behavior: 'smooth' })
   else if (right > sc.scrollLeft + sc.clientWidth) sc.scrollTo({ left: right - sc.clientWidth, behavior: 'smooth' })
 }
@@ -132,7 +103,7 @@ async function relayout(jump = false) {
 
 watch(() => props.activeId, () => relayout())
 watch(
-  () => props.tabs.map((t) => `${t.id}:${t.name}:${isDirty(t)}`).join('|'),
+  () => props.tabs.map((t) => `${t.id}:${t.name}:${isDirty(t)}:${t.access}`).join('|'),
   () => relayout(),
 )
 
@@ -154,50 +125,19 @@ onBeforeUnmount(() => {
 
 // ---- what the template draws -------------------------------------------------
 
-const barPath = computed(() =>
-  dentPath({
-    width: barW.value,
-    height: BAR_H,
-    center: pos.value,
-    bubbleWidth: bw.value,
-    bubbleHeight: BUBBLE_H,
-    bubbleCenterY: BUBBLE_CY,
-    gap: GAP,
-    shoulder: SHOULDER,
-  }),
-)
-
-/** How far a tab's name has sunk under the bubble: 0 = in place, 1 = gone. */
-function sink(id: string): number {
+/** How much the well is under a tab right now: 0 = clear of it, 1 = centred on it. */
+function lit(id: string): number {
   const g = geo.value[id]
-  return g ? labelSink(g.c, g.w, pos.value, bw.value) : 0
+  return g ? labelSink(g.c, g.w, pos.value, ww.value) : 0
 }
-function labelStyle(id: string) {
-  const k = sink(id)
-  return {
-    opacity: String(1 - k),
-    transform: `translateY(${(k * 11).toFixed(2)}px) scale(${(1 - 0.28 * k).toFixed(3)})`,
-    filter: k > 0.02 ? `blur(${(k * 1.5).toFixed(2)}px)` : undefined,
-  }
+function tabStyle(id: string) {
+  return { '--lit': lit(id).toFixed(3) }
 }
 
-/** The bubble's own label rises in as the bubble arrives. */
-const arrival = computed(() => {
-  const t = target()
-  if (!t) return 1
-  const span = Math.abs(t.c - from)
-  if (span < 1) return 1
-  return Math.max(0, Math.min(1, 1 - Math.abs(t.c - pos.value) / span))
-})
-
-const bubbleStyle = computed(() => ({
-  width: `${bw.value}px`,
-  transform: `translateX(${(pos.value - bw.value / 2).toFixed(2)}px)`,
+const wellStyle = computed(() => ({
+  width: `${ww.value}px`,
+  transform: `translateX(${(pos.value - ww.value / 2).toFixed(2)}px)`,
 }))
-const bubbleLabelStyle = computed(() => {
-  const k = arrival.value ** 1.6
-  return { opacity: String(k), transform: `translateY(${((1 - k) * 8).toFixed(2)}px) scale(${(0.86 + 0.14 * k).toFixed(3)})` }
-})
 
 function title(t: Tab): string {
   const where =
@@ -218,24 +158,11 @@ function onKey(e: KeyboardEvent, t: Tab) {
 </script>
 
 <template>
-  <div
-    class="dock"
-    :style="{ '--pad-top': `${PAD_TOP}px`, '--bar-h': `${BAR_H}px`, '--bubble-h': `${BUBBLE_H}px`, '--tab-gap': `${TAB_GAP}px` }"
-  >
+  <div class="dock" :style="{ '--bar-h': `${BAR_H}px`, '--well-h': `${WELL_H}px` }">
     <div ref="scroller" class="scroller">
       <div ref="track" class="track" role="tablist" aria-label="Open files">
-        <!-- The glass bar, shaped with the dent; then its lit edge. -->
-        <div class="bar-glass" :style="{ width: `${barW}px`, clipPath: `path('${barPath}')` }" aria-hidden="true" />
-        <svg class="bar-edge" :width="barW" :height="BAR_H" :viewBox="`0 0 ${barW} ${BAR_H}`" aria-hidden="true">
-          <defs>
-            <linearGradient id="tab-edge" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0" stop-color="#fff" stop-opacity="0.62" />
-              <stop offset="0.5" stop-color="#fff" stop-opacity="0.22" />
-              <stop offset="1" stop-color="#fff" stop-opacity="0.6" />
-            </linearGradient>
-          </defs>
-          <path :d="barPath" fill="none" stroke="url(#tab-edge)" stroke-width="1.5" />
-        </svg>
+        <!-- The well pressed into the glass under the active tab. -->
+        <div v-if="activeId && ww > 0" class="well" :style="wellStyle" aria-hidden="true" />
 
         <div
           v-for="t in tabs"
@@ -245,46 +172,22 @@ function onKey(e: KeyboardEvent, t: Tab) {
           role="tab"
           tabindex="0"
           :aria-selected="t.id === activeId"
-          :class="{ dirty: isDirty(t), unlinked: t.access === 'unlinked' }"
+          :class="{ dirty: isDirty(t), unlinked: t.access === 'unlinked', current: t.id === activeId }"
+          :style="tabStyle(t.id)"
           :title="title(t)"
           @click="$emit('activate', t.id)"
           @keydown="onKey($event, t)"
           @auxclick.middle.prevent="$emit('close', t)"
         >
-          <span class="tab-inner" :style="labelStyle(t.id)">
-            <span v-if="t.access === 'needs-access'" class="warn" aria-hidden="true">⚠</span>
-            <span class="name">{{ t.name }}</span>
-            <button class="x" :aria-label="`Close ${t.name}`" tabindex="-1" @click.stop="$emit('close', t)">
-              <span class="dot" aria-hidden="true">●</span>
-              <span class="cross" aria-hidden="true">✕</span>
-            </button>
-          </span>
+          <span v-if="t.access === 'needs-access'" class="warn" aria-hidden="true">⚠</span>
+          <span class="name">{{ t.name }}</span>
+          <button class="x" :aria-label="`Close ${t.name}`" tabindex="-1" @click.stop="$emit('close', t)">
+            <span class="dot" aria-hidden="true">●</span>
+            <span class="cross" aria-hidden="true">✕</span>
+          </button>
         </div>
 
         <button class="add" aria-label="New tab" title="New file" @click="$emit('new')">+</button>
-
-        <!-- Measuring copies of the bubble, one per tab (never seen). -->
-        <div class="ghosts" aria-hidden="true">
-          <span v-for="t in tabs" :key="t.id" :ref="(el) => setGhostEl(t.id, el)" class="bubble ghost">
-            <span class="bubble-label">
-              <span v-if="t.access === 'needs-access'" class="warn">⚠</span>
-              <span class="name" :class="{ unlinked: t.access === 'unlinked' }">{{ t.name }}</span>
-              <span class="x" />
-            </span>
-          </span>
-        </div>
-
-        <!-- The bubble carrying the active tab. -->
-        <div v-if="active && bw > 0" class="bubble" :class="{ dirty: isDirty(active) }" :style="bubbleStyle" aria-hidden="true">
-          <span class="bubble-label" :style="bubbleLabelStyle">
-            <span v-if="active.access === 'needs-access'" class="warn">⚠</span>
-            <span class="name" :class="{ unlinked: active.access === 'unlinked' }">{{ active.name }}</span>
-            <button class="x" tabindex="-1" @click.stop="$emit('close', active)">
-              <span class="dot">●</span>
-              <span class="cross">✕</span>
-            </button>
-          </span>
-        </div>
       </div>
     </div>
   </div>
@@ -292,15 +195,32 @@ function onKey(e: KeyboardEvent, t: Tab) {
 
 <style scoped>
 .dock {
-  padding: 0 0.5rem 0.4rem;
+  padding: 0.25rem 0.5rem 0.45rem;
 }
 
-/* Scrolls sideways when there are many tabs; tall enough that the bubble,
-   which rises above the bar, is never clipped. */
+/* The bar itself: a pill of clear, faintly smoky glass — sheen along the top,
+   milky light collected inside along the bottom edge, bright rim. It scrolls
+   sideways when there are many tabs. */
 .scroller {
   overflow-x: auto;
   overflow-y: hidden;
   scrollbar-width: none;
+  border-radius: 999px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0) 38%),
+    radial-gradient(120% 95% at 50% 140%, rgba(255, 246, 236, 0.28), transparent 60%),
+    linear-gradient(180deg, rgba(255, 250, 245, 0.02), rgba(255, 250, 245, 0.07)),
+    var(--liquid-smoke);
+  backdrop-filter: blur(18px) saturate(180%);
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    inset 1px 0 0 rgba(255, 255, 255, 0.14),
+    inset -1px 0 0 rgba(255, 255, 255, 0.12),
+    inset 0 -1px 0 rgba(255, 246, 236, 0.45),
+    inset 0 -10px 16px -12px rgba(255, 246, 236, 0.35),
+    0 0 0 0.5px rgba(255, 255, 255, 0.2),
+    0 8px 18px -8px rgba(0, 0, 0, 0.55);
 }
 .scroller::-webkit-scrollbar {
   display: none;
@@ -310,72 +230,67 @@ function onKey(e: KeyboardEvent, t: Tab) {
   position: relative;
   display: flex;
   align-items: center;
-  gap: var(--tab-gap);
+  gap: 0.35rem;
   min-width: 100%;
   width: max-content;
-  height: calc(var(--pad-top) + var(--bar-h) + 6px);
-  /* Side room so the dent's lips never reach the bar's rounded ends. */
-  padding: var(--pad-top) 3rem 6px;
+  height: var(--bar-h);
+  padding: 0 0.55rem;
 }
 
-.bar-glass,
-.bar-edge {
+/* The well: a recess pressed into the glass. Its upper inner edge is in
+   shadow, its lower lip catches the light, a thin mint outline traces the
+   cut, and a little mint light collects in its floor. */
+.well {
   position: absolute;
   left: 0;
-  top: var(--pad-top);
-  height: var(--bar-h);
-  pointer-events: none;
-}
-/* Clear, faintly smoky glass: a sheen along the top, milky light collected
-   inside along the bottom edge. The backdrop blurs through it. */
-.bar-glass {
+  top: calc((var(--bar-h) - var(--well-h)) / 2);
+  height: var(--well-h);
+  border-radius: 999px;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0) 34%),
-    radial-gradient(120% 95% at 50% 140%, rgba(255, 246, 236, 0.3), transparent 60%),
-    linear-gradient(180deg, rgba(255, 250, 245, 0.02), rgba(255, 250, 245, 0.07)),
-    var(--liquid-smoke);
-  backdrop-filter: blur(18px) saturate(180%);
-  -webkit-backdrop-filter: blur(18px) saturate(180%);
-}
-.bar-edge {
-  overflow: visible;
-  filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.35));
+    radial-gradient(90% 90% at 50% 125%, hsl(162 72% 66% / 0.3), transparent 62%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.42), rgba(0, 0, 0, 0.16));
+  box-shadow:
+    inset 0 2px 5px rgba(0, 0, 0, 0.65),
+    inset 0 1px 1px rgba(0, 0, 0, 0.55),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.3),
+    inset 0 -6px 10px -6px hsl(162 72% 66% / 0.45),
+    0 1px 0 rgba(255, 255, 255, 0.22),
+    0 0 0 1px hsl(162 72% 66% / 0.5),
+    0 0 14px hsl(162 72% 62% / 0.22);
+  pointer-events: none;
+  will-change: transform, width;
 }
 
+/* Tabs: a name lights up as the well arrives under it (--lit, 0 → 1). */
 .tab {
+  --lit: 0;
   position: relative;
   z-index: 1;
   flex: 0 0 auto;
-  height: var(--bar-h);
+  height: var(--well-h);
   max-width: 15rem;
-  padding: 0 0.1rem 0 0.35rem;
+  padding: 0 0.2rem 0 0.9rem;
   display: flex;
   align-items: center;
+  gap: 0.3rem;
   border-radius: 999px;
-  color: var(--text-muted);
+  color: color-mix(in srgb, #fff calc(var(--lit) * 100%), var(--text-muted));
   font-size: 0.84rem;
+  font-weight: 550;
+  text-shadow: 0 0 calc(var(--lit) * 10px) hsl(162 72% 66% / calc(var(--lit) * 0.55));
+  transform: translateY(calc(var(--lit) * 1px)); /* pressed in, ever so slightly */
   cursor: pointer;
   user-select: none;
   outline: none;
 }
-.tab-inner {
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  min-width: 0;
-  transform-origin: 50% 100%;
-  will-change: transform, opacity;
-}
-.tab:hover .tab-inner {
+.tab:not(.current):hover {
   color: var(--text);
 }
-.tab:focus-visible .tab-inner {
-  color: var(--text);
+.tab:focus-visible {
   text-decoration: underline;
   text-underline-offset: 3px;
 }
-.tab.unlinked .name,
-.bubble .name.unlinked {
+.tab.unlinked .name {
   font-style: italic;
 }
 
@@ -402,11 +317,11 @@ function onKey(e: KeyboardEvent, t: Tab) {
   background: none;
   color: inherit;
   font-size: 0.66rem;
-  opacity: 0.55;
+  opacity: 0.5;
 }
 .x:hover {
   opacity: 1;
-  background: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.14);
 }
 .x .dot,
 .x .cross {
@@ -440,122 +355,31 @@ function onKey(e: KeyboardEvent, t: Tab) {
   place-items: center;
   width: 1.9rem;
   height: 1.9rem;
-  margin-left: 0.3rem;
+  margin-left: 0.2rem;
   padding: 0 0 1px;
   border: 0;
   border-radius: 50%;
   color: var(--text-muted);
   font-size: 1.1rem;
   font-weight: 400;
-  background: linear-gradient(hsl(0 0% 100% / 0.12), hsl(0 0% 100% / 0.02)), var(--liquid-smoke);
+  background: linear-gradient(hsl(0 0% 100% / 0.12), hsl(0 0% 100% / 0.02));
   box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.32),
-    0 1px 2px rgba(255, 255, 255, 0.25) inset,
+    0 0 0 1px rgba(255, 255, 255, 0.28),
+    0 1px 1px rgba(255, 255, 255, 0.3) inset,
     0 3px 8px rgba(0, 0, 0, 0.35);
   transition:
     color 0.2s,
-    background 0.2s,
+    box-shadow 0.2s,
     translate 0.15s;
 }
 .add:hover {
   color: #fff;
-  background:
-    radial-gradient(95% 85% at 50% 128%, hsl(162 75% 66% / 0.6), transparent 62%),
-    linear-gradient(180deg, hsl(166 55% 50% / 0.18), hsl(168 60% 42% / 0.36));
   box-shadow:
-    0 0 0 1px var(--liquid-rim),
-    0 1px 1px rgba(255, 255, 255, 0.5) inset,
-    0 0 14px hsl(162 72% 62% / 0.35);
+    0 0 0 1px hsl(162 72% 66% / 0.6),
+    0 1px 1px rgba(255, 255, 255, 0.4) inset,
+    0 0 12px hsl(162 72% 62% / 0.35);
 }
 .add:active {
   translate: 0 1px;
-}
-
-/* Off-screen measuring copies of the bubble. */
-.ghosts {
-  position: absolute;
-  left: 0;
-  top: 0;
-  height: 0;
-  overflow: hidden;
-  visibility: hidden;
-  pointer-events: none;
-}
-.bubble.ghost {
-  position: static;
-  display: inline-flex;
-  width: auto;
-  max-width: none;
-  white-space: nowrap;
-}
-.bubble.ghost .name {
-  overflow: visible;
-}
-
-/* The bubble: a drop of teal-tinted clear glass — specular highlight on
-   top, a bright rim, mint light collected inside along the bottom. */
-.bubble {
-  position: absolute;
-  z-index: 2;
-  left: 0;
-  top: 0;
-  height: var(--bubble-h);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 0.35rem 0 1rem;
-  border-radius: 999px;
-  color: #fff;
-  font-size: 0.84rem;
-  font-weight: 650;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-  background:
-    radial-gradient(120% 75% at 50% -18%, hsl(0 0% 100% / 0.5), hsl(0 0% 100% / 0) 60%),
-    radial-gradient(95% 85% at 50% 128%, hsl(162 75% 66% / 0.7), hsl(162 75% 66% / 0) 62%),
-    linear-gradient(180deg, hsl(166 55% 50% / 0.18), hsl(168 60% 42% / 0.36));
-  backdrop-filter: blur(12px) saturate(190%) brightness(1.1);
-  -webkit-backdrop-filter: blur(12px) saturate(190%) brightness(1.1);
-  box-shadow:
-    inset 0 1px 0 hsl(0 0% 100% / 0.75),
-    inset 1px 0 0 hsl(0 0% 100% / 0.22),
-    inset -1px 0 0 hsl(0 0% 100% / 0.18),
-    inset 0 -1px 0 hsl(162 75% 75% / 0.6),
-    inset 0 -0.6em 1em -0.45em hsl(162 75% 66% / 0.75),
-    0 0 0 0.5px hsl(0 0% 100% / 0.35),
-    0 12px 20px -10px rgba(0, 0, 0, 0.6),
-    0 0 22px hsl(162 72% 62% / 0.3);
-  will-change: transform, width;
-}
-.bubble::before {
-  /* the mint light it casts down into the dent */
-  content: '';
-  position: absolute;
-  z-index: -1;
-  left: 16%;
-  right: 16%;
-  top: 90%;
-  height: 12px;
-  border-radius: 50%;
-  background: radial-gradient(closest-side, hsl(162 72% 66% / 0.55), transparent);
-  filter: blur(2px);
-}
-.bubble-label {
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  min-width: 0;
-  max-width: 100%;
-  transform-origin: 50% 100%;
-}
-.bubble .x {
-  opacity: 0.7;
-  pointer-events: auto;
-}
-.bubble .x:hover {
-  background: hsl(0 0% 100% / 0.18);
-}
-.bubble .x .dot,
-.bubble .warn {
-  color: hsl(43 100% 66%);
 }
 </style>

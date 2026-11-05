@@ -364,6 +364,13 @@ button's own hue (lit top edge, glow pooling at the bottom), a glow cast *below*
 moving specular streak, and a coloured backdrop to blur. Emoji icons (📂 💾 ⤓) render as bitmaps
 and broke the look — keep labels as text, Unicode marks only.
 
+**Raised bubble + dented bar, dropped for a recessed well.** The tab bar first had the active tab in
+a glass bubble floating above the bar, pressing a dent (later a smooth valley) into the bar's top edge
+(SVG path + `clip-path`). It looked good mid-bar, but at the bar's rounded ends the dent had to be
+clamped away from the curve while the bubble stayed on its tab, so they misaligned — the user
+suggested a well pressed *into* the bar instead, which has no such edge case and needs no path
+geometry at all.
+
 Headless screenshots catch colour transitions mid-flight: a button that just changed tone can
 look wrong in a shot taken <0.25 s later. Wait out the transition before judging colour.
 
@@ -371,7 +378,7 @@ look wrong in a shot taken <0.25 s later. Wait out the transition before judging
 
 ### v0.4.0 — 2026-11-05
 - **Changed:** Liquid-glass buttons (one `UiButton`, hue-lit, hover sweep; new `tag` size; no emoji icons)
-- **Added:** Liquid tab bar — springing glass bubble with a travelling dent; labels sink by distance
+- **Added:** Liquid tab bar — a recessed, mint-outlined well that springs between tabs; names light up by distance
 - **Docs:** CLAUDE.md, system-design styling, TODO
 
 ### v0.3.0 — 2026-11-05
