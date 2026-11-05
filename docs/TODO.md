@@ -25,7 +25,7 @@ half at page breaks, text is selectable, ~1 MB lighter. LaTeX math via KaTeX
 One-time setup — tick these off as they're done:
 
 - [x] Connect Netlify (finish-setup) — https://markdown-lab.netlify.app — required; gives previews AND the production site
-- [ ] Protect `main` (finish-setup) — required; this is what makes changes arrive as PRs with
+- [x] Protect `main` (finish-setup) — required; this is what makes changes arrive as PRs with
       preview links, instead of going straight to the live site
 
 - [ ] Verify on a real desktop Chrome: open → reload → Reconnect → save (can't be tested in the sandbox)
