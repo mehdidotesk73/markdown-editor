@@ -5,7 +5,7 @@ import { labelSink, Spring } from '../lib/liquidTabs'
 
 // Liquid-glass tab bar. A clear glass bar holds the tab names; the active tab
 // sits in a well pressed into the glass — a recess with a shadowed upper edge,
-// a lit lower lip and a thin mint outline. Picking another tab springs the
+// a lit lower lip and a soft rim of light. Picking another tab springs the
 // well across; each name lights up as the well arrives under it and dims as
 // it leaves, in proportion to the distance, frame by frame.
 
@@ -237,9 +237,10 @@ function onKey(e: KeyboardEvent, t: Tab) {
   padding: 0 0.55rem;
 }
 
-/* The well: a recess pressed into the glass. Its upper inner edge is in
-   shadow, its lower lip catches the light, a thin mint outline traces the
-   cut, and a little mint light collects in its floor. */
+/* The well: a recess pressed into the glass, deep like the background. No
+   hue — light and shadow make it: the upper inner edge falls into shadow,
+   the lower lip catches the light, a faint rim traces the cut, and a little
+   cool light collects in its floor. */
 .well {
   position: absolute;
   left: 0;
@@ -247,16 +248,16 @@ function onKey(e: KeyboardEvent, t: Tab) {
   height: var(--well-h);
   border-radius: 999px;
   background:
-    radial-gradient(90% 90% at 50% 125%, hsl(162 72% 66% / 0.3), transparent 62%),
-    linear-gradient(180deg, rgba(0, 0, 0, 0.42), rgba(0, 0, 0, 0.16));
+    radial-gradient(90% 90% at 50% 125%, hsl(var(--liquid-light) / 0.16), transparent 62%),
+    linear-gradient(180deg, hsl(var(--liquid-deep) / 0.85), hsl(var(--liquid-deep) / 0.55));
   box-shadow:
     inset 0 2px 5px rgba(0, 0, 0, 0.65),
     inset 0 1px 1px rgba(0, 0, 0, 0.55),
     inset 0 -1px 0 rgba(255, 255, 255, 0.3),
-    inset 0 -6px 10px -6px hsl(162 72% 66% / 0.45),
-    0 1px 0 rgba(255, 255, 255, 0.22),
-    0 0 0 1px hsl(162 72% 66% / 0.5),
-    0 0 14px hsl(162 72% 62% / 0.22);
+    inset 0 -6px 10px -6px hsl(var(--liquid-light) / 0.28),
+    0 1px 0 rgba(255, 255, 255, 0.28),
+    0 -1px 0 rgba(0, 0, 0, 0.35),
+    0 0 0 1px rgba(255, 255, 255, 0.16);
   pointer-events: none;
   will-change: transform, width;
 }
@@ -277,7 +278,7 @@ function onKey(e: KeyboardEvent, t: Tab) {
   color: color-mix(in srgb, #fff calc(var(--lit) * 100%), var(--text-muted));
   font-size: 0.84rem;
   font-weight: 550;
-  text-shadow: 0 0 calc(var(--lit) * 10px) hsl(162 72% 66% / calc(var(--lit) * 0.55));
+  text-shadow: 0 0 calc(var(--lit) * 10px) hsl(var(--liquid-light) / calc(var(--lit) * 0.45));
   transform: translateY(calc(var(--lit) * 1px)); /* pressed in, ever so slightly */
   cursor: pointer;
   user-select: none;
@@ -375,9 +376,9 @@ function onKey(e: KeyboardEvent, t: Tab) {
 .add:hover {
   color: #fff;
   box-shadow:
-    0 0 0 1px hsl(162 72% 66% / 0.6),
-    0 1px 1px rgba(255, 255, 255, 0.4) inset,
-    0 0 12px hsl(162 72% 62% / 0.35);
+    0 0 0 1px rgba(255, 255, 255, 0.5),
+    0 1px 1px rgba(255, 255, 255, 0.5) inset,
+    0 0 12px hsl(var(--liquid-light) / 0.25);
 }
 .add:active {
   translate: 0 1px;

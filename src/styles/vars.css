@@ -62,16 +62,16 @@
   --glass-shadow: 0 6px 18px rgba(0, 0, 0, 0.32);
   --glass-blur: blur(14px) saturate(160%);
 
-  /* Liquid glass palette (tab bar + buttons): smoky warm-neutral glass with
-     a bright white rim and milky light pooling at its bottom edge; the
-     selected / main element is deep teal glass with a mint glow. */
+  /* Liquid glass palette (tab bar + buttons). No accent hue: selection is
+     carried by light and shadow alone. Ordinary glass is clear and faintly
+     smoky with a bright rim and milky light at its bottom edge; the main /
+     selected element is *deep* glass the colour of the background, set apart
+     by a brighter rim, a crisp highlight and cool white light inside. */
   --liquid-smoke: rgba(78, 72, 68, 0.16);
   --liquid-rim: rgba(255, 255, 255, 0.5);
   --liquid-milk: rgba(255, 244, 232, 0.2);
-  --liquid-teal-top: hsl(166 38% 42% / 0.88);
-  --liquid-teal-bottom: hsl(170 52% 22% / 0.92);
-  --liquid-mint: hsl(162 72% 70%);
-  --liquid-ink: hsl(165 60% 97%);
+  --liquid-deep: 224 38% 9%; /* "H S% L%": the background, deeper */
+  --liquid-light: 214 45% 90%; /* "H S% L%": cool white light */
 
   --mono: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
 

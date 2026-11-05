@@ -45,8 +45,9 @@ defineSlots<{ default?(): unknown }>()
    backdrop blurs through it), lightly tinted per tone. Light enters at the
    top — a specular highlight and a bright rim along the upper edge — and
    collects inside along the bottom edge, as it does in real glass.
-   Per tone:  --tint   "H S% L%"  colour of the glass and its inner light
-              --body   tint alpha of the body (0 = clear)
+   Per tone:  --tint   "H S% L%"  colour of the inner light
+              --bodyc  "H S% L%"  colour of the body (defaults to --tint)
+              --body   alpha of the body (0 = clear)
               --glow   alpha of the light collected at the bottom          */
 .ui-btn {
   --tint: 30 20% 88%;
@@ -78,7 +79,7 @@ defineSlots<{ default?(): unknown }>()
     /* light collected along the bottom */
     radial-gradient(95% 85% at 50% 128%, hsl(var(--tint) / var(--glow)), hsl(var(--tint) / 0) 62%),
     /* the (mostly clear) body */
-    linear-gradient(180deg, hsl(var(--tint) / calc(var(--body) * 0.55)), hsl(var(--tint) / var(--body)));
+    linear-gradient(180deg, hsl(var(--bodyc, var(--tint)) / calc(var(--body) * 0.55)), hsl(var(--bodyc, var(--tint)) / var(--body)));
   backdrop-filter: blur(14px) saturate(185%) brightness(1.1);
   -webkit-backdrop-filter: blur(14px) saturate(185%) brightness(1.1);
   box-shadow:
@@ -187,7 +188,7 @@ defineSlots<{ default?(): unknown }>()
   cursor: default;
 }
 .ui-btn:focus-visible {
-  outline: 2px solid var(--liquid-mint);
+  outline: 2px solid hsl(var(--liquid-light) / 0.8);
   outline-offset: 3px;
 }
 
@@ -219,35 +220,51 @@ defineSlots<{ default?(): unknown }>()
 }
 
 /* tones */
-/* Main action / toggles that are on: teal-tinted glass, mint light inside. */
+/* Main action / toggles that are on: deep glass the colour of the background.
+   No hue — it stands out by light and shadow: a brighter rim, a crisp top
+   highlight, cool white light collected inside, and a deeper drop shadow. */
 .t-primary,
 .t-neutral.active {
-  --tint: 164 62% 56%;
-  --body: 0.34;
-  --glow: 0.6;
+  --tint: var(--liquid-light);
+  --bodyc: var(--liquid-deep);
+  --body: 0.72;
+  --glow: 0.3;
+  --spec: 0.5;
   --c: #fff;
+  box-shadow:
+    inset 0 1px 0 hsl(0 0% 100% / 0.75),
+    inset 1px 0 0 hsl(0 0% 100% / 0.22),
+    inset -1px 0 0 hsl(0 0% 100% / 0.18),
+    inset 0 -1px 0 hsl(var(--tint) / 0.6),
+    inset 0 -0.6em 1em -0.45em hsl(var(--tint) / 0.38),
+    0 0 0 0.5px hsl(0 0% 100% / 0.4),
+    0 0.7em 1.3em -0.4em rgba(0, 0, 0, 0.75);
 }
 .t-primary:not(:disabled):hover,
 .t-neutral.active:not(:disabled):hover {
-  --glow: 0.78;
+  --glow: 0.42;
+  --spec: 0.62;
+  box-shadow:
+    inset 0 1px 0 hsl(0 0% 100% / 0.9),
+    inset 1px 0 0 hsl(0 0% 100% / 0.28),
+    inset -1px 0 0 hsl(0 0% 100% / 0.24),
+    inset 0 -1px 0 hsl(var(--tint) / 0.75),
+    inset 0 -0.65em 1.1em -0.45em hsl(var(--tint) / 0.5),
+    0 0 0 0.5px hsl(0 0% 100% / 0.5),
+    0 0.75em 1.4em -0.4em rgba(0, 0, 0, 0.8),
+    0 0 1.1em -0.3em hsl(var(--tint) / 0.25);
 }
 .t-ok {
-  --tint: 158 64% 60%;
-  --body: 0.14;
-  --glow: 0.4;
-  --c: hsl(158 75% 76%);
+  --c: hsl(158 60% 78%);
 }
-.t-attention {
-  --tint: 40 100% 60%;
-  --body: 0.16;
-  --glow: 0.42;
-  --c: hsl(42 100% 68%);
+/* Needs attention (unsaved): ordinary glass — only the ● mark is amber, so the
+   colour stays a small signal instead of tinting the whole button. */
+.t-attention .glyph {
+  color: var(--warn);
+  text-shadow: 0 0 6px hsl(43 100% 60% / 0.5);
 }
 .t-danger {
-  --tint: 0 90% 66%;
-  --body: 0.16;
-  --glow: 0.42;
-  --c: hsl(0 90% 80%);
+  --c: hsl(0 85% 80%);
 }
 
 @media (prefers-reduced-motion: reduce) {
