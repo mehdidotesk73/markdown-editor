@@ -46,11 +46,13 @@ How files work (see `src/lib/fileAccess.ts`, `src/lib/useTabs.ts`):
 
 **Theme:** dark-only slate palette borrowed from `mehdidotesk73/power-gis` (`src/styles/vars.css`).
 Accents have one job each — blue = interaction (links, focus), green = saved, amber = unsaved /
-needs attention (always with a ● or ⚠ mark), red = errors. Liquid-glass palette (`--liquid-*` in `vars.css`, from the user's
-reference navs): **smoky warm-neutral glass** with a bright white rim and milky light pooling at
-the bottom for the tab bar and ordinary buttons; **teal-tinted clear glass with mint light inside and white text**
-for the main action (the selected tab sits in a mint-outlined recess). The user rejected saturated blue (dated) and
-pale aqua. Use tokens, never colour literals.
+needs attention (always with a ● or ⚠ mark), red = errors. Liquid-glass palette (`--liquid-*` in `vars.css`): **no accent hue in the
+glass — selection is carried by light and shadow.** Ordinary buttons and the tab bar are clear,
+faintly smoky glass with a bright rim and milky light at the bottom; the main action and the
+selected tab use **deep glass the colour of the background** (`--liquid-deep`), set apart by a
+brighter rim, a crisp highlight and cool white light inside (`--liquid-light`). Status colours stay
+as small marks (the amber ● on Save and unsaved tabs), never as tinted glass. The user rejected, in
+turn: saturated blue (dated), pale aqua, and teal + amber glass (clashed with the dark blue). Use tokens, never colour literals.
 **Every button** goes through `components/ui/UiButton.vue` (sizes tag/compact/regular/large,
 tones by job) — no hand-styled `<button>`s in the chrome. The look is **liquid glass**, and it
 must stay **translucent**: a mostly clear body (backdrop blurs through; tone sets `--tint` and a
@@ -62,9 +64,9 @@ pictures and break the glass): button labels are text; `icon` is only for plain 
 (⇤ ⇥ ● ✓ ✕).
 
 **Tab bar (`TabBar.vue`) is a liquid nav:** a pill of clear glass; the active tab sits in a
-**well pressed into the glass** — a recess with a shadowed upper inner edge, a lit lower lip and a
-thin mint outline. Switching tabs springs the well to the new tab; each name lights up (white, mint
-glow, pressed 1px) in proportion to how much of the well is under it (`--lit`). `labelSink` +
+**well pressed into the glass** — a deep recess with a shadowed upper inner edge, a lit lower lip
+and a faint rim. Switching tabs springs the well to the new tab; each name lights up (white, soft
+white glow, pressed 1px) in proportion to how much of the well is under it (`--lit`). `labelSink` +
 `Spring` in `src/lib/liquidTabs.ts` (unit-tested). Respects `prefers-reduced-motion`.
 An earlier version had a bubble floating *above* the bar with a dent/valley in the bar's edge; the
 user preferred the recess (the raised bubble misaligned at the bar's ends) — see `docs/experience.md`.
