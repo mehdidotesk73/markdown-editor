@@ -12,6 +12,13 @@ collapsible panes and a draggable divider, Save / Save as / Export PDF (html2pdf
 drafts + file handles persisted in IndexedDB, external-change pickup on focus, dark slate
 theme from power-gis, Help modal now renders `docs/concepts/*.md`.
 
+### v0.4.0 — Liquid-glass buttons and tabs (2026-11-05)
+
+Every button now uses the shared `UiButton` with a liquid-glass look (`--glass-*` tokens in
+`vars.css`), including the formerly hand-styled Update available, popover reload and footer
+buttons (new `tag` size). The tab bar is a frosted glass track with a raised, blue-tinted
+active tab and a round ＋.
+
 ### v0.3.0 — Export PDF downloads directly, as real text (2026-11-05)
 
 No more print window: `exportMarkdownToPdf` builds the PDF with pdfmake and downloads it.

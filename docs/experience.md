@@ -358,6 +358,10 @@ browser's default serif. **Build the PDF in the page and download it** (pdfmake,
 
 ## Version History
 
+### v0.4.0 — 2026-11-05
+- **Changed:** Liquid-glass styling for all buttons (one `UiButton`, new `tag` size) and the tab bar
+- **Docs:** CLAUDE.md, system-design styling, TODO
+
 ### v0.3.0 — 2026-11-05
 - **Changed:** Export PDF downloads a real-text PDF directly (pdfmake); print-dialog export removed
 - **Added:** Typeset display math in PDFs (MathJax SVG), DejaVu fonts, offline caching of export pieces

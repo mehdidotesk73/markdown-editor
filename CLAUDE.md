@@ -47,7 +47,11 @@ How files work (see `src/lib/fileAccess.ts`, `src/lib/useTabs.ts`):
 **Theme:** dark-only slate palette borrowed from `mehdidotesk73/power-gis` (`src/styles/vars.css`).
 Accents have one job each — blue = interaction, green = saved, amber = unsaved / needs
 attention (always with a ● or ⚠ mark), red = errors. Use tokens, never colour literals.
-Buttons go through `components/ui/UiButton.vue` (sizes compact/regular/large, tones by job).
+**Every button** goes through `components/ui/UiButton.vue` (sizes tag/compact/regular/large,
+tones by job) — no hand-styled `<button>`s in the chrome. The look is **liquid glass**:
+translucent frosted pills (`--glass-*` tokens in `vars.css`: gradient fill, lit top edge,
+`backdrop-filter` blur); tones *tint* the glass rather than fill it. The tab bar is a glass
+track whose active tab is a raised, blue-tinted bubble (`TabBar.vue`).
 
 **Panel ("paper") theme:** the inside of the editor and preview panes uses its own
 `--paper-*` tokens (`vars.css`): dark by default, `.paper-light` swaps in a warm light page.

@@ -125,7 +125,7 @@ This is the shell that wraps every page/tab. It provides version checking, updat
 
 ### Styling
 
-Uses CSS custom properties (`--bg-elev`, `--text`, `--border`, etc.) for theming — a dark-only slate palette from power-gis (`src/styles/vars.css`). The inside of the editor/preview panes uses a separate **paper** layer — `--paper-*` tokens, dark by default, `.paper-light` on `Workspace.vue`'s root for the light page (toggle: `lib/usePaperTheme.ts`). Neither variant uses pure white. Rendered markdown uses `src/styles/markdown.css` (`.md-body` reads the paper tokens on screen; `.md-body.md-print` forces black-on-white for PDF). Mobile-safe padding with `safe-area-inset` for notch/bottom-bar devices.
+Buttons and the tab bar use a **liquid-glass** layer — `--glass-bg`, `--glass-border`, `--glass-edge` (lit top / shaded bottom insets), `--glass-shadow`, `--glass-blur` — through one component, `UiButton.vue` (sizes tag/compact/regular/large; tones tint the glass via `color-mix`). `TabBar.vue` is a frosted pill track with the active tab as a raised, accent-tinted bubble. Uses CSS custom properties (`--bg-elev`, `--text`, `--border`, etc.) for theming — a dark-only slate palette from power-gis (`src/styles/vars.css`). The inside of the editor/preview panes uses a separate **paper** layer — `--paper-*` tokens, dark by default, `.paper-light` on `Workspace.vue`'s root for the light page (toggle: `lib/usePaperTheme.ts`). Neither variant uses pure white. Rendered markdown uses `src/styles/markdown.css` (`.md-body` reads the paper tokens on screen; `.md-body.md-print` forces black-on-white for PDF). Mobile-safe padding with `safe-area-inset` for notch/bottom-bar devices.
 
 ## §3 — Data Layer (api/)
 

@@ -278,14 +278,17 @@ onBeforeUnmount(endDrag)
   background: var(--paper-head);
 }
 /* Collapse buttons sit on the paper, so they take its colours. */
+/* Collapse buttons: the shared glass button, with label colours from the paper. */
 .pane-head :deep(.ui-btn) {
-  background: transparent;
-  border-color: var(--paper-border);
   --c: var(--paper-muted);
 }
 .pane-head :deep(.ui-btn:hover) {
   --c: var(--paper-text);
-  border-color: var(--accent-blue);
+}
+/* On the light page, glass needs a darker edge to read. */
+.paper-light .pane-head :deep(.ui-btn) {
+  border-color: rgba(60, 50, 30, 0.18);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 2px 6px rgba(60, 50, 30, 0.12);
 }
 .preview-head {
   padding: 0 0.8rem 0 0.35rem;

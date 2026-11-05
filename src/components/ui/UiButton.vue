@@ -1,12 +1,18 @@
 <script setup lang="ts">
-// The app's button (after PowerGIS's UiButton): one component so every button
-// sizes its icon and label together.
-//   size  compact — toolbar / pane controls;  regular — the default;  large — empty-state actions
+// The app's one button — every button in the chrome goes through it, so they
+// all share the liquid-glass look (translucent, frosted, lit top edge) and
+// size their icon and label together.
+//   size  tag      — footer pills: View logs, Reload latest, Copy log
+//         compact  — top bar + pane controls
+//         regular  — the default
+//         large    — empty-state actions
 //   tone  neutral, primary (blue: the action), ok (green), attention (amber), danger (red)
-// An `icon` with no label makes a square button; give it an aria-label.
+//         — tones tint the glass rather than fill it
+//   active  — on / selected (toggles): lit with the accent
+// An `icon` with no label makes a round button; give it an aria-label.
 withDefaults(
   defineProps<{
-    size?: 'compact' | 'regular' | 'large'
+    size?: 'tag' | 'compact' | 'regular' | 'large'
     tone?: 'neutral' | 'primary' | 'ok' | 'attention' | 'danger'
     icon?: string
     active?: boolean
@@ -30,13 +36,22 @@ defineSlots<{ default?(): unknown }>()
 
 <style scoped>
 .ui-btn {
+  /* --k: the tint (accent) mixed into the glass; --c: text colour */
+  --k: transparent;
   --c: var(--text);
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.35em;
-  border: 1px solid var(--border-strong);
-  background: var(--bg-elev-2);
+  border: 1px solid var(--glass-border);
+  border-radius: 999px;
+  background:
+    linear-gradient(0deg, color-mix(in srgb, var(--k) 22%, transparent), color-mix(in srgb, var(--k) 22%, transparent)),
+    var(--glass-bg);
+  box-shadow: var(--glass-edge), var(--glass-shadow);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
   color: var(--c);
   font-family: inherit;
   font-weight: 600;
@@ -44,9 +59,24 @@ defineSlots<{ default?(): unknown }>()
   white-space: nowrap;
   cursor: pointer;
   transition:
-    border-color 0.12s,
-    background 0.12s,
-    color 0.12s;
+    background 0.18s,
+    border-color 0.18s,
+    box-shadow 0.18s,
+    color 0.18s,
+    transform 0.12s;
+}
+.ui-btn:not(:disabled):hover {
+  background:
+    linear-gradient(0deg, color-mix(in srgb, var(--k) 30%, transparent), color-mix(in srgb, var(--k) 30%, transparent)),
+    var(--glass-bg-hover);
+  border-color: var(--glass-border-hover);
+  box-shadow:
+    var(--glass-edge),
+    var(--glass-shadow),
+    0 0 0 3px color-mix(in srgb, var(--k) 18%, transparent);
+}
+.ui-btn:not(:disabled):active {
+  transform: scale(0.96);
 }
 .ui-btn:disabled {
   opacity: 0.45;
@@ -54,29 +84,33 @@ defineSlots<{ default?(): unknown }>()
 }
 .ui-btn:focus-visible {
   outline: 2px solid var(--accent-blue);
-  outline-offset: 1px;
+  outline-offset: 2px;
 }
 .glyph {
   font-size: 1.2em;
   line-height: 1;
 }
 
+/* sizes */
+.sz-tag {
+  height: 1.55rem;
+  padding: 0 0.6rem;
+  font-size: 0.7rem;
+  font-weight: 550;
+}
 .sz-compact {
-  height: 1.9rem;
-  padding: 0 0.55rem;
-  border-radius: 0.4rem;
+  height: 2rem;
+  padding: 0 0.8rem;
   font-size: 0.8rem;
 }
 .sz-regular {
-  height: 2.3rem;
-  padding: 0 0.75rem;
-  border-radius: 0.45rem;
+  height: 2.4rem;
+  padding: 0 0.95rem;
   font-size: 0.9rem;
 }
 .sz-large {
-  height: 2.8rem;
-  padding: 0 1rem;
-  border-radius: 0.55rem;
+  height: 2.9rem;
+  padding: 0 1.25rem;
   font-size: 1.02rem;
 }
 .square {
@@ -84,41 +118,49 @@ defineSlots<{ default?(): unknown }>()
   aspect-ratio: 1;
 }
 
+/* tones: tint the glass, colour the label */
 .t-neutral {
-  --c: var(--text-muted);
+  --c: color-mix(in srgb, var(--text) 82%, transparent);
 }
 .t-neutral:not(:disabled):hover,
 .t-neutral.active {
   --c: var(--text);
-  border-color: var(--accent-blue);
+}
+.t-neutral.active,
+.t-primary {
+  --k: var(--accent-blue);
 }
 .t-primary {
-  border-color: var(--accent-blue);
-  background: var(--accent-blue);
   --c: var(--on-accent);
+  border-color: color-mix(in srgb, var(--accent-blue) 55%, var(--glass-border));
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--accent-blue) 78%, white 6%), color-mix(in srgb, var(--accent-blue) 58%, transparent)),
+    var(--glass-bg);
+  box-shadow:
+    var(--glass-edge),
+    0 6px 20px color-mix(in srgb, var(--accent-blue) 30%, transparent);
 }
 .t-primary:not(:disabled):hover {
-  background: color-mix(in srgb, var(--accent-blue) 85%, white);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--accent-blue) 88%, white 10%), color-mix(in srgb, var(--accent-blue) 68%, transparent)),
+    var(--glass-bg-hover);
+  border-color: color-mix(in srgb, var(--accent-blue) 70%, white 20%);
 }
 .t-ok {
   --k: var(--ok);
+  --c: var(--ok);
 }
 .t-attention {
   --k: var(--warn);
+  --c: var(--warn);
 }
 .t-danger {
   --k: var(--danger);
+  --c: var(--danger);
 }
 .t-ok,
 .t-attention,
 .t-danger {
-  --c: var(--k);
-  border-color: color-mix(in srgb, var(--k) 55%, var(--border-strong));
-}
-.t-ok:not(:disabled):hover,
-.t-attention:not(:disabled):hover,
-.t-danger:not(:disabled):hover {
-  background: color-mix(in srgb, var(--k) 16%, var(--bg-elev-2));
-  border-color: var(--k);
+  border-color: color-mix(in srgb, var(--k) 40%, var(--glass-border));
 }
 </style>

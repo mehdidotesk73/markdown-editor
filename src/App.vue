@@ -216,13 +216,20 @@ const helpDoc = ref('overview')
 
       <div class="topbar-end">
         <div class="update-slot" ref="updateSlot">
-          <button v-if="updateAvailable" class="update-btn" @click="showUpdatePanel = !showUpdatePanel">
+          <UiButton
+            v-if="updateAvailable"
+            size="compact"
+            tone="primary"
+            icon="↻"
+            :active="showUpdatePanel"
+            @click="showUpdatePanel = !showUpdatePanel"
+          >
             Update available
-          </button>
+          </UiButton>
           <div v-if="showUpdatePanel && updateAvailable" class="update-pop" role="dialog">
             <div class="up-line">running {{ buildId }} · {{ buildTime }}</div>
             <div class="up-line">live {{ published?.commit }} · {{ published?.builtAt }}</div>
-            <button class="reload-btn update-ready" @click="onReloadLatest">Update ready — Reload</button>
+            <UiButton size="tag" tone="primary" @click="onReloadLatest">Update ready — Reload</UiButton>
           </div>
         </div>
         <UiButton
@@ -281,16 +288,19 @@ const helpDoc = ref('overview')
           <template v-else-if="updateAvailable"> · {{ published?.commit }} is live</template>
         </span>
 
-        <button
-          class="reload-btn logs-btn"
-          :class="{ 'has-errors': errorCount > 0 }"
+        <!-- An error the user can't notice is an error they won't report — so the
+             button that opens the log carries the count, in the danger colour. -->
+        <UiButton
+          size="tag"
+          :tone="errorCount > 0 ? 'danger' : 'neutral'"
+          :active="showDebug && !errorCount"
           @click="showDebug = !showDebug"
         >
           {{ showDebug ? 'Hide logs' : 'View logs' }}
           <span v-if="errorCount" class="err-count">{{ errorCount }}</span>
-        </button>
+        </UiButton>
 
-        <button class="reload-btn" :class="{ 'update-ready': updateAvailable }" @click="onReloadLatest">
+        <UiButton size="tag" :tone="updateAvailable ? 'primary' : 'neutral'" @click="onReloadLatest">
           {{
             alreadyLatest
               ? 'Already on the latest build ✓'
@@ -298,7 +308,7 @@ const helpDoc = ref('overview')
                 ? 'Update ready — Reload'
                 : 'Reload latest'
           }}
-        </button>
+        </UiButton>
       </div>
 
       <div v-if="showDebug" class="log-window">
@@ -306,9 +316,9 @@ const helpDoc = ref('overview')
           <span class="muted">
             {{ debugState.logs.length }} {{ debugState.logs.length === 1 ? 'entry' : 'entries' }}
           </span>
-          <button class="reload-btn" @click="copyLog">
+          <UiButton size="tag" :tone="copied ? 'ok' : 'neutral'" @click="copyLog">
             {{ copied ? 'Copied ✓' : 'Copy log' }}
-          </button>
+          </UiButton>
         </div>
         <p class="log-hint muted">Something not working? Tap <strong>Copy log</strong> and paste it to Claude.</p>
         <ul class="debug-log">
@@ -374,22 +384,6 @@ const helpDoc = ref('overview')
   position: relative;
 }
 
-.update-btn {
-  background: var(--bg-elev-2);
-  border: 1px solid var(--accent-blue);
-  color: var(--text);
-  font-weight: 600;
-  font-size: 0.78rem;
-  height: 1.9rem;
-  padding: 0 0.6rem;
-  border-radius: 0.4rem;
-  white-space: nowrap;
-}
-.update-btn:hover {
-  background: var(--accent-blue);
-  color: var(--on-accent);
-}
-
 .update-pop {
   position: absolute;
   top: calc(100% + 0.35rem);
@@ -402,9 +396,11 @@ const helpDoc = ref('overview')
   gap: 0.4rem;
   padding: 0.6rem 0.7rem;
   background: var(--overlay-bg);
-  border: 1px solid var(--accent-blue);
-  border-radius: 0.4rem;
-  box-shadow: var(--shadow);
+  border: 1px solid var(--glass-border-hover);
+  border-radius: 0.9rem;
+  box-shadow: var(--glass-edge), var(--shadow);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
 }
 
 .up-line {
@@ -505,12 +501,6 @@ kbd {
   margin-right: auto;
 }
 
-.logs-btn.has-errors {
-  border-color: var(--danger);
-  color: var(--danger);
-  font-weight: 600;
-}
-
 .err-count {
   display: inline-block;
   min-width: 1.05rem;
@@ -543,25 +533,6 @@ kbd {
 .repeat {
   margin-left: 0.35rem;
   opacity: 0.65;
-}
-
-.reload-btn {
-  font-size: 0.7rem;
-  padding: 0.15rem 0.5rem;
-  background: var(--bg-elev-2);
-  border: 1px solid var(--border);
-  color: var(--text-muted);
-  border-radius: 0.4rem;
-}
-.reload-btn:hover {
-  color: var(--text);
-  border-color: var(--accent-blue);
-}
-
-.reload-btn.update-ready {
-  border-color: var(--accent-blue);
-  color: var(--text);
-  font-weight: 600;
 }
 
 .debug-log {

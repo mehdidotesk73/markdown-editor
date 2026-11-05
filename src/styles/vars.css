@@ -51,6 +51,17 @@
   --paper-quote: #4f8ef7;
   --paper-selection: rgba(79, 142, 247, 0.32);
 
+  /* Liquid glass: translucent, frosted surfaces with a lit top edge. Used by
+     UiButton and the tab bar. Colour on glass comes from tinting these with
+     an accent (color-mix), never from opaque fills. */
+  --glass-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.11), rgba(255, 255, 255, 0.035));
+  --glass-bg-hover: linear-gradient(180deg, rgba(255, 255, 255, 0.17), rgba(255, 255, 255, 0.06));
+  --glass-border: rgba(255, 255, 255, 0.13);
+  --glass-border-hover: rgba(255, 255, 255, 0.24);
+  --glass-edge: inset 0 1px 0 rgba(255, 255, 255, 0.2), inset 0 -1px 0 rgba(0, 0, 0, 0.28);
+  --glass-shadow: 0 6px 18px rgba(0, 0, 0, 0.32);
+  --glass-blur: blur(14px) saturate(160%);
+
   --mono: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
 
   /* Typography */
