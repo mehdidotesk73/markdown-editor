@@ -5,40 +5,72 @@ export interface DentOptions {
   /** Bar width and height (px). The bar's ends are fully rounded. */
   width: number
   height: number
-  /** Dent centre (px from the bar's left edge) and half-width at its floor. */
+  /** The bubble: centre x, width, and the y of its centre line relative to
+   *  the bar's top edge (negative = above the bar). Its ends are round. */
   center: number
-  halfWidth: number
-  /** How far the dent's floor sits below the bar's top edge. */
-  depth: number
-  /** Width of each curved shoulder leading into the dent. */
-  shoulder?: number
+  bubbleWidth: number
+  bubbleHeight: number
+  bubbleCenterY: number
+  /** Clearance between the bubble and the dent around it. */
+  gap: number
+  /** Radius of the rounded lip where the dent meets the bar's top edge. */
+  fillet?: number
 }
 
 const f = (n: number) => (Math.round(n * 10) / 10).toString()
 
 /**
- * SVG path of the bar: a pill whose top edge dips into a smooth dent under
- * the bubble. Used for both the glass (as a clip-path) and its lit edge.
+ * How far the dent spreads past each side of the bubble along the bar's top
+ * edge (so tabs can be spaced to clear it).
  */
-export function dentPath({ width: W, height: H, center, halfWidth, depth, shoulder = 16 }: DentOptions): string {
+export function dentSpread(o: Pick<DentOptions, 'bubbleHeight' | 'bubbleCenterY' | 'gap' | 'fillet'>): number {
+  const R = o.bubbleHeight / 2
+  const Ro = R + o.gap
+  const rf = o.fillet ?? 10
+  const reach = Math.sqrt(Math.max(0, (Ro + rf) ** 2 - (rf - o.bubbleCenterY) ** 2))
+  return reach - R
+}
+
+/**
+ * SVG path of the bar: a pill whose top edge dips into a dent that follows
+ * the bubble's own contour — two arcs hugging its round ends and a floor
+ * under its flat bottom, offset by `gap` — with rounded lips where the dent
+ * meets the top edge. Used for both the glass (clip-path) and its lit edge.
+ */
+export function dentPath(o: DentOptions): string {
+  const { width: W, height: H } = o
   const r = H / 2
   if (W <= 2 * r) return ''
-  // Keep the dent inside the straight part of the top edge.
-  const hw = Math.max(0, Math.min(halfWidth, (W - 2 * r - 2 * shoulder) / 2))
-  const c = Math.max(r + shoulder + hw, Math.min(center, W - r - shoulder - hw))
-  const d = Math.max(0, Math.min(depth, H - 6))
-  const k = Math.min(hw, d) // how far the floor's rounding reaches in
+  const R = o.bubbleHeight / 2
+  const Ro = R + o.gap // dent radius around each round end
+  const rf = o.fillet ?? 10
+  const cy = o.bubbleCenterY
+  const half = Math.max(R, o.bubbleWidth / 2)
+  const spread = dentSpread(o)
 
-  const L0 = c - hw - shoulder // shoulder starts (on the top edge)
-  const R0 = c + hw + shoulder
+  // Keep the whole dent on the straight part of the top edge.
+  const lo = r + half + spread
+  const hi = W - r - half - spread
+  const c = lo <= hi ? Math.max(lo, Math.min(o.center, hi)) : W / 2
+
+  const cL = c - half + R // centres of the bubble's round ends
+  const cR = c + half - R
+  const floor = cy + Ro
+  const reach = spread + R // from an end's centre to where the lip leaves the top edge
+  // Where each lip (fillet circle at height rf) touches the dent arc.
+  const k = Ro / (Ro + rf)
+  const tLx = cL + (-reach) * k
+  const tRx = cR + reach * k
+  const tY = cy + (rf - cy) * k
+
   return [
     `M${f(r)},0`,
-    `L${f(L0)},0`,
-    // down the left shoulder into the floor
-    `C${f(L0 + shoulder * 0.62)},0 ${f(c - hw - shoulder * 0.12)},${f(d)} ${f(c - hw + k * 0.55)},${f(d)}`,
-    `L${f(c + hw - k * 0.55)},${f(d)}`,
-    // and back up the right shoulder
-    `C${f(c + hw + shoulder * 0.12)},${f(d)} ${f(R0 - shoulder * 0.62)},0 ${f(R0)},0`,
+    `L${f(cL - reach)},0`,
+    `A${f(rf)},${f(rf)} 0 0 1 ${f(tLx)},${f(tY)}`, // lip rolls over the edge
+    `A${f(Ro)},${f(Ro)} 0 0 0 ${f(cL)},${f(floor)}`, // down around the bubble's left end
+    `L${f(cR)},${f(floor)}`, // under its flat bottom
+    `A${f(Ro)},${f(Ro)} 0 0 0 ${f(tRx)},${f(tY)}`, // up around its right end
+    `A${f(rf)},${f(rf)} 0 0 1 ${f(cR + reach)},0`, // and over the lip
     `L${f(W - r)},0`,
     `A${f(r)},${f(r)} 0 0 1 ${f(W - r)},${f(H)}`,
     `L${f(r)},${f(H)}`,

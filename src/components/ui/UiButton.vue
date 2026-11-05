@@ -177,7 +177,7 @@ defineSlots<{ default?(): unknown }>()
   cursor: default;
 }
 .ui-btn:focus-visible {
-  outline: 2px solid hsl(217 92% 68%);
+  outline: 2px solid hsl(186 80% 72%);
   outline-offset: 3px;
 }
 
@@ -209,17 +209,57 @@ defineSlots<{ default?(): unknown }>()
 }
 
 /* tones: the hue the glass is lit with */
+
+/* Primary (and toggles that are on): a drop of pale, milky aqua glass with a
+   glossy band across the top and light pooling at the bottom — the same
+   material as the tab bar's bubble. Dark text, like ink seen through it. */
 .t-primary,
 .t-neutral.active {
-  --h: 217;
-  --s: 92%;
+  --h: 186;
+  --s: 78%;
   --l: 74%;
-  --body: 60%;
-  --fill: 0.62;
-  --c: hsl(217 100% 98%);
+  --c: hsl(196 62% 20%);
+  text-shadow: 0 1px 0 hsl(0 0% 100% / 0.55);
+  background-color: transparent;
+  background-image:
+    radial-gradient(90% 60% at 50% 6%, hsl(0 0% 100% / 0.85), hsl(0 0% 100% / 0) 70%),
+    linear-gradient(180deg, hsl(188 70% 95% / 0.92), hsl(190 72% 84% / 0.86) 55%, hsl(186 78% 74% / 0.9));
+  box-shadow:
+    0 0 0 0.06em hsl(190 60% 92% / 0.85),
+    0 0.06em 0.06em hsl(0 0% 100% / 0.9) inset,
+    0 -0.4em 0.75em -0.25em hsl(180 85% 60% / 0.75) inset,
+    0 0.2em 0.4em -0.1em hsl(0 0% 100% / 0.5) inset,
+    0 0.55em 1em -0.3em rgba(0, 0, 0, 0.6),
+    0 0 1.2em -0.2em hsl(185 90% 75% / 0.3);
 }
-.t-neutral.active {
-  --fill: 0.22;
+.t-primary:not(:disabled):hover,
+.t-neutral.active:not(:disabled):hover {
+  --c: hsl(196 70% 14%);
+  background-color: transparent;
+  background-image:
+    radial-gradient(90% 60% at 50% 6%, hsl(0 0% 100% / 0.95), hsl(0 0% 100% / 0) 70%),
+    linear-gradient(180deg, hsl(186 80% 96% / 0.96), hsl(188 80% 86% / 0.92) 55%, hsl(184 85% 72% / 0.95));
+  box-shadow:
+    0 0 0 0.06em hsl(188 80% 94% / 0.95),
+    0 0.06em 0.06em hsl(0 0% 100% / 1) inset,
+    0 -0.45em 0.8em -0.25em hsl(180 90% 58% / 0.85) inset,
+    0 0.2em 0.4em -0.1em hsl(0 0% 100% / 0.6) inset,
+    0 0.6em 1.2em -0.3em rgba(0, 0, 0, 0.6),
+    0 0 1.4em -0.1em hsl(185 90% 75% / 0.45);
+}
+.t-primary:not(:disabled):active,
+.t-neutral.active:not(:disabled):active {
+  box-shadow:
+    0 0 0 0.06em hsl(188 80% 94% / 0.95),
+    0 0.12em 0.25em hsl(196 60% 20% / 0.3) inset,
+    0 -0.35em 0.7em -0.25em hsl(180 90% 58% / 0.8) inset,
+    0 0.25em 0.5em -0.15em rgba(0, 0, 0, 0.5);
+}
+/* the streak reads darker on pale glass */
+.t-primary::after,
+.t-neutral.active::after {
+  mix-blend-mode: soft-light;
+  filter: brightness(1.6);
 }
 .t-ok {
   --h: 158;

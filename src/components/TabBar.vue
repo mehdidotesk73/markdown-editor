@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { isDirty, type Tab } from '../lib/useTabs'
-import { dentPath, labelSink, Spring } from '../lib/liquidTabs'
+import { dentPath, dentSpread, labelSink, Spring } from '../lib/liquidTabs'
 
 // Liquid-glass tab bar. A frosted glass bar holds the tab names; the active
 // tab rides in a glass bubble floating above the bar, which presses a dent
@@ -17,14 +17,19 @@ const emit = defineEmits<{
   (e: 'new'): void
 }>()
 
-// Geometry (px). The bubble sits half above the bar; the dent hugs its bottom.
-const PAD_TOP = 17 // room above the bar for the bubble
-const BAR_H = 42
-const BUBBLE_H = 34
-const BUBBLE_Y = 0 // bubble top, from the top of the track
+// Geometry (px). The bubble sits deep in the bar — only its top third rises
+// above — and the dent follows its outline at a small gap.
+const PAD_TOP = 12 // room above the bar for the bubble
+const BAR_H = 48
+const BUBBLE_H = 36
+const BUBBLE_CY = BUBBLE_H / 2 - PAD_TOP // bubble centre line, relative to the bar's top edge
 const GAP = 5 // between bubble and dent
-const DENT_DEPTH = BUBBLE_Y + BUBBLE_H - PAD_TOP + GAP // dent bottom, below bar top
-const BUBBLE_EXTRA = 10 // bubble is this much wider than the tab under it
+const FILLET = 11 // rounded lip where the dent meets the bar's top edge
+const BUBBLE_EXTRA = 8 // bubble is at least this much wider than the tab under it
+const BOLD_SLACK = 14 // the bubble's bolder label can run this much wider again
+// Tabs sit far enough apart that a neighbour's name clears the dent's lip.
+const SPREAD = dentSpread({ bubbleHeight: BUBBLE_H, bubbleCenterY: BUBBLE_CY, gap: GAP, fillet: FILLET })
+const TAB_GAP = Math.ceil((BUBBLE_EXTRA + BOLD_SLACK) / 2 + SPREAD + 2)
 
 const scroller = ref<HTMLElement>()
 const track = ref<HTMLElement>()
@@ -33,9 +38,16 @@ function setTabEl(id: string, el: unknown) {
   if (el instanceof HTMLElement) tabEls.set(id, el)
   else tabEls.delete(id)
 }
+// Invisible copies of each tab as the bubble would show it (bolder text,
+// roomier padding), so the bubble is sized to fit its label, not the tab's.
+const ghostEls = new Map<string, HTMLElement>()
+function setGhostEl(id: string, el: unknown) {
+  if (el instanceof HTMLElement) ghostEls.set(id, el)
+  else ghostEls.delete(id)
+}
 
 // Measured layout: each tab's centre and width, and the bar's width.
-const geo = ref<Record<string, { c: number; w: number }>>({})
+const geo = ref<Record<string, { c: number; w: number; bubble: number }>>({})
 const barW = ref(0)
 
 // Animated bubble: centre x and width.
@@ -49,10 +61,13 @@ const active = computed(() => props.tabs.find((t) => t.id === props.activeId) ??
 
 function measure() {
   if (!track.value) return
-  const g: Record<string, { c: number; w: number }> = {}
+  const g: Record<string, { c: number; w: number; bubble: number }> = {}
   for (const t of props.tabs) {
     const el = tabEls.get(t.id)
-    if (el) g[t.id] = { c: el.offsetLeft + el.offsetWidth / 2, w: el.offsetWidth }
+    if (!el) continue
+    // Round up and add a hair of slack: an exact fit can tip into an ellipsis at sub-pixel sizes.
+    const ghost = Math.ceil(ghostEls.get(t.id)?.getBoundingClientRect().width ?? 0) + 2
+    g[t.id] = { c: el.offsetLeft + el.offsetWidth / 2, w: el.offsetWidth, bubble: Math.max(el.offsetWidth + BUBBLE_EXTRA, ghost) }
   }
   geo.value = g
   barW.value = track.value.scrollWidth
@@ -64,7 +79,7 @@ let last = 0
 
 function target() {
   const g = props.activeId ? geo.value[props.activeId] : undefined
-  return g ? { c: g.c, w: g.w + BUBBLE_EXTRA } : null
+  return g ? { c: g.c, w: g.bubble } : null
 }
 
 function animate(jump = false) {
@@ -144,8 +159,11 @@ const barPath = computed(() =>
     width: barW.value,
     height: BAR_H,
     center: pos.value,
-    halfWidth: bw.value / 2 + GAP,
-    depth: DENT_DEPTH,
+    bubbleWidth: bw.value,
+    bubbleHeight: BUBBLE_H,
+    bubbleCenterY: BUBBLE_CY,
+    gap: GAP,
+    fillet: FILLET,
   }),
 )
 
@@ -200,7 +218,10 @@ function onKey(e: KeyboardEvent, t: Tab) {
 </script>
 
 <template>
-  <div class="dock" :style="{ '--pad-top': `${PAD_TOP}px`, '--bar-h': `${BAR_H}px`, '--bubble-h': `${BUBBLE_H}px` }">
+  <div
+    class="dock"
+    :style="{ '--pad-top': `${PAD_TOP}px`, '--bar-h': `${BAR_H}px`, '--bubble-h': `${BUBBLE_H}px`, '--tab-gap': `${TAB_GAP}px` }"
+  >
     <div ref="scroller" class="scroller">
       <div ref="track" class="track" role="tablist" aria-label="Open files">
         <!-- The glass bar, shaped with the dent; then its lit edge. -->
@@ -242,6 +263,17 @@ function onKey(e: KeyboardEvent, t: Tab) {
 
         <button class="add" aria-label="New tab" title="New file" @click="$emit('new')">+</button>
 
+        <!-- Measuring copies of the bubble, one per tab (never seen). -->
+        <div class="ghosts" aria-hidden="true">
+          <span v-for="t in tabs" :key="t.id" :ref="(el) => setGhostEl(t.id, el)" class="bubble ghost">
+            <span class="bubble-label">
+              <span v-if="t.access === 'needs-access'" class="warn">⚠</span>
+              <span class="name" :class="{ unlinked: t.access === 'unlinked' }">{{ t.name }}</span>
+              <span class="x" />
+            </span>
+          </span>
+        </div>
+
         <!-- The bubble carrying the active tab. -->
         <div v-if="active && bw > 0" class="bubble" :class="{ dirty: isDirty(active) }" :style="bubbleStyle" aria-hidden="true">
           <span class="bubble-label" :style="bubbleLabelStyle">
@@ -278,12 +310,12 @@ function onKey(e: KeyboardEvent, t: Tab) {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 0.2rem;
+  gap: var(--tab-gap);
   min-width: 100%;
   width: max-content;
   height: calc(var(--pad-top) + var(--bar-h) + 6px);
-  /* Side room so the dent's shoulders never reach the bar's rounded ends. */
-  padding: var(--pad-top) 2.9rem 6px;
+  /* Side room so the dent's lips never reach the bar's rounded ends. */
+  padding: var(--pad-top) 3rem 6px;
 }
 
 .bar-glass,
@@ -312,7 +344,7 @@ function onKey(e: KeyboardEvent, t: Tab) {
   flex: 0 0 auto;
   height: var(--bar-h);
   max-width: 15rem;
-  padding: 0 0.15rem 0 0.8rem;
+  padding: 0 0.1rem 0 0.35rem;
   display: flex;
   align-items: center;
   border-radius: 999px;
@@ -422,14 +454,36 @@ function onKey(e: KeyboardEvent, t: Tab) {
     translate 0.15s;
 }
 .add:hover {
-  color: var(--text);
-  background: linear-gradient(hsl(217 92% 70% / 0.35), hsl(217 92% 60% / 0.12));
+  color: hsl(196 62% 20%);
+  background: linear-gradient(hsl(188 70% 95% / 0.9), hsl(186 78% 76% / 0.85));
 }
 .add:active {
   translate: 0 1px;
 }
 
-/* The bubble: a raised drop of tinted glass with a specular highlight. */
+/* Off-screen measuring copies of the bubble. */
+.ghosts {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+  pointer-events: none;
+}
+.bubble.ghost {
+  position: static;
+  display: inline-flex;
+  width: auto;
+  max-width: none;
+  white-space: nowrap;
+}
+.bubble.ghost .name {
+  overflow: visible;
+}
+
+/* The bubble: a drop of pale, milky aqua glass — glossy highlight across the
+   top, light pooling at the bottom, darker text — sitting deep in the bar. */
 .bubble {
   position: absolute;
   z-index: 2;
@@ -439,36 +493,39 @@ function onKey(e: KeyboardEvent, t: Tab) {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 0.3rem 0 0.95rem;
+  padding: 0 0.35rem 0 1rem;
   border-radius: 999px;
-  color: hsl(217 100% 97%);
+  color: hsl(196 62% 20%);
   font-size: 0.84rem;
-  font-weight: 600;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  font-weight: 650;
+  text-shadow: 0 1px 0 hsl(0 0% 100% / 0.55);
   background:
-    radial-gradient(120% 90% at 50% 0%, hsl(0 0% 100% / 0.32), transparent 55%),
-    linear-gradient(180deg, hsl(217 92% 66% / 0.55), hsl(217 92% 46% / 0.42));
+    /* gloss band */
+    radial-gradient(90% 55% at 50% 8%, hsl(0 0% 100% / 0.85), hsl(0 0% 100% / 0) 70%),
+    /* body: milky ice to aqua */
+    linear-gradient(180deg, hsl(188 70% 95% / 0.92), hsl(190 72% 84% / 0.86) 55%, hsl(186 78% 74% / 0.9));
   backdrop-filter: blur(10px) saturate(180%);
   -webkit-backdrop-filter: blur(10px) saturate(180%);
   box-shadow:
-    0 0 0 1px hsl(217 92% 80% / 0.45),
-    0 0.12em 0.2em hsl(0 0% 100% / 0.55) inset,
-    0 -0.4em 0.9em -0.2em hsl(200 100% 80% / 0.45) inset,
-    0 10px 18px -6px rgba(0, 0, 0, 0.6),
-    0 0 18px hsl(217 92% 65% / 0.35);
+    0 0 0 1px hsl(190 60% 92% / 0.8),
+    0 1px 1px hsl(0 0% 100% / 0.9) inset,
+    0 -6px 12px -4px hsl(180 85% 62% / 0.75) inset,
+    0 3px 6px -2px hsl(0 0% 100% / 0.5) inset,
+    0 10px 18px -8px rgba(0, 0, 0, 0.65),
+    0 0 22px hsl(185 90% 75% / 0.28);
   will-change: transform, width;
 }
 .bubble::before {
-  /* the glow it casts down into the dent */
+  /* the light it casts down into the dent */
   content: '';
   position: absolute;
   z-index: -1;
-  left: 18%;
-  right: 18%;
-  top: 92%;
+  left: 16%;
+  right: 16%;
+  top: 90%;
   height: 12px;
   border-radius: 50%;
-  background: radial-gradient(closest-side, hsl(217 92% 70% / 0.5), transparent);
+  background: radial-gradient(closest-side, hsl(185 90% 78% / 0.55), transparent);
   filter: blur(2px);
 }
 .bubble-label {
@@ -480,10 +537,16 @@ function onKey(e: KeyboardEvent, t: Tab) {
   transform-origin: 50% 100%;
 }
 .bubble .x {
-  opacity: 0.8;
+  opacity: 0.7;
   pointer-events: auto;
 }
+.bubble .x:hover {
+  background: hsl(196 60% 30% / 0.14);
+}
 .bubble .x .dot {
-  color: hsl(43 96% 68%);
+  color: hsl(32 95% 46%);
+}
+.bubble .warn {
+  color: hsl(32 95% 42%);
 }
 </style>

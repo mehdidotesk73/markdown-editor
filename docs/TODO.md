@@ -17,9 +17,10 @@ theme from power-gis, Help modal now renders `docs/concepts/*.md`.
 Every button uses the shared `UiButton`, restyled as hue-lit liquid glass (layered inner
 light, glow below, hover light sweep, press sink), including the formerly hand-styled Update
 available, popover reload and footer buttons (new `tag` size). Emoji icons removed — text
-labels only. The tab bar is a liquid nav: a glass bubble carries the active tab above a
-dented glass bar and springs to the next tab, the dent following; bar labels sink and fade
-by distance (`dentPath`, `labelSink`, `Spring` in `src/lib/liquidTabs.ts`, 6 tests).
+labels only. The tab bar is a liquid nav: a pale aqua glass bubble carries the active tab, sitting
+deep in a glass bar whose dent follows its outline, and springs to the next tab, the dent following; bar labels sink and fade
+by distance (`dentPath`, `dentSpread`, `labelSink`, `Spring` in `src/lib/liquidTabs.ts`, 8 tests).
+Primary buttons share the bubble's pale liquid aqua glass (no saturated blue).
 
 ### v0.3.0 — Export PDF downloads directly, as real text (2026-11-05)
 

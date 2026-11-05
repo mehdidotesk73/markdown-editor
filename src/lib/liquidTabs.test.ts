@@ -1,21 +1,34 @@
 import { describe, it, expect } from 'vitest'
-import { dentPath, labelSink, Spring } from './liquidTabs'
+import { dentPath, dentSpread, labelSink, Spring } from './liquidTabs'
 
 describe('liquid tab bar', () => {
-  const base = { width: 600, height: 42, center: 300, halfWidth: 50, depth: 24 }
+  const base = { width: 600, height: 46, center: 300, bubbleWidth: 120, bubbleHeight: 36, bubbleCenterY: -6, gap: 5 }
 
-  it('draws a closed pill whose top edge dips to the dent floor', () => {
+  it('draws a closed pill whose top edge dips around the bubble', () => {
     const d = dentPath(base)
-    expect(d.startsWith('M21,0')).toBe(true)
+    expect(d.startsWith('M23,0')).toBe(true)
     expect(d.endsWith('Z')).toBe(true)
-    // floor runs at the requested depth around the centre
-    expect(d).toMatch(/L\d+(\.\d)?,24 /)
+    // the floor runs under the bubble at centre + radius + gap = -6 + 18 + 5
+    expect(d).toContain(',17 L')
   })
 
-  it('keeps the dent inside the straight top edge near the ends', () => {
+  it('hugs the bubble: the floor spans its flat bottom, the arcs its round ends', () => {
+    const d = dentPath(base)
+    // bubble 120 wide with radius 18 → round-end centres at 258 and 342
+    expect(d).toContain('258,17 L342,17')
+    expect(d).toContain('A23,23 0 0 0') // arcs of radius 18 + 5 around each end
+  })
+
+  it('reports how far the dent spreads past the bubble, for spacing tabs', () => {
+    const s = dentSpread(base)
+    expect(s).toBeGreaterThan(base.gap) // wider than the gap alone: the lip rolls out too
+    expect(s).toBeLessThan(25)
+  })
+
+  it('keeps the dent off the rounded ends of the bar', () => {
     const d = dentPath({ ...base, center: 10 })
-    const firstShoulder = Number(/L([\d.]+),0/.exec(d)![1])
-    expect(firstShoulder).toBeGreaterThanOrEqual(21) // never inside the rounded end
+    const lipStart = Number(/L([\d.]+),0/.exec(d)![1])
+    expect(lipStart).toBeGreaterThanOrEqual(23)
   })
 
   it('draws nothing for a bar too small to have a straight edge', () => {

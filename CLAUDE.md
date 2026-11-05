@@ -45,8 +45,10 @@ How files work (see `src/lib/fileAccess.ts`, `src/lib/useTabs.ts`):
   no DOM), → `DOMPurify` in `src/lib/markdown.ts` for the preview.
 
 **Theme:** dark-only slate palette borrowed from `mehdidotesk73/power-gis` (`src/styles/vars.css`).
-Accents have one job each — blue = interaction, green = saved, amber = unsaved / needs
-attention (always with a ● or ⚠ mark), red = errors. Use tokens, never colour literals.
+Accents have one job each — blue = interaction (links, focus), green = saved, amber = unsaved /
+needs attention (always with a ● or ⚠ mark), red = errors. The main action and the active tab
+use **pale liquid aqua glass** (milky ice→aqua body, glossy top band, dark teal text) — the user
+found saturated blue buttons dated. Use tokens, never colour literals.
 **Every button** goes through `components/ui/UiButton.vue` (sizes tag/compact/regular/large,
 tones by job) — no hand-styled `<button>`s in the chrome. The look is **liquid glass**: each
 tone sets a hue (`--h/--s/--l`) the glass is lit with — layered inset light (lit top edge, glow
@@ -55,8 +57,11 @@ across on hover (`::after`), and a slight sink when pressed. **No emoji icons** 
 pictures and break the glass): button labels are text; `icon` is only for plain Unicode marks
 (⇤ ⇥ ● ✓ ✕).
 
-**Tab bar (`TabBar.vue`) is a liquid nav:** a frosted glass bar drawn as an SVG path with a dent;
-the active tab rides in a glass bubble above it. Switching tabs springs the bubble (and the dent)
+**Tab bar (`TabBar.vue`) is a liquid nav:** a frosted glass bar drawn as an SVG path with a deep
+dent that follows the bubble's own outline (arcs around its round ends, rounded lips at the top
+edge); the active tab rides in a pale aqua glass bubble sitting deep in it. Tabs are spaced from
+`dentSpread()` so neighbours clear the dent; the bubble is sized from hidden measuring copies of
+its (bolder) label. Switching tabs springs the bubble (and the dent)
 to the new tab; each name in the bar sinks and fades in proportion to the bubble's distance, and
 the bubble's own label rises in as it arrives. Geometry + spring live in `src/lib/liquidTabs.ts`
 (`dentPath`, `labelSink`, `Spring`; unit-tested). Respects `prefers-reduced-motion`.
