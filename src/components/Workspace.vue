@@ -3,6 +3,7 @@ import { ref, computed, watch, onBeforeUnmount } from 'vue'
 import { renderMarkdown } from '../lib/markdown'
 import type { Tab } from '../lib/useTabs'
 import UiButton from './ui/UiButton.vue'
+import { usePaperTheme } from '../lib/usePaperTheme'
 
 // The split view for one tab: markdown source on the left, rendered preview
 // on the right. Either side collapses to a thin rail — collapse the editor to
@@ -10,6 +11,8 @@ import UiButton from './ui/UiButton.vue'
 
 const props = defineProps<{ tab: Tab }>()
 defineEmits<{ (e: 'reconnect'): void }>()
+
+const { paper } = usePaperTheme()
 
 // ---- layout (a per-viewer convenience, so localStorage is fine) ------------
 
@@ -126,7 +129,7 @@ onBeforeUnmount(endDrag)
 </script>
 
 <template>
-  <section class="workspace">
+  <section class="workspace" :class="`paper-${paper}`">
     <div v-if="tab.access === 'needs-access'" class="banner" role="status">
       <span class="banner-mark" aria-hidden="true">⚠</span>
       <span>
@@ -257,8 +260,9 @@ onBeforeUnmount(endDrag)
   flex-direction: column;
   min-width: 0;
   min-height: 0;
-  background: var(--bg-elev);
-  border: 1px solid var(--border);
+  background: var(--paper-bg);
+  color: var(--paper-text);
+  border: 1px solid var(--paper-border);
   border-radius: var(--radius);
   overflow: hidden;
 }
@@ -269,20 +273,30 @@ onBeforeUnmount(endDrag)
   gap: 0.5rem;
   height: 2.5rem;
   padding: 0 0.35rem 0 0.8rem;
-  border-bottom: 1px solid var(--border);
-  background: var(--bg-elev-2);
+  border-bottom: 1px solid var(--paper-border);
+  background: var(--paper-head);
+}
+/* Collapse buttons sit on the paper, so they take its colours. */
+.pane-head :deep(.ui-btn) {
+  background: transparent;
+  border-color: var(--paper-border);
+  --c: var(--paper-muted);
+}
+.pane-head :deep(.ui-btn:hover) {
+  --c: var(--paper-text);
+  border-color: var(--accent-blue);
 }
 .pane-title {
   font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--text-muted);
+  color: var(--paper-muted);
 }
 .pane-meta {
   flex: 1;
   font-size: 0.72rem;
-  color: var(--text-muted);
+  color: var(--paper-muted);
 }
 
 .source {
@@ -292,8 +306,9 @@ onBeforeUnmount(endDrag)
   padding: 1rem 1.1rem 40vh;
   border: 0;
   border-radius: 0;
-  background: var(--bg-elev);
-  color: var(--text);
+  background: var(--paper-bg);
+  color: var(--paper-text);
+  caret-color: var(--accent-blue);
   font-family: var(--mono);
   font-size: 0.9rem;
   line-height: 1.6;
@@ -301,6 +316,12 @@ onBeforeUnmount(endDrag)
 }
 .source:focus {
   outline: none;
+}
+.source::placeholder {
+  color: var(--paper-muted);
+}
+.pane ::selection {
+  background: var(--paper-selection);
 }
 
 .preview-scroll {
@@ -313,7 +334,7 @@ onBeforeUnmount(endDrag)
   margin: 0 auto;
 }
 .empty-preview {
-  color: var(--text-muted);
+  color: var(--paper-muted);
   font-style: italic;
   text-align: center;
   margin-top: 3rem;
@@ -350,13 +371,13 @@ onBeforeUnmount(endDrag)
   align-items: center;
   gap: 0.6rem;
   padding: 0.6rem 0;
-  border: 1px solid var(--border);
+  border: 1px solid var(--paper-border);
   border-radius: var(--radius);
-  background: var(--bg-elev);
-  color: var(--text-muted);
+  background: var(--paper-head);
+  color: var(--paper-muted);
 }
 .rail:hover {
-  color: var(--text);
+  color: var(--paper-text);
   border-color: var(--accent-blue);
 }
 .rail-label {

@@ -10,6 +10,7 @@ import { useVersionCheck } from './lib/useVersionCheck'
 import { useTabs, isDirty } from './lib/useTabs'
 import { supportsFileSystemAccess } from './lib/fileAccess'
 import { exportMarkdownToPdf } from './lib/exportPdf'
+import { usePaperTheme } from './lib/usePaperTheme'
 
 const buildId = __BUILD_ID__
 const buildTime = __BUILD_TIME__
@@ -113,7 +114,7 @@ async function onExport() {
   exporting.value = true
   try {
     await exportMarkdownToPdf(active.value.content, active.value.name)
-    logDebug(`Exported ${active.value.name} to PDF`)
+    logDebug(`Opened the print window for ${active.value.name}`)
   } catch (e) {
     logDebug(`PDF export failed: ${(e as Error).message}`, 'error')
   } finally {
@@ -168,6 +169,8 @@ onBeforeUnmount(() => {
   window.removeEventListener('focus', onFocus)
 })
 
+const { paper, togglePaper } = usePaperTheme()
+
 const showHelp = ref(false)
 const helpDoc = ref('overview')
 </script>
@@ -204,10 +207,10 @@ const helpDoc = ref('overview')
           tone="primary"
           icon="⤓"
           :disabled="exporting"
-          title="Download the rendered markdown as a PDF (Ctrl/⌘+P)"
+          title="Export as PDF — opens the print window; choose “Save as PDF” (Ctrl/⌘+P)"
           @click="onExport"
         >
-          {{ exporting ? 'Exporting…' : 'Export PDF' }}
+          {{ exporting ? 'Preparing…' : 'Export PDF' }}
         </UiButton>
       </div>
 
@@ -222,6 +225,16 @@ const helpDoc = ref('overview')
             <button class="reload-btn update-ready" @click="onReloadLatest">Update ready — Reload</button>
           </div>
         </div>
+        <UiButton
+          v-if="active"
+          size="compact"
+          :icon="paper === 'light' ? '☀' : '☾'"
+          :title="`Panel theme: ${paper}. Click for ${paper === 'light' ? 'dark' : 'light'}.`"
+          :aria-label="`Switch panels to ${paper === 'light' ? 'dark' : 'light'}`"
+          @click="togglePaper"
+        >
+          {{ paper === 'light' ? 'Light' : 'Dark' }}
+        </UiButton>
         <UiButton size="compact" aria-label="Help" title="Help" @click="showHelp = true">? Help</UiButton>
       </div>
     </header>
