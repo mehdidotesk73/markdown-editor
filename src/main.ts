@@ -1,6 +1,9 @@
 import { createApp } from 'vue'
 import App from './App.vue'
 import { installErrorCapture } from './debug'
+import './lib/useTheme' // sets data-theme before the first paint
+import '@fontsource/fraunces/500.css' // Porcelain's display face
+import '@fontsource/fraunces/600.css'
 import './styles/vars.css'
 import './styles/markdown.css'
 

@@ -30,6 +30,12 @@
   line-height: 1.25;
   font-weight: 650;
 }
+/* Headings take the theme's display face (Porcelain: Fraunces). */
+.md-body h1,
+.md-body h2,
+.md-body h3 {
+  font-family: var(--font-display);
+}
 .md-body h1 {
   font-size: 1.9em;
   padding-bottom: 0.25em;

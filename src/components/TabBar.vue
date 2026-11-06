@@ -1,12 +1,143 @@
 <script setup lang="ts">
+import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { isDirty, type Tab } from '../lib/useTabs'
+import { labelSink, Spring } from '../lib/liquidTabs'
 
-defineProps<{ tabs: Tab[]; activeId: string | null }>()
-defineEmits<{
+// Liquid-glass tab bar. A clear glass bar holds the tab names; the active tab
+// sits in a well pressed into the glass — a recess with a shadowed upper edge,
+// a lit lower lip and a soft rim of light. Picking another tab springs the
+// well across; each name lights up as the well arrives under it and dims as
+// it leaves, in proportion to the distance, frame by frame.
+
+const props = defineProps<{ tabs: Tab[]; activeId: string | null }>()
+const emit = defineEmits<{
   (e: 'activate', id: string): void
   (e: 'close', tab: Tab): void
   (e: 'new'): void
 }>()
+
+const BAR_H = 46
+const WELL_H = 34
+const WELL_EXTRA = 6 // the well is this much wider than the tab it holds
+
+const scroller = ref<HTMLElement>()
+const track = ref<HTMLElement>()
+const tabEls = new Map<string, HTMLElement>()
+function setTabEl(id: string, el: unknown) {
+  if (el instanceof HTMLElement) tabEls.set(id, el)
+  else tabEls.delete(id)
+}
+
+// Measured layout: each tab's centre and width.
+const geo = ref<Record<string, { c: number; w: number }>>({})
+
+// The well, animated: centre x and width.
+const x = new Spring(0)
+const w = new Spring(0)
+const pos = ref(0)
+const ww = ref(0)
+
+function measure() {
+  const g: Record<string, { c: number; w: number }> = {}
+  for (const t of props.tabs) {
+    const el = tabEls.get(t.id)
+    if (el) g[t.id] = { c: el.offsetLeft + el.offsetWidth / 2, w: el.offsetWidth }
+  }
+  geo.value = g
+}
+
+const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
+let raf = 0
+let last = 0
+
+function target() {
+  const g = props.activeId ? geo.value[props.activeId] : undefined
+  return g ? { c: g.c, w: g.w + WELL_EXTRA } : null
+}
+
+function animate(jump = false) {
+  const t = target()
+  if (!t) return
+  if (jump || reduceMotion || ww.value === 0) {
+    x.set(t.c)
+    w.set(t.w)
+    pos.value = t.c
+    ww.value = t.w
+    return
+  }
+  x.target = t.c
+  w.target = t.w
+  if (!raf) {
+    last = performance.now()
+    raf = requestAnimationFrame(step)
+  }
+}
+
+function step(now: number) {
+  const dt = Math.min((now - last) / 1000, 1 / 30)
+  last = now
+  const a = x.step(dt)
+  const b = w.step(dt)
+  pos.value = x.value
+  ww.value = w.value
+  raf = a && b ? 0 : requestAnimationFrame(step)
+}
+
+/** Keep the active tab in view when the bar scrolls. */
+function reveal() {
+  const sc = scroller.value
+  const g = props.activeId ? geo.value[props.activeId] : undefined
+  if (!sc || !g) return
+  const left = g.c - g.w / 2 - 40
+  const right = g.c + g.w / 2 + 40
+  if (left < sc.scrollLeft) sc.scrollTo({ left, behavior: 'smooth' })
+  else if (right > sc.scrollLeft + sc.clientWidth) sc.scrollTo({ left: right - sc.clientWidth, behavior: 'smooth' })
+}
+
+async function relayout(jump = false) {
+  await nextTick()
+  measure()
+  animate(jump)
+  reveal()
+}
+
+watch(() => props.activeId, () => relayout())
+watch(
+  () => props.tabs.map((t) => `${t.id}:${t.name}:${isDirty(t)}:${t.access}`).join('|'),
+  () => relayout(),
+)
+
+let ro: ResizeObserver | undefined
+onMounted(() => {
+  relayout(true)
+  ro = new ResizeObserver(() => {
+    measure()
+    animate(true)
+  })
+  if (track.value) ro.observe(track.value)
+  // Web fonts can change text widths after first paint.
+  document.fonts?.ready.then(() => relayout(true))
+})
+onBeforeUnmount(() => {
+  ro?.disconnect()
+  cancelAnimationFrame(raf)
+})
+
+// ---- what the template draws -------------------------------------------------
+
+/** How much the well is under a tab right now: 0 = clear of it, 1 = centred on it. */
+function lit(id: string): number {
+  const g = geo.value[id]
+  return g ? labelSink(g.c, g.w, pos.value, ww.value) : 0
+}
+function tabStyle(id: string) {
+  return { '--lit': lit(id).toFixed(3) }
+}
+
+const wellStyle = computed(() => ({
+  width: `${ww.value}px`,
+  transform: `translateX(${(pos.value - ww.value / 2).toFixed(2)}px)`,
+}))
 
 function title(t: Tab): string {
   const where =
@@ -17,76 +148,148 @@ function title(t: Tab): string {
         : 'Not saved to a file yet'
   return `${t.name}\n${where}${isDirty(t) ? '\nUnsaved changes' : ''}`
 }
+
+function onKey(e: KeyboardEvent, t: Tab) {
+  if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault()
+    emit('activate', t.id)
+  }
+}
 </script>
 
 <template>
-  <nav class="tabbar" role="tablist" aria-label="Open files">
-    <div
-      v-for="t in tabs"
-      :key="t.id"
-      class="tab"
-      role="tab"
-      tabindex="0"
-      :aria-selected="t.id === activeId"
-      :class="{ active: t.id === activeId, dirty: isDirty(t), unlinked: t.access === 'unlinked' }"
-      :title="title(t)"
-      @click="$emit('activate', t.id)"
-      @keydown.enter="$emit('activate', t.id)"
-      @auxclick.middle.prevent="$emit('close', t)"
-    >
-      <span v-if="t.access === 'needs-access'" class="mark warn" aria-label="needs access">⚠</span>
-      <span class="name">{{ t.name }}</span>
-      <button class="x" :aria-label="`Close ${t.name}`" @click.stop="$emit('close', t)">
-        <span class="dot" aria-hidden="true">●</span>
-        <span class="cross" aria-hidden="true">✕</span>
-      </button>
+  <div class="dock" :style="{ '--bar-h': `${BAR_H}px`, '--well-h': `${WELL_H}px` }">
+    <div ref="scroller" class="scroller">
+      <div ref="track" class="track" role="tablist" aria-label="Open files">
+        <!-- The well pressed into the glass under the active tab. -->
+        <div v-if="activeId && ww > 0" class="well" :style="wellStyle" aria-hidden="true" />
+
+        <div
+          v-for="t in tabs"
+          :key="t.id"
+          :ref="(el) => setTabEl(t.id, el)"
+          class="tab"
+          role="tab"
+          tabindex="0"
+          :aria-selected="t.id === activeId"
+          :class="{ dirty: isDirty(t), unlinked: t.access === 'unlinked', current: t.id === activeId }"
+          :style="tabStyle(t.id)"
+          :title="title(t)"
+          @click="$emit('activate', t.id)"
+          @keydown="onKey($event, t)"
+          @auxclick.middle.prevent="$emit('close', t)"
+        >
+          <span v-if="t.access === 'needs-access'" class="warn" aria-hidden="true">⚠</span>
+          <span class="name">{{ t.name }}</span>
+          <button class="x" :aria-label="`Close ${t.name}`" tabindex="-1" @click.stop="$emit('close', t)">
+            <span class="dot" aria-hidden="true">●</span>
+            <span class="cross" aria-hidden="true">✕</span>
+          </button>
+        </div>
+
+        <button class="add" aria-label="New tab" title="New file" @click="$emit('new')">+</button>
+      </div>
     </div>
-    <button class="add" aria-label="New tab" title="New file" @click="$emit('new')">＋</button>
-  </nav>
+  </div>
 </template>
 
 <style scoped>
-.tabbar {
-  display: flex;
-  align-items: flex-end;
-  gap: 0.15rem;
-  overflow-x: auto;
-  scrollbar-width: thin;
-  padding: 0 0.5rem;
-  border-bottom: 1px solid var(--border);
+.dock {
+  padding: 0.25rem 0.5rem 0.45rem;
 }
 
-.tab {
-  flex: 0 0 auto;
+/* The bar itself: a pill of clear, faintly smoky glass — sheen along the top,
+   milky light collected inside along the bottom edge, bright rim. It scrolls
+   sideways when there are many tabs. */
+.scroller {
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  border-radius: 999px;
+  background:
+    linear-gradient(180deg, hsl(var(--liquid-white) / 0.14), hsl(var(--liquid-white) / 0) 38%),
+    radial-gradient(120% 95% at 50% 140%, var(--liquid-milk), transparent 60%),
+    var(--liquid-smoke);
+  backdrop-filter: blur(18px) saturate(180%);
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
+  box-shadow:
+    inset 0 1px 0 hsl(var(--liquid-white) / 0.55),
+    inset 1px 0 0 hsl(var(--liquid-white) / 0.14),
+    inset -1px 0 0 hsl(var(--liquid-white) / 0.12),
+    inset 0 -1px 0 hsl(var(--liquid-white) / 0.4),
+    inset 0 -10px 16px -12px var(--liquid-milk),
+    0 0 0 0.5px hsl(var(--liquid-white) / 0.2),
+    0 0 0 0.5px rgba(var(--shadow-rgb), calc(var(--liquid-drop) * 0.4)),
+    0 8px 18px -8px rgba(var(--shadow-rgb), var(--liquid-drop));
+}
+.scroller::-webkit-scrollbar {
+  display: none;
+}
+
+.track {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 0.35rem;
+  min-width: 100%;
+  width: max-content;
+  height: var(--bar-h);
+  padding: 0 0.55rem;
+}
+
+/* The well: a recess pressed into the glass, deep like the background. No
+   hue — light and shadow make it: the upper inner edge falls into shadow,
+   the lower lip catches the light, a faint rim traces the cut, and a little
+   cool light collects in its floor. */
+.well {
+  position: absolute;
+  left: 0;
+  top: calc((var(--bar-h) - var(--well-h)) / 2);
+  height: var(--well-h);
+  border-radius: 999px;
+  background:
+    radial-gradient(90% 90% at 50% 125%, hsl(var(--liquid-light) / 0.16), transparent 62%),
+    linear-gradient(180deg, hsl(var(--liquid-deep) / var(--liquid-deep-a)), hsl(var(--liquid-deep) / calc(var(--liquid-deep-a) * 0.7)));
+  box-shadow:
+    inset 0 2px 5px rgba(var(--shadow-rgb), var(--well-shade)),
+    inset 0 1px 1px rgba(var(--shadow-rgb), calc(var(--well-shade) * 0.85)),
+    inset 0 -1px 0 hsl(var(--liquid-white) / var(--well-lip)),
+    inset 0 -6px 10px -6px hsl(var(--liquid-light) / 0.28),
+    0 1px 0 hsl(var(--liquid-white) / calc(var(--well-lip) * 0.9)),
+    0 -1px 0 rgba(var(--shadow-rgb), calc(var(--well-shade) * 0.5)),
+    0 0 0 1px hsl(var(--liquid-white) / calc(var(--well-lip) * 0.5));
+  pointer-events: none;
+  will-change: transform, width;
+}
+
+/* Tabs: a name lights up as the well arrives under it (--lit, 0 → 1). */
+.tab {
+  --lit: 0;
+  position: relative;
+  z-index: 1;
+  flex: 0 0 auto;
+  height: var(--well-h);
   max-width: 15rem;
-  height: 2.1rem;
-  padding: 0 0.3rem 0 0.75rem;
-  border: 1px solid transparent;
-  border-bottom: 0;
-  border-radius: 0.45rem 0.45rem 0 0;
-  color: var(--text-muted);
+  padding: 0 0.2rem 0 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  border-radius: 999px;
+  color: color-mix(in srgb, var(--text) calc(var(--lit) * 100%), var(--text-muted));
   font-size: 0.84rem;
+  font-weight: 550;
+  text-shadow: 0 0 calc(var(--lit) * 10px) hsl(var(--liquid-light) / calc(var(--lit) * 0.45));
+  transform: translateY(calc(var(--lit) * 1px)); /* pressed in, ever so slightly */
   cursor: pointer;
   user-select: none;
-  position: relative;
-  top: 1px;
+  outline: none;
 }
-.tab:hover {
+.tab:not(.current):hover {
   color: var(--text);
-  background: var(--bg-elev);
-}
-.tab.active {
-  color: var(--text);
-  background: var(--bg-elev);
-  border-color: var(--border);
-  box-shadow: inset 0 2px 0 var(--accent-blue);
 }
 .tab:focus-visible {
-  outline: 2px solid var(--accent-blue);
-  outline-offset: -2px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 .tab.unlinked .name {
   font-style: italic;
@@ -97,12 +300,12 @@ function title(t: Tab): string {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-
-.mark.warn {
+.warn {
   color: var(--warn);
-  font-size: 0.8rem;
+  font-size: 0.78rem;
 }
 
+/* Close / unsaved: an amber dot that turns into ✕ on hover. */
 .x {
   flex: 0 0 auto;
   display: grid;
@@ -111,53 +314,74 @@ function title(t: Tab): string {
   height: 1.35rem;
   padding: 0;
   border: 0;
-  border-radius: 0.3rem;
+  border-radius: 50%;
   background: none;
-  color: var(--text-muted);
-  font-size: 0.72rem;
+  color: inherit;
+  font-size: 0.66rem;
+  opacity: 0.5;
 }
 .x:hover {
-  background: var(--bg-elev-2);
-  color: var(--text);
-}
-.x .dot {
-  display: none;
-  color: var(--warn);
-  font-size: 0.7rem;
-}
-/* Unsaved: amber dot in place of the ✕, which comes back on hover. */
-.tab.dirty .x .dot {
-  display: block;
-}
-.tab.dirty .x .cross {
-  display: none;
-}
-.tab.dirty .x:hover .dot {
-  display: none;
-}
-.tab.dirty .x:hover .cross {
-  display: block;
+  opacity: 1;
+  background: hsl(var(--liquid-white) / 0.14);
 }
 .x .dot,
 .x .cross {
   grid-area: 1 / 1;
 }
+.x .dot {
+  display: none;
+  color: var(--warn);
+}
+.dirty .x {
+  opacity: 1;
+}
+.dirty .x .dot {
+  display: block;
+}
+.dirty .x .cross {
+  display: none;
+}
+.dirty .x:hover .dot {
+  display: none;
+}
+.dirty .x:hover .cross {
+  display: block;
+}
 
 .add {
+  position: relative;
+  z-index: 1;
   flex: 0 0 auto;
-  align-self: center;
-  width: 1.8rem;
-  height: 1.8rem;
+  display: grid;
+  place-items: center;
+  width: 1.9rem;
+  height: 1.9rem;
   margin-left: 0.2rem;
-  border: 1px solid transparent;
-  border-radius: 0.4rem;
-  background: none;
+  padding: 0 0 1px;
+  border: 0;
+  border-radius: 50%;
   color: var(--text-muted);
-  font-size: 1rem;
+  font-size: 1.1rem;
+  font-weight: 400;
+  background: linear-gradient(hsl(var(--liquid-white) / 0.12), hsl(var(--liquid-white) / 0.02)), var(--liquid-smoke);
+  box-shadow:
+    0 0 0 1px hsl(var(--liquid-white) / 0.28),
+    0 0 0 0.5px rgba(var(--shadow-rgb), calc(var(--liquid-drop) * 0.4)),
+    0 1px 1px hsl(var(--liquid-white) / 0.3) inset,
+    0 3px 8px rgba(var(--shadow-rgb), calc(var(--liquid-drop) * 0.7));
+  transition:
+    color 0.2s,
+    box-shadow 0.2s,
+    translate 0.15s;
 }
 .add:hover {
   color: var(--text);
-  border-color: var(--border-strong);
-  background: var(--bg-elev);
+  box-shadow:
+    0 0 0 1px hsl(var(--liquid-white) / 0.5),
+    0 1px 1px hsl(var(--liquid-white) / 0.5) inset,
+    0 0 12px hsl(var(--liquid-light) / 0.25);
+}
+.add:active {
+  translate: 0 1px;
 }
 </style>

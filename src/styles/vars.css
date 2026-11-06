@@ -1,56 +1,77 @@
-/* Markdown Lab theme — dark only, borrowed from PowerGIS. Deep slate
-   surfaces stepping lighter as they rise, and accents with one job each:
-   blue = interaction, green = saved / success, amber = unsaved changes
-   (always with a ● mark too), red = errors / destructive.
-   Components use these tokens, never colour literals. The one exception is
-   the PDF export, which always renders on white (see styles/markdown.css). */
+/* Markdown Lab themes. Two complete looks, chosen by the user from a set of
+   sketches, switched by the Dark / Light button (lib/useTheme.ts sets
+   data-theme on <html>):
+     dark  = Sage      — dark green-grey, soft sage light (the default)
+     light = Porcelain — warm porcelain with a faint dot grid, frosted white
+                         glass, a dark ink pill for the main action
+   Accents have one job each — focus/links, green = saved, amber = unsaved
+   (always a small ● mark, never tinted glass), red = errors. Components use
+   these tokens, never colour literals. The PDF export is separate (always
+   black on white; lib/pdf). */
 
 :root {
   /* surfaces */
-  --bg: #0b0f18;
-  --bg-elev: #141b2a;
-  --bg-elev-2: #1b2334;
-  --bg-input: #1f2940;
-  --border: #28324a;
-  --border-strong: #36425f;
-  --text: #e7eaf3;
-  --text-muted: #8b94ac;
-  --on-accent: #ffffff; /* text on a solid blue / red */
-  --on-amber: #1d1405; /* text on a solid amber badge */
+  --bg: #141815;
+  --bg-elev: #181c19;
+  --bg-elev-2: #1d221e;
+  --bg-input: #1d221e;
+  --border: #2a302b;
+  --border-strong: #353c36;
+  --text: #e6e9e1;
+  --text-muted: #8b9286;
+  --on-accent: #10130f; /* text on a solid accent */
+  --on-amber: #1d1405;
 
   /* accents */
-  --accent-blue: #4f8ef7;
-  --accent-violet: #9b6dff;
-  --accent-orange: #f7931a;
-  --accent-green: #3ad29f;
-  --accent-amber: #fbbf24;
-  --danger: #f87171;
-  --danger-bg: #3a1d24;
+  --accent-blue: #a9c4b0; /* "interaction": focus rings, carets, links — sage-tinted */
+  --accent-green: #8fc7a2;
+  --accent-amber: #d1a85c;
+  --danger: #e58a7e;
+  --danger-bg: #3a2420;
 
   /* roles */
   --ok: var(--accent-green);
   --warn: var(--accent-amber);
 
-  /* menus, modals */
-  --overlay-bg: rgba(20, 27, 42, 0.95);
-  --backdrop: rgba(4, 7, 14, 0.66);
+  /* menus, modals, shadows */
+  --shadow-rgb: 0, 0, 0;
+  --overlay-bg: rgba(24, 28, 25, 0.94);
+  --backdrop: rgba(6, 8, 7, 0.62);
   --shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
   --radius: 0.55rem;
 
-  /* "Paper": the inside of the editor + preview panes. Dark by default;
-     .paper-light (Workspace.vue, toggled from the top bar) swaps it for a
-     warm light page. Neither uses pure white — text or background — to
-     keep the contrast easy on the eyes. */
-  --paper-bg: #141b2a;
-  --paper-head: #1b2334;
-  --paper-text: #d3d8e2;
-  --paper-muted: #8b94ac;
-  --paper-border: #28324a;
-  --paper-code-bg: #1e2738;
-  --paper-link: #6ea1f8;
-  --paper-quote: #4f8ef7;
-  --paper-selection: rgba(79, 142, 247, 0.32);
+  /* page backdrop (body): a soft sage glow from the top left */
+  --bg-image: radial-gradient(900px 500px at 15% -10%, rgba(180, 200, 170, 0.08), transparent 60%);
 
+  /* "Paper": the inside of the editor + preview panes. Never pure white. */
+  --paper-bg: #181c19;
+  --paper-head: #1d221e;
+  --paper-text: #d7dbd2;
+  --paper-muted: #848b80;
+  --paper-border: #2a302b;
+  --paper-code-bg: #1d221e;
+  --paper-link: #a9c4b0;
+  --paper-quote: #5f6c62;
+  --paper-selection: rgba(200, 215, 190, 0.2);
+
+  /* Liquid glass (UiButton, tab bar). No accent hue in the glass: selection
+     is carried by light and shadow. */
+  --liquid-white: 90 22% 88%; /* "H S% L%": every light on the glass */
+  --liquid-light: 90 22% 88%; /* the light collected inside */
+  --liquid-smoke: rgba(230, 240, 225, 0.04); /* ordinary glass body */
+  --liquid-milk: rgba(226, 232, 218, 0.16); /* light pooling at the bar's bottom */
+  --liquid-deep: 135 14% 4%; /* "H S% L%": deep glass for the main action / selected well */
+  --liquid-deep-a: 0.6;
+  --glass-body-a: 0.05; /* ordinary glass: how much light tints its body */
+  --liquid-drop: 0.5; /* drop-shadow strength */
+  --well-shade: 0.65; /* the selected well's inner shadow */
+  --well-lip: 0.3; /* its lit lower lip */
+  --primary-bg: linear-gradient(transparent, transparent); /* no-op: the glass shows */
+  --primary-text: hsl(var(--liquid-white));
+  --primary-text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+  --btn-text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+
+  --font-display: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --mono: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
 
   /* Typography */
@@ -64,16 +85,59 @@
   -webkit-font-smoothing: antialiased;
 }
 
-.paper-light {
-  --paper-bg: #f4f1ea;
-  --paper-head: #ebe7dd;
-  --paper-text: #33363d;
-  --paper-muted: #737785;
-  --paper-border: #dcd6c9;
-  --paper-code-bg: #e9e4d8;
-  --paper-link: #2a63c4;
-  --paper-quote: #4f8ef7;
-  --paper-selection: rgba(79, 142, 247, 0.22);
+/* Porcelain — the light theme. */
+:root[data-theme='light'] {
+  --bg: #f2f0eb;
+  --bg-elev: #faf9f6;
+  --bg-elev-2: #f3f1ec;
+  --bg-input: #faf9f6;
+  --border: #e4e0d8;
+  --border-strong: #d6d1c6;
+  --text: #26262a;
+  --text-muted: #7c7a76;
+  --on-accent: #f6f4ef;
+
+  --accent-blue: #5a6b80;
+  --accent-green: #3f8a5c;
+  --accent-amber: #c58a3a;
+  --danger: #b5483b;
+  --danger-bg: #f6e3df;
+
+  --shadow-rgb: 70, 58, 40;
+  --overlay-bg: rgba(250, 249, 246, 0.95);
+  --backdrop: rgba(60, 50, 35, 0.28);
+  --shadow: 0 12px 32px rgba(70, 58, 40, 0.18);
+
+  --bg-image: radial-gradient(rgba(40, 36, 30, 0.07) 1px, transparent 1px) 0 0 / 18px 18px;
+
+  --paper-bg: #faf9f6;
+  --paper-head: #f3f1ec;
+  --paper-text: #2e2e33;
+  --paper-muted: #8a877f;
+  --paper-border: #e4e0d8;
+  --paper-code-bg: #f1eee8;
+  --paper-link: #4a5f7a;
+  --paper-quote: #d3cdc1;
+  --paper-selection: rgba(120, 100, 70, 0.16);
+
+  --liquid-white: 0 0% 100%;
+  --liquid-light: 0 0% 100%;
+  --liquid-smoke: rgba(255, 255, 255, 0.55);
+  --liquid-milk: rgba(255, 255, 255, 0.55);
+  --liquid-deep: 42 18% 86%;
+  --liquid-deep-a: 0.95;
+  --glass-body-a: 0.55;
+  --liquid-drop: 0.16;
+  --well-shade: 0.22;
+  --well-lip: 0.95;
+  --primary-bg: linear-gradient(180deg, #3b3b41, #1f1f23); /* a solid ink pill */
+  --primary-text: #f6f4ef;
+  --primary-text-shadow: none;
+  --btn-text-shadow: none;
+
+  --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+
+  color-scheme: light;
 }
 
 /* Global styles */
@@ -88,11 +152,12 @@ body {
   color: var(--text);
 }
 
+/* The page backdrop (per theme: a sage glow, or Porcelain's dot grid). Fixed,
+   so it doesn't scroll with content, and so the glass has something to show. */
 body {
   min-height: 100svh;
-  background:
-    radial-gradient(1200px 600px at 15% -10%, rgba(79, 142, 247, 0.08), transparent 60%),
-    radial-gradient(1000px 500px at 110% 0%, rgba(155, 109, 255, 0.08), transparent 55%), var(--bg);
+  background: var(--bg-image), var(--bg);
+  background-attachment: fixed;
 }
 
 /* Form controls inherit the theme everywhere; components may refine them

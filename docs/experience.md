@@ -356,7 +356,41 @@ browser's default serif. **Build the PDF in the page and download it** (pdfmake,
   marked-katex-extension, not `blockKatex` — split the paragraph around it.
 - **MathJax's `AllPackages` isn't what makes it big**; the SVG glyph data is (~600 KB gz either way).
 
+## What didn't work: flat "glass" and emoji icons
+
+The first glass pass (translucent pill + one highlight line + `color-mix` tint) read as rounded
+old-macOS buttons, not glass. What sells glass is **layered light**: several inset shadows in the
+button's own hue (lit top edge, glow pooling at the bottom), a glow cast *below* the element, a
+moving specular streak, and a coloured backdrop to blur. Emoji icons (📂 💾 ⤓) render as bitmaps
+and broke the look — keep labels as text, Unicode marks only.
+
+**Raised bubble + dented bar, dropped for a recessed well.** The tab bar first had the active tab in
+a glass bubble floating above the bar, pressing a dent (later a smooth valley) into the bar's top edge
+(SVG path + `clip-path`). It looked good mid-bar, but at the bar's rounded ends the dent had to be
+clamped away from the curve while the bubble stayed on its tab, so they misaligned — the user
+suggested a well pressed *into* the bar instead, which has no such edge case and needs no path
+geometry at all.
+
+**`:global()` in a Vue scoped style swallows the rest of the selector.** Writing
+`:global([data-theme='light']) .t-primary::after { opacity: .5 }` compiled to a rule on
+`[data-theme='light']` alone — `<html>` — so the whole light theme rendered at 50% opacity. Put
+theme differences in CSS variables (set per theme in `vars.css`) instead; components stay
+theme-agnostic. After any theme work, check `getComputedStyle(document.documentElement).opacity`.
+
+**Choosing the look from sketches worked.** After several rounds of tuning colours in the real app,
+a canvas of nine full-app mockups (same layout, different palettes) let the user pick in one go:
+Sage for dark, Porcelain for light.
+
+Headless screenshots catch colour transitions mid-flight: a button that just changed tone can
+look wrong in a shot taken <0.25 s later. Wait out the transition before judging colour.
+
 ## Version History
+
+### v0.4.0 — 2026-11-06
+- **Added:** Whole-app Dark (Sage) / Light (Porcelain) themes; Fraunces display face in Porcelain
+- **Changed:** Liquid-glass buttons (one `UiButton`, hue-lit, hover sweep; new `tag` size; no emoji icons)
+- **Added:** Liquid tab bar — a recessed, mint-outlined well that springs between tabs; names light up by distance
+- **Docs:** CLAUDE.md, system-design styling, TODO
 
 ### v0.3.0 — 2026-11-05
 - **Changed:** Export PDF downloads a real-text PDF directly (pdfmake); print-dialog export removed
