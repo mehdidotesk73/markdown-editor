@@ -10,7 +10,7 @@ import { useVersionCheck } from './lib/useVersionCheck'
 import { useTabs, isDirty } from './lib/useTabs'
 import { supportsFileSystemAccess } from './lib/fileAccess'
 import { exportMarkdownToPdf } from './lib/exportPdf'
-import { usePaperTheme } from './lib/usePaperTheme'
+import { useTheme } from './lib/useTheme'
 
 const buildId = __BUILD_ID__
 const buildTime = __BUILD_TIME__
@@ -169,7 +169,7 @@ onBeforeUnmount(() => {
   window.removeEventListener('focus', onFocus)
 })
 
-const { paper, togglePaper } = usePaperTheme()
+const { theme, toggleTheme } = useTheme()
 
 const showHelp = ref(false)
 const helpDoc = ref('overview')
@@ -231,13 +231,12 @@ const helpDoc = ref('overview')
           </div>
         </div>
         <UiButton
-          v-if="active"
           size="compact"
-          :title="`Panel theme: ${paper}. Click for ${paper === 'light' ? 'dark' : 'light'}.`"
-          :aria-label="`Switch panels to ${paper === 'light' ? 'dark' : 'light'}`"
-          @click="togglePaper"
+          :title="`Theme: ${theme}. Click for ${theme === 'light' ? 'dark' : 'light'}.`"
+          :aria-label="`Switch to ${theme === 'light' ? 'dark' : 'light'} theme`"
+          @click="toggleTheme"
         >
-          {{ paper === 'light' ? 'Light' : 'Dark' }}
+          {{ theme === 'light' ? 'Light' : 'Dark' }}
         </UiButton>
         <UiButton size="compact" aria-label="Help" title="Help" @click="showHelp = true">? Help</UiButton>
       </div>
@@ -359,8 +358,10 @@ const helpDoc = ref('overview')
 }
 .app-title {
   margin: 0;
-  font-size: 1.05rem;
-  font-weight: 650;
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
   white-space: nowrap;
 }
 
@@ -393,11 +394,11 @@ const helpDoc = ref('overview')
   gap: 0.4rem;
   padding: 0.6rem 0.7rem;
   background: var(--overlay-bg);
-  border: 1px solid var(--glass-border-hover);
+  border: 1px solid var(--border-strong);
   border-radius: 0.9rem;
-  box-shadow: var(--glass-edge), var(--shadow);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
+  box-shadow: inset 0 1px 0 hsl(var(--liquid-white) / 0.3), var(--shadow);
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
 }
 
 .up-line {

@@ -12,7 +12,7 @@ A markdown editor for files on **your own computer**. The app runs entirely in y
 - **Save** (or `Ctrl/⌘ S`) writes your changes back to the file on your computer. A tab with unsaved changes shows an amber ●.
 - **New file** (＋ on the tab bar) starts an empty tab; the first Save asks where to put the file.
 - **Export PDF** downloads the document as a PDF straight away. The text in it is real (you can select and search it), pages never cut a line in half, and formulas are typeset. The first export takes a moment longer while the PDF tools and fonts load; after that they're kept for offline use too.
-- **Light / Dark** (top bar) switches the background inside the editor and preview between a soft light page and a dark one. Your choice is remembered.
+- **Dark / Light** (top bar) switches the whole app between a dark sage-grey look and a light porcelain one. Your choice is remembered.
 - **Math:** write LaTeX between dollar signs — `$x^2$` inside a sentence, or `$$ E = mc^2 $$` for a formula on its own line.
 
 **Shortcuts:** `Ctrl/⌘ S` save · `Ctrl/⌘ ⇧ S` save as · `Ctrl/⌘ O` open · `Ctrl/⌘ P` export PDF · `Ctrl/⌘ \` hide/show editor · `Ctrl/⌘ ⇧ \` hide/show preview.

@@ -208,8 +208,7 @@ function onKey(e: KeyboardEvent, t: Tab) {
   border-radius: 999px;
   background:
     linear-gradient(180deg, hsl(var(--liquid-white) / 0.14), hsl(var(--liquid-white) / 0) 38%),
-    radial-gradient(120% 95% at 50% 140%, rgba(255, 246, 236, 0.28), transparent 60%),
-    linear-gradient(180deg, rgba(255, 250, 245, 0.02), rgba(255, 250, 245, 0.07)),
+    radial-gradient(120% 95% at 50% 140%, var(--liquid-milk), transparent 60%),
     var(--liquid-smoke);
   backdrop-filter: blur(18px) saturate(180%);
   -webkit-backdrop-filter: blur(18px) saturate(180%);
@@ -217,10 +216,11 @@ function onKey(e: KeyboardEvent, t: Tab) {
     inset 0 1px 0 hsl(var(--liquid-white) / 0.55),
     inset 1px 0 0 hsl(var(--liquid-white) / 0.14),
     inset -1px 0 0 hsl(var(--liquid-white) / 0.12),
-    inset 0 -1px 0 rgba(255, 246, 236, 0.45),
-    inset 0 -10px 16px -12px rgba(255, 246, 236, 0.35),
+    inset 0 -1px 0 hsl(var(--liquid-white) / 0.4),
+    inset 0 -10px 16px -12px var(--liquid-milk),
     0 0 0 0.5px hsl(var(--liquid-white) / 0.2),
-    0 8px 18px -8px rgba(0, 0, 0, 0.55);
+    0 0 0 0.5px rgba(var(--shadow-rgb), calc(var(--liquid-drop) * 0.4)),
+    0 8px 18px -8px rgba(var(--shadow-rgb), var(--liquid-drop));
 }
 .scroller::-webkit-scrollbar {
   display: none;
@@ -249,15 +249,15 @@ function onKey(e: KeyboardEvent, t: Tab) {
   border-radius: 999px;
   background:
     radial-gradient(90% 90% at 50% 125%, hsl(var(--liquid-light) / 0.16), transparent 62%),
-    linear-gradient(180deg, hsl(var(--liquid-deep) / 0.85), hsl(var(--liquid-deep) / 0.55));
+    linear-gradient(180deg, hsl(var(--liquid-deep) / var(--liquid-deep-a)), hsl(var(--liquid-deep) / calc(var(--liquid-deep-a) * 0.7)));
   box-shadow:
-    inset 0 2px 5px rgba(0, 0, 0, 0.65),
-    inset 0 1px 1px rgba(0, 0, 0, 0.55),
-    inset 0 -1px 0 hsl(var(--liquid-white) / 0.3),
+    inset 0 2px 5px rgba(var(--shadow-rgb), var(--well-shade)),
+    inset 0 1px 1px rgba(var(--shadow-rgb), calc(var(--well-shade) * 0.85)),
+    inset 0 -1px 0 hsl(var(--liquid-white) / var(--well-lip)),
     inset 0 -6px 10px -6px hsl(var(--liquid-light) / 0.28),
-    0 1px 0 hsl(var(--liquid-white) / 0.28),
-    0 -1px 0 rgba(0, 0, 0, 0.35),
-    0 0 0 1px hsl(var(--liquid-white) / 0.16);
+    0 1px 0 hsl(var(--liquid-white) / calc(var(--well-lip) * 0.9)),
+    0 -1px 0 rgba(var(--shadow-rgb), calc(var(--well-shade) * 0.5)),
+    0 0 0 1px hsl(var(--liquid-white) / calc(var(--well-lip) * 0.5));
   pointer-events: none;
   will-change: transform, width;
 }
@@ -275,7 +275,7 @@ function onKey(e: KeyboardEvent, t: Tab) {
   align-items: center;
   gap: 0.3rem;
   border-radius: 999px;
-  color: color-mix(in srgb, hsl(var(--liquid-white)) calc(var(--lit) * 100%), var(--text-muted));
+  color: color-mix(in srgb, var(--text) calc(var(--lit) * 100%), var(--text-muted));
   font-size: 0.84rem;
   font-weight: 550;
   text-shadow: 0 0 calc(var(--lit) * 10px) hsl(var(--liquid-light) / calc(var(--lit) * 0.45));
@@ -363,18 +363,19 @@ function onKey(e: KeyboardEvent, t: Tab) {
   color: var(--text-muted);
   font-size: 1.1rem;
   font-weight: 400;
-  background: linear-gradient(hsl(var(--liquid-white) / 0.12), hsl(var(--liquid-white) / 0.02));
+  background: linear-gradient(hsl(var(--liquid-white) / 0.12), hsl(var(--liquid-white) / 0.02)), var(--liquid-smoke);
   box-shadow:
     0 0 0 1px hsl(var(--liquid-white) / 0.28),
+    0 0 0 0.5px rgba(var(--shadow-rgb), calc(var(--liquid-drop) * 0.4)),
     0 1px 1px hsl(var(--liquid-white) / 0.3) inset,
-    0 3px 8px rgba(0, 0, 0, 0.35);
+    0 3px 8px rgba(var(--shadow-rgb), calc(var(--liquid-drop) * 0.7));
   transition:
     color 0.2s,
     box-shadow 0.2s,
     translate 0.15s;
 }
 .add:hover {
-  color: hsl(var(--liquid-white));
+  color: var(--text);
   box-shadow:
     0 0 0 1px hsl(var(--liquid-white) / 0.5),
     0 1px 1px hsl(var(--liquid-white) / 0.5) inset,

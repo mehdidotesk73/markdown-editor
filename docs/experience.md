@@ -371,12 +371,23 @@ clamped away from the curve while the bubble stayed on its tab, so they misalign
 suggested a well pressed *into* the bar instead, which has no such edge case and needs no path
 geometry at all.
 
+**`:global()` in a Vue scoped style swallows the rest of the selector.** Writing
+`:global([data-theme='light']) .t-primary::after { opacity: .5 }` compiled to a rule on
+`[data-theme='light']` alone — `<html>` — so the whole light theme rendered at 50% opacity. Put
+theme differences in CSS variables (set per theme in `vars.css`) instead; components stay
+theme-agnostic. After any theme work, check `getComputedStyle(document.documentElement).opacity`.
+
+**Choosing the look from sketches worked.** After several rounds of tuning colours in the real app,
+a canvas of nine full-app mockups (same layout, different palettes) let the user pick in one go:
+Sage for dark, Porcelain for light.
+
 Headless screenshots catch colour transitions mid-flight: a button that just changed tone can
 look wrong in a shot taken <0.25 s later. Wait out the transition before judging colour.
 
 ## Version History
 
-### v0.4.0 — 2026-11-05
+### v0.4.0 — 2026-11-06
+- **Added:** Whole-app Dark (Sage) / Light (Porcelain) themes; Fraunces display face in Porcelain
 - **Changed:** Liquid-glass buttons (one `UiButton`, hue-lit, hover sweep; new `tag` size; no emoji icons)
 - **Added:** Liquid tab bar — a recessed, mint-outlined well that springs between tabs; names light up by distance
 - **Docs:** CLAUDE.md, system-design styling, TODO

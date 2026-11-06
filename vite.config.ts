@@ -46,8 +46,8 @@ export default defineConfig({
         name: 'Markdown Lab',
         short_name: 'Markdown Lab',
         description: 'Edit local markdown files side by side with a live preview',
-        theme_color: '#0b0f18',
-        background_color: '#0b0f18',
+        theme_color: '#141815',
+        background_color: '#141815',
         display: 'standalone',
         orientation: 'any',
         icons: [

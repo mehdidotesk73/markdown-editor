@@ -12,7 +12,13 @@ collapsible panes and a draggable divider, Save / Save as / Export PDF (html2pdf
 drafts + file handles persisted in IndexedDB, external-change pickup on focus, dark slate
 theme from power-gis, Help modal now renders `docs/concepts/*.md`.
 
-### v0.4.0 — Liquid-glass buttons and tabs (2026-11-05)
+### v0.4.0 — Sage & Porcelain themes, liquid-glass buttons and tabs (2026-11-06)
+
+Whole-app themes chosen from a canvas of nine sketches: Dark = Sage, Light = Porcelain
+(`src/styles/vars.css`; `useTheme` in `src/lib/useTheme.ts` replaces the panel-only toggle).
+Porcelain adds a dot-grid page, frosted white glass, an ink-pill main action and Fraunces
+headings (`@fontsource/fraunces`).
+
 
 Every button uses the shared `UiButton`, restyled as hue-lit liquid glass (layered inner
 light, glow below, hover light sweep, press sink), including the formerly hand-styled Update

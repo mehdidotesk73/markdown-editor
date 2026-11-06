@@ -3,7 +3,6 @@ import { ref, computed, watch, onBeforeUnmount } from 'vue'
 import { renderMarkdown } from '../lib/markdown'
 import type { Tab } from '../lib/useTabs'
 import UiButton from './ui/UiButton.vue'
-import { usePaperTheme } from '../lib/usePaperTheme'
 
 // The split view for one tab: markdown source on the left, rendered preview
 // on the right. Either side collapses to a thin rail — collapse the editor to
@@ -12,7 +11,6 @@ import { usePaperTheme } from '../lib/usePaperTheme'
 const props = defineProps<{ tab: Tab }>()
 defineEmits<{ (e: 'reconnect'): void }>()
 
-const { paper } = usePaperTheme()
 
 // ---- layout (a per-viewer convenience, so localStorage is fine) ------------
 
@@ -129,7 +127,7 @@ onBeforeUnmount(endDrag)
 </script>
 
 <template>
-  <section class="workspace" :class="`paper-${paper}`">
+  <section class="workspace">
     <div v-if="tab.access === 'needs-access'" class="banner" role="status">
       <span class="banner-mark" aria-hidden="true">⚠</span>
       <span>
@@ -284,11 +282,6 @@ onBeforeUnmount(endDrag)
 }
 .pane-head :deep(.ui-btn:hover) {
   --c: var(--paper-text);
-}
-/* On the light page, glass needs a darker edge to read. */
-.paper-light .pane-head :deep(.ui-btn) {
-  border-color: rgba(60, 50, 30, 0.18);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 2px 6px rgba(60, 50, 30, 0.12);
 }
 .preview-head {
   padding: 0 0.8rem 0 0.35rem;

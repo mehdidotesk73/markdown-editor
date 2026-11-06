@@ -12,8 +12,8 @@ runs in the browser and reads/writes local files through the File System Access 
 
 UI structure:
 
-- **Top bar** — title, file actions (Open, Save, Save as…, Export PDF), panel theme
-  toggle (Light/Dark), Help.
+- **Top bar** — title, file actions (Open, Save, Save as…, Export PDF), theme toggle
+  (Dark = Sage / Light = Porcelain), Help.
 - **Tab bar** — one tab per open file; amber ● = unsaved, ⚠ = needs reconnecting, italic =
   not linked to a file yet; ＋ makes a new untitled tab.
 - **Workspace** (`Workspace.vue`) — markdown source (left) and rendered preview (right),
@@ -44,17 +44,22 @@ How files work (see `src/lib/fileAccess.ts`, `src/lib/useTabs.ts`):
 - Markdown rendering: one shared parser, `src/lib/markdownParser.ts` (`marked` GFM + KaTeX,
   no DOM), → `DOMPurify` in `src/lib/markdown.ts` for the preview.
 
-**Theme:** dark-only slate palette borrowed from `mehdidotesk73/power-gis` (`src/styles/vars.css`).
-Accents have one job each — blue = interaction (links, focus), green = saved, amber = unsaved /
-needs attention (always with a ● or ⚠ mark), red = errors. Liquid-glass palette (`--liquid-*` in `vars.css`): **no accent hue in the
-glass — selection is carried by light and shadow.** Ordinary buttons and the tab bar are clear,
-faintly smoky glass with a bright rim and milky light at the bottom; the main action and the
-selected tab use **deep glass the colour of the background** (`--liquid-deep`), set apart by a
-brighter rim, a crisp highlight and light collected inside (`--liquid-light`). **All light on the
-glass is warm off-white** (`--liquid-white`, matching the light panel's page) — never pure or cool
-white. Status colours stay
-as small marks (the amber ● on Save and unsaved tabs), never as tinted glass. The user rejected, in
-turn: saturated blue (dated), pale aqua, and teal + amber glass (clashed with the dark blue). Use tokens, never colour literals.
+**Themes:** two complete looks, picked by the user from a canvas of nine sketches, switched by the
+top bar's **Dark / Light** button (`src/lib/useTheme.ts` sets `data-theme` on `<html>` at import
+time, before first paint; localStorage). All tokens live in `src/styles/vars.css`:
+- **Dark = Sage** (`:root`): dark green-grey surfaces, a soft sage glow behind, sage-tinted light
+  on the glass, deep glass for the main action and the selected tab's well.
+- **Light = Porcelain** (`:root[data-theme='light']`): warm porcelain page with a faint dot grid,
+  frosted white glass, warm soft shadows (`--shadow-rgb`), the main action a **solid dark ink
+  pill** (`--primary-bg`), and **Fraunces** serif for the title and preview headings
+  (`--font-display`; `@fontsource/fraunces`, bundled for offline).
+Accents have one job each — focus/links, green = saved, amber = unsaved (always a small ● or ⚠
+mark, never tinted glass), red = errors. **No accent hue in the glass**: selection is light and
+shadow. The user rejected, in turn: saturated blue, pale aqua, teal + amber glass, and the navy
+base. Use tokens, never colour literals — components must stay theme-agnostic (shadows via
+`rgba(var(--shadow-rgb), …)`, text via `--text`). **Never write `:global([data-theme=…]) .x` in a
+scoped style** — Vue drops the `.x` and applies the rule to `<html>` itself (it once set the whole
+page to 50% opacity); theme differences go in tokens instead.
 **Every button** goes through `components/ui/UiButton.vue` (sizes tag/compact/regular/large,
 tones by job) — no hand-styled `<button>`s in the chrome. The look is **liquid glass**, and it
 must stay **translucent**: a mostly clear body (backdrop blurs through; tone sets `--tint` and a
@@ -67,17 +72,15 @@ pictures and break the glass): button labels are text; `icon` is only for plain 
 
 **Tab bar (`TabBar.vue`) is a liquid nav:** a pill of clear glass; the active tab sits in a
 **well pressed into the glass** — a deep recess with a shadowed upper inner edge, a lit lower lip
-and a faint rim. Switching tabs springs the well to the new tab; each name lights up (white, soft
-white glow, pressed 1px) in proportion to how much of the well is under it (`--lit`). `labelSink` +
+and a faint rim. Switching tabs springs the well to the new tab; each name lights up (to full text colour, soft
+glow, pressed 1px) in proportion to how much of the well is under it (`--lit`). `labelSink` +
 `Spring` in `src/lib/liquidTabs.ts` (unit-tested). Respects `prefers-reduced-motion`.
 An earlier version had a bubble floating *above* the bar with a dent/valley in the bar's edge; the
 user preferred the recess (the raised bubble misaligned at the bar's ends) — see `docs/experience.md`.
 
-**Panel ("paper") theme:** the inside of the editor and preview panes uses its own
-`--paper-*` tokens (`vars.css`): dark by default, `.paper-light` swaps in a warm light page.
-Neither uses pure white text or background — the user asked for off-white on both. Toggle state
-lives in `src/lib/usePaperTheme.ts` (localStorage). `.md-body` reads `--paper-*`, so the Help
-modal follows the dark default.
+**Panels ("paper"):** the editor and preview panes use `--paper-*` tokens, which each theme
+sets (Sage: dark green-grey page; Porcelain: warm off-white page). Never pure white text or
+background. `.md-body` reads `--paper-*`, so the Help modal follows the theme too.
 
 The app is wrapped in the template's header/footer shell. The top bar carries the Help button (renders `docs/concepts/*.md`) and an "Update available" affordance when a newer PWA build is live — a background update never auto-reloads while a tab has unsaved edits. The footer provides the current build id/timestamp, version-check status against the live origin, a "Reload latest" button to force-refresh a stale cache, and a collapsible debug log with copy-to-clipboard support. See `docs/system-design.md` §2 for the full wrapper template and implementation details.
 
@@ -167,7 +170,7 @@ src/
     pdf/markdownToPdf.ts   tokens → pdfmake document (pure; *.test.ts beside it)
     pdf/math.ts            display TeX → SVG via MathJax (lazy chunk)
     pdf/inlineMath.ts      inline TeX → Unicode text
-    usePaperTheme.ts       Light/Dark panel theme (localStorage)
+    useTheme.ts            Dark (Sage) / Light (Porcelain) app theme → data-theme on <html>
     liquidTabs.ts          tab bar motion: how lit each tab is, the spring (pure; tested)
     useVersionCheck.ts     compares the running build with the live one
   components/
@@ -176,7 +179,7 @@ src/
     HelpModal.vue          renders docs/concepts/*.md into the Help modal
     ui/UiButton.vue        the app's button (sizes + tones)
   styles/
-    vars.css               theme tokens (dark slate, from power-gis) + --paper-* panel tokens
+    vars.css               all theme tokens: Sage (:root) and Porcelain ([data-theme='light'])
     markdown.css           rendered-markdown styles (.md-body) for preview + Help
 .claude/skills/            finish-setup, ship-feature, add-github-pages, add-statefulness,
                            add-database, update-skills, share-pattern

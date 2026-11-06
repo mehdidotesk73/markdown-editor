@@ -50,11 +50,12 @@ defineSlots<{ default?(): unknown }>()
               --body   alpha of the body (0 = clear)
               --glow   alpha of the light collected at the bottom          */
 .ui-btn {
-  --tint: 30 20% 88%;
-  --body: 0.05;
+  --tint: var(--liquid-light);
+  --bodyc: var(--liquid-white);
+  --body: var(--glass-body-a);
   --glow: 0.22;
   --spec: 0.42;
-  --c: hsl(30 25% 96% / 0.92);
+  --c: var(--text);
 
   position: relative;
   isolation: isolate;
@@ -71,7 +72,7 @@ defineSlots<{ default?(): unknown }>()
   letter-spacing: 0.01em;
   white-space: nowrap;
   cursor: pointer;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+  text-shadow: var(--btn-text-shadow);
 
   background:
     /* specular highlight across the top */
@@ -92,7 +93,7 @@ defineSlots<{ default?(): unknown }>()
     inset 0 -0.55em 0.9em -0.45em hsl(var(--tint) / calc(var(--glow) * 1.4)),
     /* hairline outside, and depth */
     0 0 0 0.5px hsl(var(--liquid-white) / 0.22),
-    0 0.6em 1.1em -0.4em rgba(0, 0, 0, 0.5);
+    0 0.6em 1.1em -0.4em rgba(var(--shadow-rgb), var(--liquid-drop));
   transition:
     box-shadow 0.25s ease,
     color 0.25s ease,
@@ -154,7 +155,7 @@ defineSlots<{ default?(): unknown }>()
 .ui-btn:not(:disabled):hover {
   --spec: 0.58;
   --glow: calc(0.22 + 0.16);
-  --c: hsl(var(--liquid-white));
+  --c: var(--text);
   box-shadow:
     inset 0 1px 0 hsl(var(--liquid-white) / 0.78),
     inset 1px 0 0 hsl(var(--liquid-white) / 0.22),
@@ -162,7 +163,7 @@ defineSlots<{ default?(): unknown }>()
     inset 0 -1px 0 hsl(var(--tint) / 0.55),
     inset 0 -0.6em 1em -0.45em hsl(var(--tint) / 0.6),
     0 0 0 0.5px hsl(var(--liquid-white) / 0.35),
-    0 0.65em 1.2em -0.4em rgba(0, 0, 0, 0.55),
+    0 0.65em 1.2em -0.4em rgba(var(--shadow-rgb), calc(var(--liquid-drop) * 1.1)),
     0 0 1.1em -0.3em hsl(var(--tint) / 0.35);
 }
 .ui-btn:not(:disabled):hover::before {
@@ -177,10 +178,10 @@ defineSlots<{ default?(): unknown }>()
   translate: 0 0.08em;
   box-shadow:
     inset 0 1px 0 hsl(var(--liquid-white) / 0.4),
-    inset 0 0.15em 0.35em hsl(0 0% 0% / 0.3),
+    inset 0 0.15em 0.35em rgba(var(--shadow-rgb), calc(var(--liquid-drop) * 0.6)),
     inset 0 -0.45em 0.8em -0.4em hsl(var(--tint) / 0.6),
     0 0 0 0.5px hsl(var(--liquid-white) / 0.3),
-    0 0.25em 0.5em -0.15em rgba(0, 0, 0, 0.5);
+    0 0.25em 0.5em -0.15em rgba(var(--shadow-rgb), var(--liquid-drop));
 }
 
 .ui-btn:disabled {
@@ -227,10 +228,18 @@ defineSlots<{ default?(): unknown }>()
 .t-neutral.active {
   --tint: var(--liquid-light);
   --bodyc: var(--liquid-deep);
-  --body: 0.72;
+  --body: var(--liquid-deep-a);
   --glow: 0.3;
   --spec: 0.5;
-  --c: hsl(var(--liquid-white));
+  --c: var(--primary-text);
+  text-shadow: var(--primary-text-shadow);
+  /* The light theme lays a solid ink pill over the glass (--primary-bg);
+     the dark theme's token is a transparent no-op, so the glass shows. */
+  background:
+    var(--primary-bg),
+    radial-gradient(120% 75% at 50% -18%, hsl(var(--liquid-white) / var(--spec)), hsl(var(--liquid-white) / 0) 62%),
+    radial-gradient(95% 85% at 50% 128%, hsl(var(--tint) / var(--glow)), hsl(var(--tint) / 0) 62%),
+    linear-gradient(180deg, hsl(var(--bodyc) / calc(var(--body) * 0.55)), hsl(var(--bodyc) / var(--body)));
   box-shadow:
     inset 0 1px 0 hsl(var(--liquid-white) / 0.75),
     inset 1px 0 0 hsl(var(--liquid-white) / 0.22),
@@ -238,7 +247,7 @@ defineSlots<{ default?(): unknown }>()
     inset 0 -1px 0 hsl(var(--tint) / 0.6),
     inset 0 -0.6em 1em -0.45em hsl(var(--tint) / 0.38),
     0 0 0 0.5px hsl(var(--liquid-white) / 0.4),
-    0 0.7em 1.3em -0.4em rgba(0, 0, 0, 0.75);
+    0 0.7em 1.3em -0.4em rgba(var(--shadow-rgb), calc(var(--liquid-drop) * 1.5));
 }
 .t-primary:not(:disabled):hover,
 .t-neutral.active:not(:disabled):hover {
@@ -251,20 +260,20 @@ defineSlots<{ default?(): unknown }>()
     inset 0 -1px 0 hsl(var(--tint) / 0.75),
     inset 0 -0.65em 1.1em -0.45em hsl(var(--tint) / 0.5),
     0 0 0 0.5px hsl(var(--liquid-white) / 0.5),
-    0 0.75em 1.4em -0.4em rgba(0, 0, 0, 0.8),
+    0 0.75em 1.4em -0.4em rgba(var(--shadow-rgb), calc(var(--liquid-drop) * 1.6)),
     0 0 1.1em -0.3em hsl(var(--tint) / 0.25);
 }
 .t-ok {
-  --c: hsl(158 60% 78%);
+  --c: var(--ok);
 }
 /* Needs attention (unsaved): ordinary glass — only the ● mark is amber, so the
    colour stays a small signal instead of tinting the whole button. */
 .t-attention .glyph {
   color: var(--warn);
-  text-shadow: 0 0 6px hsl(43 100% 60% / 0.5);
+  text-shadow: 0 0 6px color-mix(in srgb, var(--warn) 50%, transparent);
 }
 .t-danger {
-  --c: hsl(0 85% 80%);
+  --c: var(--danger);
 }
 
 @media (prefers-reduced-motion: reduce) {
