@@ -18,7 +18,7 @@ UI structure:
   not linked to a file yet; ＋ makes a new document.
 - **Workspace** (`Workspace.vue`) — markdown source (left) and rendered preview (right),
   with a draggable divider. Either pane collapses to a thin rail: editor collapsed = read
-  focus, preview collapsed = edit focus. Stacks vertically under 760 px.
+  focus, preview collapsed = edit focus. Always side by side (left/right), even on a phone.
 - **Empty state** — Open a file / New file, shown when no tabs are open.
 - **New document:** ＋, New file and Ctrl/⌘+Alt+N all call `newDocument()` (`useTabs.ts`) — one path.
   It opens prefilled with `docs/focus-shadow-showcase.md` (imported `?raw`), counted as unchanged
@@ -219,7 +219,7 @@ package-lock.json              committed — CI runs `npm ci` and needs it
 - **Never lose text.** Every tab's draft is persisted to IndexedDB on change; closing a dirty
   tab confirms; `beforeunload` warns while anything is unsaved; background PWA updates wait.
 - **Rendered HTML is always sanitized** (`renderMarkdown`) before `v-html`.
-- **Desktop-first, phone-safe:** keep controls tappable and the stacked layout working.
+- **Desktop-first, phone-safe:** keep controls tappable and the side-by-side panes usable at phone width.
 
 ## Debugging on device (no console)
 

@@ -81,6 +81,8 @@ const scales: { value: Scale; label: string }[] = [
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
+  min-width: 0;
+  max-width: 100%;
 }
 
 select {
@@ -105,6 +107,8 @@ select:focus-visible {
 }
 .slider input {
   width: 7.5rem;
+  min-width: 3rem;
+  flex: 0 1 auto;
   accent-color: var(--paper-text);
   cursor: pointer;
 }
