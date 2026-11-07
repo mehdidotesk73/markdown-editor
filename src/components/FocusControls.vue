@@ -59,11 +59,10 @@ const countLabel = computed(() =>
         :active="s.enabled"
         :aria-pressed="s.enabled"
         :icon-left="s.enabled ? Eye : EyeOff"
+        :aria-label="s.enabled ? 'Focus on — turn off' : 'Focus off — turn on'"
         :title="s.enabled ? 'Turn the focus off' : 'Turn the focus on'"
         @click="s.enabled = !s.enabled"
-      >
-        {{ s.enabled ? 'On' : 'Off' }}
-      </UiButton>
+      />
 
       <label class="field">
         <span class="sr">Scale</span>

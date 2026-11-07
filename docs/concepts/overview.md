@@ -26,7 +26,7 @@ The controls sit under the Preview heading:
 
 - **Focus ⌄** opens or closes this panel. Closing it only hides the controls — the focus keeps
   running.
-- **On / Off** turns the focus itself on or off.
+- The **eye** button turns the focus itself on (filled eye) or off (crossed-out eye).
 - **Words / Sentences / Paragraphs / Sections** chooses what gets underlined.
 - **Decay** sets how far attention reaches, in words: higher spreads it wider, so more is
   underlined. Each scale remembers its own decay, so you can tune each one separately.
