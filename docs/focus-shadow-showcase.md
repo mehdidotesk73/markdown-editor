@@ -20,7 +20,7 @@ The document does two things at once.
 - the single ruler, counted in words, that lets those sizes be compared;
 - the field of attention around the focal point, and how each piece of text gets its share;
 - why the focus is the stretch holding 60% of the attention;
-- the two controls, decay and distance, and why decay is tuned per scale;
+- the two controls, decay and lag, and why decay is tuned per scale;
 - how the underline is drawn, and how fast all of it runs.
 
 **It shows the behaviour as you read.** The sections are written in deliberately different shapes:
@@ -31,11 +31,11 @@ The document does two things at once.
 
 Each shape makes the focus behave differently. Over short sentences the underline stretches across many of them; over long ones it shrinks to one or two. Over a list of single words it covers a whole column; over a deep heading it jumps a section at a time. Section 9, at the end, is a playground made only of these shapes.
 
-**To follow along:** open this file in Markdown Lab, make sure the focus is **On** (open the **Focus** panel under the Preview heading to check), and move your cursor through the text. Try changing the scale between Words, Sentences, Paragraphs and Sections, and nudge the Decay and Distance sliders as you go — the counter on the right says how many units are in focus. Distance starts at 0, with the focal point on your cursor; raise it to watch the focus trail behind.
+**To follow along:** open this file in Markdown Lab, make sure the focus is **On** (open the **Focus** panel under the Preview heading to check), and move your cursor through the text. Try changing the scale between Words, Sentences, Paragraphs and Sections, and nudge the Decay and Lag sliders as you go — the counter on the right says how many units are in focus. Lag starts at 0, with the focus following your cursor live; raise it and the focus trails your path a few steps behind.
 
 ## 1. The idea in one breath
 
-You read. Your cursor moves. Your attention is not a point. It is a field. It is strongest at one spot. It fades with distance. Near things get more of it. Long things get less of it. The focus is the stretch that holds most of it. It sits at your cursor. Or a few steps behind. It works at four sizes. Words. Sentences. Paragraphs. Sections.
+You read. Your cursor moves. Your attention is not a point. It is a field. It is strongest at one spot. It fades with distance. Near things get more of it. Long things get less of it. The focus is the stretch that holds most of it. It sits at your cursor. Or a few steps behind it, along the way you came. It works at four sizes. Words. Sentences. Paragraphs. Sections.
 
 ## 2. Four sizes of attention
 
@@ -141,22 +141,23 @@ Decay is measured in words, and each scale remembers its own. A decay that under
 
 The decay slider is logarithmic, so each notch changes the field by the same proportion, whether it is 2 words wide or 2,000. The counter under the Preview heading shows how many units are in focus right now, so you can tune each scale by eye.
 
-## 6. Distance: where the focal point sits
+## 6. Lag: following your path
 
-The focal point sits **distance** steps behind the cursor, and a step is one unit of the scale you are viewing:
+The focal point follows the path your cursor has taken, a set number of steps behind. That number is the **lag**, and a step is one unit of the scale you are viewing:
 
-1. At distance 0, the focal point is the cursor itself.
-2. On the Words scale, distance 3 puts it three words back. On the Sentences scale, three sentences back; on Paragraphs, three paragraphs back.
-3. It keeps the cursor's place within its unit: halfway through a sentence, the focal point is halfway through the sentence three back.
-4. The lag is fixed in document order. Move backwards and the focal point moves backwards too, still three steps earlier.
-5. At the start of the document, it stops at the first unit.
+1. At lag 0, the focal point is the cursor itself: the focus follows you live.
+2. The app remembers the last units your cursor has been in, in the order you visited them. Moving around inside one sentence is still one step; moving into the next sentence is a new step.
+3. At lag 2 on the Sentences scale, the focal point sits in the sentence you were in two sentences ago. On Words it is two words ago; on Paragraphs, two paragraphs ago.
+4. It follows the path, not the page. If you jump from the top of the document to the bottom, the focus stays at the top for a couple of steps, then catches up.
+5. Inside that unit, the focal point is where your cursor last was when you were there.
+6. Until you have made enough moves, it sits on the oldest place it remembers.
 
 ## 7. Following the cursor
 
 The focus engine does not keep anything per tab. Instead:
 
-- when you move the cursor or select text, the focal point and the focus are recomputed;
-- when you switch to another tab, that tab's text is re-indexed;
+- when you move the cursor or select text, the step is added to the path, and the focal point and the focus are recomputed;
+- when you switch to another tab, that tab's text is re-indexed and the path starts fresh;
 - when you type, the index is rebuilt once you pause for a moment, so typing stays smooth even in very large files.
 
 ### 7.1 Drawing the underline
@@ -169,7 +170,7 @@ On a document of a hundred thousand words, re-indexing after a pause in typing t
 
 ## 8. What it is for
 
-The underline is not decoration. It is the visible face of a set of numbers: for every unit near the focal point, at every scale, a share of attention between 0 and 1. Those shares, and the stretch of text they cover, are what a future AI step can read — a pointer that says *look here, at this window of text, this much*. With a distance behind the cursor, that pointer settles on what you have just read, rather than chasing every keystroke.
+The underline is not decoration. It is the visible face of a set of numbers: for every unit near the focal point, at every scale, a share of attention between 0 and 1. Those shares, and the stretch of text they cover, are what a future AI step can read — a pointer that says *look here, at this window of text, this much*. With a lag, that pointer settles on what you have just read, rather than chasing every keystroke.
 
 ## 9. Playground
 

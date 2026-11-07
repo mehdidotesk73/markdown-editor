@@ -403,7 +403,7 @@ look wrong in a shot taken <0.25 s later. Wait out the transition before judging
 ## Version History
 
 ### v0.7.0 — 2026-11-07
-- **Changed:** Focus model rebuilt on the user's terms: a focal point emits a bell attention field (decay σ in words); a unit's attention is the field's average over it; the focus is the run holding 60% of the cumulative attention. Decay is tuned per scale (log slider); distance counts units of the current scale (fixed lag). Live "N sentences in focus" counter. Nested ruler, fixed 0.4 cut-off and the shared 1–60 intensity removed — at intensity 1–4 nothing above the word scale moved, and paragraphs needed 30–60
+- **Changed:** Focus model rebuilt on the user's terms: a focal point emits a bell attention field (decay σ in words); a unit's attention is the field's average over it; the focus is the run holding 60% of the cumulative attention. Decay is tuned per scale (log slider); lag follows the cursor's path: the focal point is the unit the cursor was in L distinct units ago (a first version shifted it L units back in document order — not what the user meant). Live "N sentences in focus" counter. Nested ruler, fixed 0.4 cut-off and the shared 1–60 intensity removed — at intensity 1–4 nothing above the word scale moved, and paragraphs needed 30–60
 - **Docs:** guide (now "Focus"), Help, system-design §1d, CLAUDE.md
 
 ### v0.6.0 — 2026-11-07

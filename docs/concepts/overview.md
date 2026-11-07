@@ -30,8 +30,9 @@ The controls sit under the Preview heading:
 - **Words / Sentences / Paragraphs / Sections** chooses what gets underlined.
 - **Decay** sets how far attention reaches, in words: higher spreads it wider, so more is
   underlined. Each scale remembers its own decay, so you can tune each one separately.
-- **Distance** puts the focal point that many steps behind your cursor, counted in the scale
-  you're viewing: 2 on Sentences means two sentences back. At 0 (the default) it's your cursor.
+- **Lag** makes the focus follow the path your cursor has taken, that many steps behind, counted
+  in the scale you're viewing: 2 on Sentences means the sentence you were in two sentences ago,
+  wherever that was. At 0 (the default) the focus follows your cursor live.
 - The **counter** on the right shows how many words, sentences, paragraphs or sections are in
   focus right now.
 

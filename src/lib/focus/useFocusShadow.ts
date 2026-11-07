@@ -1,15 +1,16 @@
 import { shallowRef, watch, nextTick, onMounted, onBeforeUnmount, type Ref } from 'vue'
 import { buildIndex, wordCoord, type FocusIndex } from './segment'
 import { focusSpan, type FocusSpan } from './wave'
-import { focalPoint } from './focal'
+import { Trails } from './focal'
 import { alignWords, mathRanges, previewRange } from './align'
 import { focusSettings } from './settings'
 import { logDebug } from '../../debug'
 
 // The browser side of the focus engine: follows the cursor in the editor,
-// keeps the document index current, places the focal point (distance units
-// behind the cursor), and underlines the focus in the preview. Nothing per tab
-// is kept: switching tabs rebuilds the index for that tab.
+// keeps the document index current, records the cursor's path at every scale,
+// places the focal point `lag` units back along that path, and underlines the
+// focus in the preview. Nothing per tab is kept: switching tabs rebuilds the
+// index and starts a fresh path.
 //
 // Drawing uses the CSS Custom Highlight API (::highlight(focus-shadow) in
 // styles/markdown.css): no DOM changes to the preview, so scroll position and
@@ -69,6 +70,7 @@ export function useFocusShadow(opts: {
   let words: PreviewWord[] = []
   let map: Int32Array = new Int32Array(0)
   let caret = 0
+  const trails = new Trails()
 
   // ---- index + alignment ---------------------------------------------------
 
@@ -139,7 +141,8 @@ export function useFocusShadow(opts: {
       return
     }
     const cursorX = wordCoord(index, caret)
-    const focalX = focalPoint(index, s.scale, cursorX, s.distance)
+    trails.record(index, cursorX)
+    const focalX = trails.focal(s.scale, s.lag, cursorX)
     const span = focusSpan(index, s.scale, focalX, s.decay[s.scale])
     frame.value = {
       cursorX,
@@ -177,6 +180,7 @@ export function useFocusShadow(opts: {
     realign()
     const ta = opts.textarea.value
     caret = ta ? ta.selectionEnd : 0
+    trails.clear()
     schedule()
   }
 

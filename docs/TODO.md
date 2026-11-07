@@ -16,8 +16,8 @@ theme from power-gis, Help modal now renders `docs/concepts/*.md`.
 
 The focus engine now follows the user's model: a focal point emits a bell-shaped attention field
 whose decay (in words) is tuned per scale; each unit's attention is the field's average over it;
-the units holding 60% of the cumulative attention are in focus and underlined. Distance counts
-units of the current scale. A counter shows how many units are in focus. The nested ruler and
+the units holding 60% of the cumulative attention are in focus and underlined. Lag makes the
+focus follow the cursor's path that many units behind. A counter shows how many units are in focus. The nested ruler and
 the fixed cut-off are gone.
 
 Default decays tuned by the user in the app: words 1, sentences 12, paragraphs 30 (sections 150,

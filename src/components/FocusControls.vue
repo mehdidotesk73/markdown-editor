@@ -4,16 +4,16 @@ import UiButton from './ui/UiButton.vue'
 import { ChevronDown, ChevronRight, Eye, EyeOff } from '@lucide/vue'
 import {
   focusSettings as s,
-  DISTANCE_RANGE,
+  LAG_RANGE,
   SLIDER_STEPS,
   decayToSlider,
   sliderToDecay,
 } from '../lib/focus/settings'
 import type { Scale } from '../lib/focus/segment'
 
-// The focus controls, under the preview's header. A focal point sits DISTANCE
-// units behind the cursor and emits an attention field that decays with
-// distance (DECAY, in words); the units holding 60% of the attention are in
+// The focus controls, under the preview's header. A focal point follows the
+// cursor's path LAG units behind (lag 0 = live) and emits an attention field
+// that decays with distance (DECAY, in words); the units holding 60% of the attention are in
 // focus and underlined in the preview. Decay is remembered per scale, so each
 // scale can be tuned on its own. Opening or closing this panel only shows or
 // hides the controls; the On / Off switch decides whether the focus runs.
@@ -77,17 +77,10 @@ const countLabel = computed(() =>
         <span class="val">{{ s.decay[s.scale] }}<span class="unit">w</span></span>
       </label>
 
-      <label class="field slider" :title="`How many ${current.many} the focal point sits behind the cursor`">
-        <span class="name">Distance</span>
-        <input
-          id="focus-distance"
-          v-model.number="s.distance"
-          type="range"
-          :min="DISTANCE_RANGE.min"
-          :max="DISTANCE_RANGE.max"
-          step="1"
-        />
-        <span class="val">{{ s.distance }}</span>
+      <label class="field slider" :title="`The focus follows your cursor's path this many ${current.many} behind (0 = live)`">
+        <span class="name">Lag</span>
+        <input id="focus-lag" v-model.number="s.lag" type="range" :min="LAG_RANGE.min" :max="LAG_RANGE.max" step="1" />
+        <span class="val">{{ s.lag }}</span>
       </label>
     </template>
 

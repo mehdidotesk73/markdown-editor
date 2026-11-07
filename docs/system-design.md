@@ -110,9 +110,13 @@ the run of units holding 60% of the cumulative attention.
   contiguous run from the unit under x₀ (always included), each step taking the neighbour with
   more attention, until the run holds **`FOCUS_SHARE` = 60%** of the total. Returns the run's
   source/word ranges, each unit's attention and the share held. ~10 µs per call on the guide.
-- **`focal.ts` — the focal point.** `focalPoint(index, scale, cursorX, D)`: the cursor's unit at
-  the current scale, then D units back (a fixed lag in document order, clamped at the start), at
-  the same relative position inside the unit. D = 0 is the cursor itself.
+- **`focal.ts` — lag along the cursor path.** A `Trail` per scale records the last distinct units
+  the cursor has been in (consecutive repeats collapse; each entry keeps the cursor's latest word
+  position in that unit; up to `MAX_LAG` + 1 = 21 entries). `Trails` feeds every scale on each
+  cursor update, so switching scale keeps its history. The focal point at lag L is the entry L
+  steps back (the oldest entry if the trail is shorter); lag 0 is the cursor. It follows the
+  path, not document order: a jump elsewhere is caught up with L steps later. Cleared on a tab
+  switch.
 - **`align.ts` — source → preview.** Greedy in-order word match (lookahead 60) between source
   words and rendered preview words. Every match must be **confirmed** by the next words lining up
   (2 of the next 6 source words), and words inside `$…$` / `$$…$$` are left out (the preview shows
@@ -125,13 +129,13 @@ the run of units holding 60% of the cumulative attention.
   `selectionchange`), rebuilds the index 150 ms after typing pauses and immediately on a tab
   switch (no per-tab state), re-aligns after each preview render, computes once per animation
   frame, and draws the focus with the **CSS Custom Highlight API** (`::highlight(focus-shadow)` in
-  `markdown.css`) — no DOM changes. It exposes a `frame` (`cursorX`, `focalX`, `span` with each
+  `markdown.css`) — no DOM changes. Each compute records the cursor in the trails. It exposes a `frame` (`cursorX`, `focalX`, `span` with each
   unit's attention, `count` of units in focus, the focus's source `text`): the hook for an AI
   pointer. The controls show `count` live ("3 sentences in focus").
 - **Settings** (`settings.ts`, localStorage `md-editor:focus:v3`): enabled, panel (controls shown —
   independent of enabled), scale, **decay per scale** (σ in words; logarithmic slider with a range
   per scale — words 0.3–40, sentences 1–300, paragraphs 2–1000, sections 5–3000; defaults 1 / 12 /
-  30 / 150, chosen by the user by trial), distance 0–20 units (default 0). The user tunes each
+  30 / 150, chosen by the user by trial), lag 0–20 units (default 0). The user tunes each
   scale's decay by trial in the app.
 
 Superseded designs (see `docs/experience.md`): a fixed 0.4 cut-off on the average, an

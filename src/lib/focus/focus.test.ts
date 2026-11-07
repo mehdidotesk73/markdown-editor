@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { buildIndex, splitBlocks, wordCoord } from './segment'
 import { bellAverage, focusSpan, FOCUS_SHARE } from './wave'
-import { focalPoint } from './focal'
+import { MAX_LAG, Trail, Trails } from './focal'
 import { alignWords, mathRanges, previewRange } from './align'
 
 const DOC = `# Intro
@@ -125,19 +125,56 @@ describe('attention field and focus', () => {
   })
 })
 
-describe('focal point', () => {
-  const ix = buildIndex('One two three. Four five six. Seven eight nine. Ten eleven twelve.')
-  it('is the cursor itself at distance 0', () => {
-    expect(focalPoint(ix, 'sentence', 7.5, 0)).toBe(7.5)
-    expect(focalPoint(ix, 'word', 7.5, 0)).toBe(7.5)
+describe('lag along the cursor path', () => {
+  it('is the cursor itself at lag 0', () => {
+    const t = new Trail()
+    t.record(3, 3.5)
+    expect(t.at(0)).toBe(3.5)
   })
-  it('sits D units back at the current scale, at the same place within the unit', () => {
-    // cursor in the middle of "eight" (word 7) → one sentence back is the middle of "five" (word 4)
-    expect(focalPoint(ix, 'sentence', 7.5, 1)).toBeCloseTo(4.5)
-    expect(focalPoint(ix, 'word', 7.5, 2)).toBeCloseTo(5.5)
+
+  it('collapses moves within one unit and keeps the latest position in it', () => {
+    const t = new Trail()
+    t.record(0, 0.2)
+    t.record(0, 0.8)
+    t.record(1, 1.5)
+    expect(t.length).toBe(2)
+    expect(t.at(1)).toBe(0.8)
   })
-  it('stops at the start of the document', () => {
-    expect(focalPoint(ix, 'sentence', 7.5, 10)).toBeCloseTo(1.5)
+
+  it('follows the path, not document order: A → C → B with lag 1 is C', () => {
+    const t = new Trail()
+    t.record(0, 0.5) // A
+    t.record(2, 2.5) // C
+    t.record(1, 1.5) // B
+    expect(t.at(1)).toBe(2.5)
+    expect(t.at(2)).toBe(0.5)
+  })
+
+  it('counts a return to an earlier unit as a new step', () => {
+    const t = new Trail()
+    t.record(0, 0.5)
+    t.record(1, 1.5)
+    t.record(0, 0.6)
+    expect(t.length).toBe(3)
+    expect(t.at(1)).toBe(1.5)
+  })
+
+  it('uses the oldest entry until the trail is long enough, and forgets past MAX_LAG', () => {
+    const t = new Trail()
+    t.record(0, 0.5)
+    t.record(1, 1.5)
+    expect(t.at(5)).toBe(0.5)
+    for (let i = 2; i < MAX_LAG + 10; i++) t.record(i, i + 0.5)
+    expect(t.length).toBe(MAX_LAG + 1)
+  })
+
+  it('keeps one trail per scale, so lag counts units of the scale in view', () => {
+    const ix = buildIndex('One two three. Four five six. Seven eight nine.')
+    const trails = new Trails()
+    for (const x of [0.5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5]) trails.record(ix, x) // walk words 0..6
+    expect(trails.focal('word', 2, 6.5)).toBe(4.5) // two words back
+    expect(trails.focal('sentence', 1, 6.5)).toBe(5.5) // previous sentence, last place in it
+    expect(trails.focal('sentence', 0, 6.5)).toBe(6.5)
   })
 })
 
