@@ -276,9 +276,11 @@ function onKey(e: KeyboardEvent, t: Tab) {
   font-size: 0.75rem;
 }
 
-/* Unsaved: the tab gets an amber outline (no dot). */
-.tab.dirty {
-  box-shadow: inset 0 0 0 1px var(--warn);
+/* Unsaved: the tab's name turns amber (full amber when active, a little
+   softer when not), instead of a dot or an outline. */
+.tab.dirty,
+.tab.dirty:not(.current):hover {
+  color: color-mix(in srgb, var(--warn) calc(70% + var(--lit) * 30%), var(--text-muted));
 }
 
 /* Close: a small ✕, brighter on hover. */
