@@ -12,6 +12,13 @@ collapsible panes and a draggable divider, Save / Save as / Export PDF (html2pdf
 drafts + file handles persisted in IndexedDB, external-change pickup on focus, dark slate
 theme from power-gis, Help modal now renders `docs/concepts/*.md`.
 
+### v0.6.0 — Compact matte buttons (2026-11-07)
+
+Every `UiButton` is now compact and matte: a flat solid fill, a hairline border and small rounded
+corners, with no gradients, blur, glow or sheen. The main action and toggles that are on get a
+solid fill (pale sage in Sage, dark ink in Porcelain). Colours are `--btn-*` tokens per theme.
+The tab bar keeps its liquid glass.
+
 ### v0.5.0 — Focus shadow (2026-11-07)
 
 A focus engine (`src/lib/focus/`): `buildIndex` segments the source into words, sentences,
@@ -31,7 +38,7 @@ Porcelain adds a dot-grid page, frosted white glass, an ink-pill main action and
 headings (`@fontsource/fraunces`).
 
 
-Every button uses the shared `UiButton`, restyled as hue-lit liquid glass (layered inner
+Every button uses the shared `UiButton` (since restyled compact and matte), first styled as hue-lit liquid glass (layered inner
 light, glow below, hover light sweep, press sink), including the formerly hand-styled Update
 available, popover reload and footer buttons (new `tag` size). Emoji icons removed — text
 labels only. The tab bar is a liquid nav: a clear glass pill where the active tab sits in a deep

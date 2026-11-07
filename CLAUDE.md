@@ -64,14 +64,14 @@ base. Use tokens, never colour literals — components must stay theme-agnostic 
 scoped style** — Vue drops the `.x` and applies the rule to `<html>` itself (it once set the whole
 page to 50% opacity); theme differences go in tokens instead.
 **Every button** goes through `components/ui/UiButton.vue` (sizes tag/compact/regular/large,
-tones by job) — no hand-styled `<button>`s in the chrome. The look is **liquid glass**, and it
-must stay **translucent**: a mostly clear body (backdrop blurs through; tone sets `--tint` and a
-small `--body` alpha), a specular highlight across the top, a bright rim strongest on the top
-edge, and light collected *inside* along the bottom edge (`--glow`). Plus a glow cast below
-(`::before`), a light streak sweeping across on hover (`::after`), and a slight sink when pressed.
-Opaque fills are what made earlier passes look flat. **No emoji icons** (they render as
-pictures and break the glass): button labels are text; `icon` is only for plain Unicode marks
-(⇤ ⇥ ● ✓ ✕).
+tones by job) — no hand-styled `<button>`s in the chrome. The look is **compact and matte**: a
+flat solid fill, a 1px hairline border, small rounded corners (`--btn-radius`), no gradients,
+blur, glow or sheen; hover lifts the fill a shade, pressing darkens it. The main action and
+toggles that are on get a solid fill (Sage: pale sage with dark text; Porcelain: dark ink).
+Colours are the `--btn-*` tokens in `vars.css`. The user swapped the earlier liquid-glass buttons
+for this — don't bring the glass back to buttons. The tab bar keeps its glass. **No emoji icons**
+(they render as pictures): button labels are text; `icon` is only for plain Unicode marks
+(⇤ ⇥ ● ✓ ✕ ▸ ▾).
 
 **Tab bar (`TabBar.vue`) is a liquid nav:** a pill of clear glass; the active tab sits in a
 **well pressed into the glass** — a deep recess with a shadowed upper inner edge, a lit lower lip

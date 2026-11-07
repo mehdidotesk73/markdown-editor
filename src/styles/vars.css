@@ -3,7 +3,8 @@
    data-theme on <html>):
      dark  = Sage      — dark green-grey, soft sage light (the default)
      light = Porcelain — warm porcelain with a faint dot grid, frosted white
-                         glass, a dark ink pill for the main action
+                         glass on the tab bar, a dark ink fill for the main action
+   Buttons (UiButton) are compact and matte: the --btn-* tokens.
    Accents have one job each — focus/links, green = saved, amber = unsaved
    (always a small ● mark, never tinted glass), red = errors. Components use
    these tokens, never colour literals. The PDF export is separate (always
@@ -72,6 +73,19 @@
   --primary-text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
   --btn-text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
 
+  /* Matte buttons (UiButton): flat fills, hairline border, no glow. */
+  --btn-radius: 0.4rem;
+  --btn-bg: #222823;
+  --btn-bg-hover: #29302a;
+  --btn-bg-press: #1c211d;
+  --btn-border: #303731;
+  --btn-border-hover: #3b433c;
+  --btn-text: #dfe3da;
+  --btn-primary-bg: #c9d3c4; /* pale sage, dark text */
+  --btn-primary-hover: #d6dfd1;
+  --btn-primary-press: #b8c3b3;
+  --btn-primary-text: #141815;
+
   --font-display: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --mono: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
 
@@ -136,6 +150,17 @@
   --primary-text: #f6f4ef;
   --primary-text-shadow: none;
   --btn-text-shadow: none;
+
+  --btn-bg: #fbfaf7;
+  --btn-bg-hover: #f2efe9;
+  --btn-bg-press: #e9e5dd;
+  --btn-border: #dcd7cc;
+  --btn-border-hover: #cfc9bc;
+  --btn-text: #2b2b30;
+  --btn-primary-bg: #2b2b30; /* dark ink */
+  --btn-primary-hover: #3a3a40;
+  --btn-primary-press: #1f1f23;
+  --btn-primary-text: #f6f4ef;
 
   --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
 
