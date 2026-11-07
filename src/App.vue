@@ -204,7 +204,6 @@ const helpDoc = ref('overview')
           size="compact"
           :tone="savedFlash ? 'ok' : activeDirty ? 'attention' : 'neutral'"
           :icon-left="savedFlash ? Check : Save"
-          :icon-right="activeDirty && !savedFlash ? '●' : undefined"
           :title="`${saveLabel} (Ctrl/⌘+S)`"
           @click="onSave(false)"
         >

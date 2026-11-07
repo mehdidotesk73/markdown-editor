@@ -11,7 +11,7 @@ import type { Component } from 'vue'
 //         regular  — the default
 //         large    — empty-state actions
 //   tone  neutral, primary (the main action: a solid ink / sage fill),
-//         ok (green text), attention (amber mark), danger (red text)
+//         ok (green text), attention (amber icon), danger (red text)
 //   active  — on / selected (toggles): filled like primary
 //
 // Icons: `iconLeft` and `iconRight` each take a Lucide icon component
@@ -158,7 +158,8 @@ defineSlots<{ default?(): unknown }>()
 .t-ok {
   --c: var(--ok);
 }
-/* Needs attention (unsaved): an ordinary button — only the ● mark is amber. */
+/* Needs attention (unsaved, reconnect): an ordinary button whose icon turns amber. */
+.t-attention .ic,
 .t-attention .mark {
   color: var(--warn);
 }

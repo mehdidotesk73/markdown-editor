@@ -56,8 +56,8 @@ time, before first paint; localStorage). All tokens live in `src/styles/vars.css
   frosted white glass, warm soft shadows (`--shadow-rgb`), the main action a **solid dark ink
   pill** (`--primary-bg`), and **Fraunces** serif for the title and preview headings
   (`--font-display`; `@fontsource/fraunces`, bundled for offline).
-Accents have one job each — focus/links, green = saved, amber = unsaved (always a small ● or ⚠
-mark, never tinted glass), red = errors. **No accent hue in the glass**: selection is light and
+Accents have one job each — focus/links, green = saved, amber = unsaved (a small ● or ⚠ mark,
+or an amber icon on a button — never a tinted fill), red = errors. **No accent hue in the glass**: selection is light and
 shadow. The user rejected, in turn: saturated blue, pale aqua, teal + amber glass, and the navy
 base. Use tokens, never colour literals — components must stay theme-agnostic (shadows via
 `rgba(var(--shadow-rgb), …)`, text via `--text`). **Never write `:global([data-theme=…]) .x` in a
@@ -73,7 +73,8 @@ for this, then asked for less vertical padding — don't bring the glass back, a
 The tab bar and the focus panel's dropdowns use the same matte tokens.
 **Icons are Lucide** (`@lucide/vue`, chosen over Iconoir for its depth: ~2,000 icons). A button
 takes any mix of `iconLeft`, label and `iconRight`; each icon prop takes a Lucide component or a
-plain Unicode status mark as a string (● for unsaved, amber under `tone="attention"`). Icons draw
+plain Unicode status mark as a string. Unsaved / needs-attention buttons use `tone="attention"`,
+which turns their icon amber (no extra ● on buttons — the user preferred the icon colour). Icons draw
 in `currentColor` at 1.2em with a 1.75 stroke (`--icon-stroke`), so tones and themes apply. An
 icon with no label is a square button and needs an `aria-label`. **No emoji** — they render as
 pictures.
