@@ -34,6 +34,8 @@ The controls sit under the Preview heading:
 
 The underline needs a recent browser (Chrome, Edge, Safari 17.2+, Firefox 140+).
 
+To see every effect, open the guide *The Focus Shadow* (`docs/focus-shadow-showcase.md` in the project) and move through it.
+
 **Shortcuts:** `Ctrl/⌘ S` save · `Ctrl/⌘ ⇧ S` save as · `Ctrl/⌘ O` open · `Ctrl/⌘ P` export PDF · `Ctrl/⌘ \` hide/show editor · `Ctrl/⌘ ⇧ \` hide/show preview.
 
 ## Common Questions

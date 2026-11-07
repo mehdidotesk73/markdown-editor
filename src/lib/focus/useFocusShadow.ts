@@ -2,7 +2,7 @@ import { shallowRef, watch, nextTick, onMounted, onBeforeUnmount, type Ref } fro
 import { buildIndex, wordCoord, type FocusIndex } from './segment'
 import { focusSpan, type FocusSpan } from './wave'
 import { Shadow } from './shadow'
-import { alignWords, previewRange } from './align'
+import { alignWords, mathRanges, previewRange } from './align'
 import { focusSettings } from './settings'
 import { logDebug } from '../../debug'
 
@@ -78,8 +78,15 @@ export function useFocusShadow(opts: {
       return
     }
     words = previewWords(root)
+    // Words inside formulas are left blank: the preview shows rendered math, not them.
+    const math = mathRanges(index.text)
+    let m = 0
     const src: string[] = new Array(index.words.length)
-    for (let i = 0; i < index.words.length; i++) src[i] = index.text.slice(index.words.start[i], index.words.end[i])
+    for (let i = 0; i < index.words.length; i++) {
+      const at = index.words.start[i]
+      while (m < math.length && math[m][1] <= at) m++
+      src[i] = m < math.length && math[m][0] <= at ? '' : index.text.slice(at, index.words.end[i])
+    }
     map = alignWords(
       src,
       words.map((w) => w.text),

@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { buildIndex, splitBlocks, wordCoord } from './segment'
 import { bellAverage, focusSpan } from './wave'
 import { Shadow } from './shadow'
-import { alignWords, previewRange } from './align'
+import { alignWords, mathRanges, previewRange } from './align'
 
 const DOC = `# Intro
 
@@ -153,5 +153,18 @@ describe('source-to-preview alignment', () => {
     expect(Array.from(map)).toEqual([0, 1, 2, -1, -1, -1, 3, 4])
     expect(previewRange(map, 2, 7)).toEqual({ from: 2, to: 3 })
     expect(previewRange(map, 3, 6)).toBeNull()
+  })
+
+  it("doesn't drift when a stray source word appears later in the preview", () => {
+    // "x" from a formula exists in the source only; a later preview word is also "x"
+    const src = ['the', 'value', 'x', 'is', 'small', 'and', 'the', 'next', 'line', 'has', 'x', 'too']
+    const pre = ['the', 'value', 'is', 'small', 'and', 'the', 'next', 'line', 'has', 'x', 'too']
+    const map = Array.from(alignWords(src, pre))
+    expect(map).toEqual([0, 1, -1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+  })
+
+  it('finds the formulas to leave out of the match', () => {
+    const t = 'Inline $x_0$ and display $$ b(x) = e $$ math.'
+    expect(mathRanges(t).map(([a, b]) => t.slice(a, b))).toEqual(['$x_0$', '$$ b(x) = e $$'])
   })
 })

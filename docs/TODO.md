@@ -19,7 +19,8 @@ paragraphs and sections on a shared word ruler; `focusSpan` scores units by thei
 peak-1 bell value (σ = intensity in words; linear or nested rulers) and returns the contiguous
 span above a fixed 0.4 cut-off; `Shadow` trails the cursor on a leash; `alignWords` maps source
 words to the preview. `useFocusShadow` underlines the shadow's span in the preview with the CSS
-Custom Highlight API. Controls under the Preview header (`FocusControls.vue`). 15 unit tests.
+Custom Highlight API. Controls under the Preview header (`FocusControls.vue`). 17 unit tests.
+`docs/focus-shadow-showcase.md`: a guide to the model, laid out to demo every effect.
 
 ### v0.4.0 — Sage & Porcelain themes, liquid-glass buttons and tabs (2026-11-06)
 

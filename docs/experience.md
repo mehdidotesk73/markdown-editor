@@ -386,6 +386,12 @@ sentence to ICU (the full stop could end an abbreviation); "One two. Three four.
 prose is fine, but test fixtures must capitalise sentence starts. Fenced code is split line by
 line, so the focus engine treats a code block as a single sentence.
 
+**Unconfirmed greedy alignment drifts on real documents.** Matching source words to preview
+words "first equal word within 40" passed unit tests but failed on a long document: a formula's
+`x` matched a later italic *x*, the pointer jumped ahead, and everything after lost its underline.
+Requiring each match to be confirmed by the following words, and skipping math, fixed it. Test the
+focus underline on a long, varied document (`docs/focus-shadow-showcase.md`), not just fixtures.
+
 **A threshold slider feels non-linear; a width slider doesn't.** For the focus shadow, the
 underline's reach is ≈ σ·√(−2 ln(1−I)). Sliding the bell's width σ moves it evenly; sliding the
 threshold I jumps at the start and explodes near 1. So "intensity" became the width, with the

@@ -109,8 +109,13 @@ browser-side composable:
   ~27 µs per cursor move for all four scales on a 100k-word document.
 - **`shadow.ts` — the leash.** The shadow stays put while the cursor is within **distance**
   words of it; beyond that it is dragged to stay exactly that far behind, in either direction.
-- **`align.ts` — source → preview.** Greedy in-order word match (lookahead 40) between source
-  words and rendered preview words; markup-only words (URLs, TeX) go unmatched.
+- **`align.ts` — source → preview.** Greedy in-order word match (lookahead 60) between source
+  words and rendered preview words. Every match must be **confirmed** by the next words lining up
+  (2 of the next 6 source words), and words inside `$…$` / `$$…$$` are left out (the preview shows
+  rendered math) — otherwise a stray formula letter or URL word matches far ahead and the rest of
+  the document drifts. Markup-only words go unmatched.
+- **Showcase:** `docs/focus-shadow-showcase.md` explains the model and is laid out (tiny vs long
+  sentences, word lists, paragraph lists, nested sections, a Linear/Nested demo) to exercise it.
 - **`useFocusShadow.ts` — the browser side.** Follows the textarea's caret (key/click/select +
   `selectionchange`), rebuilds the index 150 ms after typing pauses and immediately on a tab
   switch (no per-tab state; the shadow resets to the cursor), re-aligns after each preview
