@@ -14,7 +14,7 @@ UI structure:
 
 - **Top bar** — title, file actions (Open, Save, Save as…, Export PDF), theme toggle
   (Dark = Sage / Light = Porcelain), Help.
-- **Tab bar** — one tab per open file; amber ● = unsaved, ⚠ = needs reconnecting, italic =
+- **Tab bar** — one tab per open file; amber outline = unsaved, ⚠ = needs reconnecting, italic =
   not linked to a file yet; ＋ makes a new document.
 - **Workspace** (`Workspace.vue`) — markdown source (left) and rendered preview (right),
   with a draggable divider. Either pane collapses to a thin rail: editor collapsed = read
@@ -56,8 +56,8 @@ time, before first paint; localStorage). All tokens live in `src/styles/vars.css
   frosted white glass, warm soft shadows (`--shadow-rgb`), the main action a **solid dark ink
   pill** (`--primary-bg`), and **Fraunces** serif for the title and preview headings
   (`--font-display`; `@fontsource/fraunces`, bundled for offline).
-Accents have one job each — focus/links, green = saved, amber = unsaved (a small ● or ⚠ mark,
-or an amber icon on a button — never a tinted fill), red = errors. **No accent hue in the glass**: selection is light and
+Accents have one job each — focus/links, green = saved, amber = unsaved (an amber icon on a button,
+an amber outline on a tab, or a small ⚠ mark — never a tinted fill), red = errors. **No accent hue in the glass**: selection is light and
 shadow. The user rejected, in turn: saturated blue, pale aqua, teal + amber glass, and the navy
 base. Use tokens, never colour literals — components must stay theme-agnostic (shadows via
 `rgba(var(--shadow-rgb), …)`, text via `--text`). **Never write `:global([data-theme=…]) .x` in a
@@ -74,7 +74,8 @@ The tab bar and the focus panel's dropdowns use the same matte tokens.
 **Icons are Lucide** (`@lucide/vue`, chosen over Iconoir for its depth: ~2,000 icons). A button
 takes any mix of `iconLeft`, label and `iconRight`; each icon prop takes a Lucide component or a
 plain Unicode status mark as a string. Unsaved / needs-attention buttons use `tone="attention"`,
-which turns their icon amber (no extra ● on buttons — the user preferred the icon colour). Icons draw
+which turns their icon amber (no extra ● on buttons — the user preferred the icon colour; unsaved tabs likewise get an
+amber outline, not a dot). Icons draw
 in `currentColor` at 1.2em with a 1.75 stroke (`--icon-stroke`), so tones and themes apply. An
 icon with no label is a square button and needs an `aria-label`. **No emoji** — they render as
 pictures.

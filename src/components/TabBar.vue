@@ -182,7 +182,6 @@ function onKey(e: KeyboardEvent, t: Tab) {
           <span v-if="t.access === 'needs-access'" class="warn" aria-hidden="true">⚠</span>
           <span class="name">{{ t.name }}</span>
           <button class="x" :aria-label="`Close ${t.name}`" tabindex="-1" @click.stop="$emit('close', t)">
-            <span class="dot" aria-hidden="true">●</span>
             <X class="cross" aria-hidden="true" />
           </button>
         </div>
@@ -277,7 +276,12 @@ function onKey(e: KeyboardEvent, t: Tab) {
   font-size: 0.75rem;
 }
 
-/* Close / unsaved: an amber dot that turns into ✕ on hover. */
+/* Unsaved: the tab gets an amber outline (no dot). */
+.tab.dirty {
+  box-shadow: inset 0 0 0 1px var(--warn);
+}
+
+/* Close: a small ✕, brighter on hover. */
 .x {
   flex: 0 0 auto;
   display: grid;
@@ -289,16 +293,11 @@ function onKey(e: KeyboardEvent, t: Tab) {
   border-radius: calc(var(--btn-radius) - 0.1rem);
   background: none;
   color: inherit;
-  font-size: 0.62rem;
   opacity: 0.5;
 }
 .x:hover {
   opacity: 1;
   background: var(--btn-bg-press);
-}
-.x .dot,
-.x .cross {
-  grid-area: 1 / 1;
 }
 .x .cross {
   width: 0.8rem;
@@ -309,25 +308,6 @@ function onKey(e: KeyboardEvent, t: Tab) {
   width: 0.95rem;
   height: 0.95rem;
   stroke-width: 1.75;
-}
-.x .dot {
-  display: none;
-  color: var(--warn);
-}
-.dirty .x {
-  opacity: 1;
-}
-.dirty .x .dot {
-  display: block;
-}
-.dirty .x .cross {
-  display: none;
-}
-.dirty .x:hover .dot {
-  display: none;
-}
-.dirty .x:hover .cross {
-  display: block;
 }
 
 /* New tab: a small square matte button. */
