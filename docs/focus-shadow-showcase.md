@@ -32,7 +32,7 @@ The document does two things at once.
 
 Each shape makes the shadow behave differently. Over short sentences the underline stretches across many of them; over long ones it shrinks to one or two. Over a list of single words it covers a whole column; over a deep heading it jumps a section at a time. Section 10, at the end, is a playground made only of these shapes.
 
-**To follow along:** open this file in Markdown Lab, make sure **Shadow** is on under the Preview heading, and move your cursor through the text. Try changing the scale between Words, Sentences, Paragraphs and Sections, and nudge the Intensity and Distance sliders as you go.
+**To follow along:** open this file in Markdown Lab, make sure the shadow is **On** (open the **Shadow** panel under the Preview heading to check), and move your cursor through the text. Try changing the scale between Words, Sentences, Paragraphs and Sections, and nudge the Intensity and Distance sliders as you go. The shadow starts at intensity 15 and distance 0, sitting right on your cursor; raise the distance to watch it trail behind.
 
 ## 1. The idea in one breath
 

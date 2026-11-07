@@ -23,12 +23,14 @@ just reading or writing, and the basis for future features that look at your tex
 
 The controls sit under the Preview heading:
 
-- **Shadow** turns it on or off.
+- **Shadow ▾** opens or closes this panel. Closing it only hides the controls — the shadow keeps
+  running, and the panel shows whether it's **On** or **Off**.
+- **On / Off** turns the shadow itself on or off.
 - **Sentences / Words / Paragraphs / Sections** chooses what gets underlined.
 - **Intensity** sets how far the focus spreads. Higher means a longer underline. Long sentences
   and paragraphs take more focus, so the same intensity covers fewer long ones than short ones.
 - **Distance** sets how many words the shadow trails behind your cursor, whichever way you move.
-  At 0 it sits right on the cursor.
+  At 0 (the default) it sits right on the cursor.
 - **Linear / Nested** chooses how paragraphs and sections are measured: by their words
   (Linear), or by their sentences and paragraphs (Nested).
 

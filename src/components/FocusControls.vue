@@ -6,6 +6,8 @@ import type { Scale } from '../lib/focus/segment'
 // The focus shadow's controls, under the preview's header. The shadow trails
 // the cursor; it underlines, in the preview, the run of words / sentences /
 // paragraphs / sections held in focus around it.
+// Opening or closing this panel only shows or hides the controls; whether the
+// shadow runs is its own On / Off switch, inside the panel.
 
 defineProps<{ supported: boolean }>()
 
@@ -21,14 +23,27 @@ const scales: { value: Scale; label: string }[] = [
   <div class="focus-bar" role="group" aria-label="Focus shadow">
     <UiButton
       size="tag"
-      :active="s.enabled"
-      :title="s.enabled ? 'Hide the focus shadow' : 'Show the focus shadow'"
-      @click="s.enabled = !s.enabled"
+      :icon="s.panel ? '▾' : '▸'"
+      :aria-expanded="s.panel"
+      :title="s.panel ? 'Hide the shadow controls (the shadow keeps running)' : 'Show the shadow controls'"
+      @click="s.panel = !s.panel"
     >
       Shadow
     </UiButton>
 
-    <template v-if="s.enabled">
+    <span v-if="!s.panel" class="state">{{ s.enabled ? 'On' : 'Off' }}</span>
+
+    <template v-else>
+      <UiButton
+        size="tag"
+        :active="s.enabled"
+        :aria-pressed="s.enabled"
+        :title="s.enabled ? 'Turn the focus shadow off' : 'Turn the focus shadow on'"
+        @click="s.enabled = !s.enabled"
+      >
+        {{ s.enabled ? 'On' : 'Off' }}
+      </UiButton>
+
       <label class="field">
         <span class="sr">Scale</span>
         <select v-model="s.scale" title="Which scale the shadow underlines">
@@ -121,6 +136,10 @@ select:focus-visible {
 
 .note {
   font-style: italic;
+}
+.state {
+  font-weight: 600;
+  letter-spacing: 0.02em;
 }
 
 .sr {

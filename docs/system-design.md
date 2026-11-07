@@ -122,8 +122,9 @@ browser-side composable:
   render, computes once per animation frame, and draws the span with the **CSS Custom Highlight
   API** (`::highlight(focus-shadow)` in `markdown.css`) — no DOM changes. It exposes a `frame`
   (`cursorX`, `shadowX`, `span` with scores, the span's source `text`): the hook for an AI
-  pointer. Settings (`settings.ts`, localStorage): enabled, scale, mode, intensity 1–60,
-  distance 0–200.
+  pointer. Settings (`settings.ts`, localStorage `md-editor:focus:v2`): enabled, panel (controls
+  shown — independent of enabled), scale, mode, intensity 1–60 (default 15), distance 0–200
+  (default 0).
 
 Why intensity is the bell's width rather than a threshold: reach grows linearly with σ but as
 √(−2 ln(1−I)) with a threshold, which bunches the slider's effect at both ends.
