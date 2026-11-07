@@ -403,7 +403,8 @@ look wrong in a shot taken <0.25 s later. Wait out the transition before judging
 ## Version History
 
 ### v0.6.0 — 2026-11-07
-- **Changed:** Buttons are compact and matte (flat fill, hairline border, small radius; `--btn-*` tokens), replacing the liquid-glass buttons. Tab bar keeps its glass.
+- **Changed:** Buttons are compact and matte (flat fill, hairline border, small radius; `--btn-*` tokens), replacing the liquid-glass buttons; sizes tightened again after a look on iPhone
+- **Changed:** Tab bar is matte too (flat bar, flat springing fill under the active tab); the focus panel's dropdowns match the buttons
 - **Docs:** CLAUDE.md, system-design, TODO
 
 ### v0.5.0 — 2026-11-07

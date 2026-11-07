@@ -101,12 +101,12 @@ const scales: { value: Scale; label: string }[] = [
 }
 
 select {
-  height: 1.6rem;
-  padding: 0 0.5rem;
-  border: 1px solid var(--paper-border);
-  border-radius: 999px;
-  background: var(--paper-bg);
-  color: var(--paper-text);
+  height: 1.3rem;
+  padding: 0 0.35rem;
+  border: 1px solid var(--btn-border);
+  border-radius: var(--btn-radius);
+  background: var(--btn-bg);
+  color: var(--btn-text);
   font: inherit;
   font-size: 0.74rem;
   cursor: pointer;

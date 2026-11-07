@@ -88,23 +88,23 @@ defineSlots<{ default?(): unknown }>()
 
 /* sizes — compact throughout */
 .sz-tag {
-  height: 1.5rem;
-  padding: 0 0.55rem;
+  height: 1.3rem;
+  padding: 0 0.5rem;
   font-size: 0.7rem;
 }
 .sz-compact {
-  height: 1.85rem;
-  padding: 0 0.7rem;
+  height: 1.55rem;
+  padding: 0 0.6rem;
   font-size: 0.78rem;
 }
 .sz-regular {
-  height: 2.15rem;
-  padding: 0 0.9rem;
+  height: 1.8rem;
+  padding: 0 0.8rem;
   font-size: 0.86rem;
 }
 .sz-large {
-  height: 2.6rem;
-  padding: 0 1.2rem;
+  height: 2.15rem;
+  padding: 0 1.05rem;
   font-size: 0.95rem;
 }
 .square {

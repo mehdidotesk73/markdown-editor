@@ -69,17 +69,17 @@ flat solid fill, a 1px hairline border, small rounded corners (`--btn-radius`), 
 blur, glow or sheen; hover lifts the fill a shade, pressing darkens it. The main action and
 toggles that are on get a solid fill (Sage: pale sage with dark text; Porcelain: dark ink).
 Colours are the `--btn-*` tokens in `vars.css`. The user swapped the earlier liquid-glass buttons
-for this — don't bring the glass back to buttons. The tab bar keeps its glass. **No emoji icons**
+for this, then asked for less vertical padding — don't bring the glass back, and keep them tight.
+The tab bar and the focus panel's dropdowns use the same matte tokens. **No emoji icons**
 (they render as pictures): button labels are text; `icon` is only for plain Unicode marks
 (⇤ ⇥ ● ✓ ✕ ▸ ▾).
 
-**Tab bar (`TabBar.vue`) is a liquid nav:** a pill of clear glass; the active tab sits in a
-**well pressed into the glass** — a deep recess with a shadowed upper inner edge, a lit lower lip
-and a faint rim. Switching tabs springs the well to the new tab; each name lights up (to full text colour, soft
-glow, pressed 1px) in proportion to how much of the well is under it (`--lit`). `labelSink` +
-`Spring` in `src/lib/liquidTabs.ts` (unit-tested). Respects `prefers-reduced-motion`.
-An earlier version had a bubble floating *above* the bar with a dent/valley in the bar's edge; the
-user preferred the recess (the raised bubble misaligned at the bar's ends) — see `docs/experience.md`.
+**Tab bar (`TabBar.vue`) is matte, like the buttons:** a flat bar with a hairline border; the
+active tab sits on a flat raised fill (the "well", `--btn-bg-hover`). Switching tabs springs the
+fill to the new tab; each name brightens to full text colour in proportion to how much of the fill
+is under it (`--lit`). `labelSink` + `Spring` in `src/lib/liquidTabs.ts` (unit-tested). Respects
+`prefers-reduced-motion`. It was liquid glass (a recess pressed into a glass pill) until the user
+moved the whole chrome to matte — see `docs/experience.md`.
 
 **Focus shadow (`src/lib/focus/`, `docs/system-design.md` §1d):** the analytical driver for
 cursor-following features. A pure engine segments the source into words / sentences / paragraphs
