@@ -14,7 +14,7 @@ UI structure:
 
 - **Top bar** — title, file actions (Open, Save, Save as…, Export PDF), theme toggle
   (Dark = Sage / Light = Porcelain), Help.
-- **Tab bar** — one tab per open file; amber ● = unsaved, ⚠ = needs reconnecting, italic =
+- **Tab bar** — one tab per open file; amber name = unsaved, ⚠ = needs reconnecting, italic =
   not linked to a file yet; ＋ makes a new document.
 - **Workspace** (`Workspace.vue`) — markdown source (left) and rendered preview (right),
   with a draggable divider. Either pane collapses to a thin rail: editor collapsed = read
@@ -56,39 +56,49 @@ time, before first paint; localStorage). All tokens live in `src/styles/vars.css
   frosted white glass, warm soft shadows (`--shadow-rgb`), the main action a **solid dark ink
   pill** (`--primary-bg`), and **Fraunces** serif for the title and preview headings
   (`--font-display`; `@fontsource/fraunces`, bundled for offline).
-Accents have one job each — focus/links, green = saved, amber = unsaved (always a small ● or ⚠
-mark, never tinted glass), red = errors. **No accent hue in the glass**: selection is light and
+Accents have one job each — focus/links, green = saved, amber = unsaved (an amber icon on a button,
+an amber tab name, or a small ⚠ mark — never a tinted fill), red = errors. **No accent hue in the glass**: selection is light and
 shadow. The user rejected, in turn: saturated blue, pale aqua, teal + amber glass, and the navy
 base. Use tokens, never colour literals — components must stay theme-agnostic (shadows via
 `rgba(var(--shadow-rgb), …)`, text via `--text`). **Never write `:global([data-theme=…]) .x` in a
 scoped style** — Vue drops the `.x` and applies the rule to `<html>` itself (it once set the whole
 page to 50% opacity); theme differences go in tokens instead.
 **Every button** goes through `components/ui/UiButton.vue` (sizes tag/compact/regular/large,
-tones by job) — no hand-styled `<button>`s in the chrome. The look is **liquid glass**, and it
-must stay **translucent**: a mostly clear body (backdrop blurs through; tone sets `--tint` and a
-small `--body` alpha), a specular highlight across the top, a bright rim strongest on the top
-edge, and light collected *inside* along the bottom edge (`--glow`). Plus a glow cast below
-(`::before`), a light streak sweeping across on hover (`::after`), and a slight sink when pressed.
-Opaque fills are what made earlier passes look flat. **No emoji icons** (they render as
-pictures and break the glass): button labels are text; `icon` is only for plain Unicode marks
-(⇤ ⇥ ● ✓ ✕).
+tones by job) — no hand-styled `<button>`s in the chrome. The look is **compact and matte**: a
+flat solid fill, a 1px hairline border, small rounded corners (`--btn-radius`), no gradients,
+blur, glow or sheen; hover lifts the fill a shade, pressing darkens it. The main action and
+toggles that are on get a solid fill (Sage: pale sage with dark text; Porcelain: dark ink).
+Colours are the `--btn-*` tokens in `vars.css`. The user swapped the earlier liquid-glass buttons
+for this, then asked for less vertical padding — don't bring the glass back, and keep them tight.
+The tab bar and the focus panel's dropdowns use the same matte tokens.
+**Icons are Lucide** (`@lucide/vue`, chosen over Iconoir for its depth: ~2,000 icons). A button
+takes any mix of `iconLeft`, label and `iconRight`; each icon prop takes a Lucide component or a
+plain Unicode status mark as a string. Unsaved / needs-attention buttons use `tone="attention"`,
+which turns their icon amber (no extra ● on buttons — the user preferred the icon colour; unsaved tabs likewise get an
+amber name — the user rejected both a dot and an amber outline). Icons draw
+in `currentColor` at 1.2em with a 1.75 stroke (`--icon-stroke`), so tones and themes apply. An
+icon with no label is a square button and needs an `aria-label`. **No emoji** — they render as
+pictures.
 
-**Tab bar (`TabBar.vue`) is a liquid nav:** a pill of clear glass; the active tab sits in a
-**well pressed into the glass** — a deep recess with a shadowed upper inner edge, a lit lower lip
-and a faint rim. Switching tabs springs the well to the new tab; each name lights up (to full text colour, soft
-glow, pressed 1px) in proportion to how much of the well is under it (`--lit`). `labelSink` +
-`Spring` in `src/lib/liquidTabs.ts` (unit-tested). Respects `prefers-reduced-motion`.
-An earlier version had a bubble floating *above* the bar with a dent/valley in the bar's edge; the
-user preferred the recess (the raised bubble misaligned at the bar's ends) — see `docs/experience.md`.
+**Tab bar (`TabBar.vue`) is matte, like the buttons:** a flat bar with a hairline border; the
+active tab sits on a flat raised fill (the "well", `--btn-bg-hover`). Switching tabs springs the
+fill to the new tab; each name brightens to full text colour in proportion to how much of the fill
+is under it (`--lit`). `labelSink` + `Spring` in `src/lib/liquidTabs.ts` (unit-tested). Respects
+`prefers-reduced-motion`. It was liquid glass (a recess pressed into a glass pill) until the user
+moved the whole chrome to matte — see `docs/experience.md`.
 
-**Focus shadow (`src/lib/focus/`, `docs/system-design.md` §1d):** the analytical driver for
-cursor-following features. A pure engine segments the source into words / sentences / paragraphs
-/ sections on a shared word ruler, scores each unit by its *average* peak-1 bell value (σ =
-**intensity**, in words — length matters above the word level), and a **shadow** trails the cursor
-on a leash of **distance** words. The span above a fixed 0.4 cut-off is underlined in the preview
-with the CSS Custom Highlight API. No per-tab state: the index rebuilds on tab switch and after
-typing pauses. The user rejected a separate threshold slider (non-linear feel) and a
-per-document "typical length" normalisation (length must count).
+**Focus (`src/lib/focus/`, `docs/system-design.md` §1d):** the analytical driver for
+cursor-following features (formerly "focus shadow"). A pure engine segments the source into words /
+sentences / paragraphs / sections, all on one **word ruler**. A **focal point** — **lag** L: the unit the
+cursor was in L distinct units ago along its *path* (per-scale trail in `focal.ts`; not a shift in
+document order; 0 = live) — emits a bell **attention field** with **decay** σ in words. Each unit's attention is the field's **average** over it (farther
+and longer both mean less; area-under-curve was rejected because longer would mean more). The
+**focus** is the contiguous run holding **60% of the cumulative attention**, underlined in the
+preview with the CSS Custom Highlight API, with a live counter ("3 sentences in focus"). Decay is
+stored **per scale** on a log slider — the user tunes each scale by trial. Rejected along the way: a
+threshold slider, a fixed 0.4 cut-off, a shared "intensity" in words, the nested ruler, a
+per-document typical-length normalisation, a leash distance in words, and a document-order
+"distance" shift. No per-tab state.
 
 **Panels ("paper"):** the editor and preview panes use `--paper-*` tokens, which each theme
 sets (Sage: dark green-grey page; Porcelain: warm off-white page). Never pure white text or
@@ -184,15 +194,15 @@ src/
     pdf/inlineMath.ts      inline TeX → Unicode text
     useTheme.ts            Dark (Sage) / Light (Porcelain) app theme → data-theme on <html>
     liquidTabs.ts          tab bar motion: how lit each tab is, the spring (pure; tested)
-    focus/                 focus engine: segment, wave, shadow, align (pure; tested) +
-                           useFocusShadow (preview underline), settings
+    focus/                 focus engine: segment, wave (attention + 60% focus), focal (lag
+                           trail of the cursor's path), align (pure; tested) + useFocusShadow (underline), settings
     useVersionCheck.ts     compares the running build with the live one
   components/
     Workspace.vue          editor + preview panes, collapse rails, draggable divider, scroll sync
-    TabBar.vue             liquid-glass tab bar: glass pill + springing recessed well
-    FocusControls.vue      focus-shadow controls under the Preview header
+    TabBar.vue             matte tab bar: flat bar + springing fill under the active tab
+    FocusControls.vue      focus controls under the Preview header (decay, lag, counter)
     HelpModal.vue          renders docs/concepts/*.md into the Help modal
-    ui/UiButton.vue        the app's button (sizes + tones)
+    ui/UiButton.vue        the app's button (sizes, tones, Lucide icons left/right)
   styles/
     vars.css               all theme tokens: Sage (:root) and Porcelain ([data-theme='light'])
     markdown.css           rendered-markdown styles (.md-body) for preview + Help

@@ -1,15 +1,16 @@
 import { shallowRef, watch, nextTick, onMounted, onBeforeUnmount, type Ref } from 'vue'
 import { buildIndex, wordCoord, type FocusIndex } from './segment'
 import { focusSpan, type FocusSpan } from './wave'
-import { Shadow } from './shadow'
+import { Trails } from './focal'
 import { alignWords, mathRanges, previewRange } from './align'
 import { focusSettings } from './settings'
 import { logDebug } from '../../debug'
 
 // The browser side of the focus engine: follows the cursor in the editor,
-// keeps the document index current, moves the shadow, and underlines the
-// shadow's span in the preview. Nothing per tab is kept: switching tabs
-// rebuilds the index for that tab and puts the shadow on its cursor.
+// keeps the document index current, records the cursor's path at every scale,
+// places the focal point `lag` units back along that path, and underlines the
+// focus in the preview. Nothing per tab is kept: switching tabs rebuilds the
+// index and starts a fresh path.
 //
 // Drawing uses the CSS Custom Highlight API (::highlight(focus-shadow) in
 // styles/markdown.css): no DOM changes to the preview, so scroll position and
@@ -18,9 +19,12 @@ import { logDebug } from '../../debug'
 /** What the focus engine knows right now — the hook for later consumers (an AI pointer). */
 export interface FocusFrame {
   cursorX: number
-  shadowX: number
+  /** Where the attention field is emitted from, on the word ruler. */
+  focalX: number
   span: FocusSpan | null
-  /** The shadow's span as source text. */
+  /** How many units of the current scale are in focus. */
+  count: number
+  /** The focus as source text. */
   text: string
 }
 
@@ -31,7 +35,7 @@ interface PreviewWord {
   text: string
 }
 
-const HIGHLIGHT = 'focus-shadow'
+const HIGHLIGHT = 'focus-shadow' // the ::highlight() name in markdown.css
 const wordSeg = new Intl.Segmenter(undefined, { granularity: 'word' })
 
 // Minimal typing for the Custom Highlight API (not in every TS DOM lib yet).
@@ -65,8 +69,8 @@ export function useFocusShadow(opts: {
   let index: FocusIndex | null = null
   let words: PreviewWord[] = []
   let map: Int32Array = new Int32Array(0)
-  const shadow = new Shadow()
   let caret = 0
+  const trails = new Trails()
 
   // ---- index + alignment ---------------------------------------------------
 
@@ -137,9 +141,16 @@ export function useFocusShadow(opts: {
       return
     }
     const cursorX = wordCoord(index, caret)
-    const shadowX = shadow.step(cursorX, s.distance)
-    const span = focusSpan(index, s.scale, s.mode, shadowX, s.intensity)
-    frame.value = { cursorX, shadowX, span, text: span ? index.text.slice(span.start, span.end) : '' }
+    trails.record(index, cursorX)
+    const focalX = trails.focal(s.scale, s.lag, cursorX)
+    const span = focusSpan(index, s.scale, focalX, s.decay[s.scale])
+    frame.value = {
+      cursorX,
+      focalX,
+      span,
+      count: span ? span.last - span.first + 1 : 0,
+      text: span ? index.text.slice(span.start, span.end) : '',
+    }
     draw(span)
   }
 
@@ -162,14 +173,14 @@ export function useFocusShadow(opts: {
 
   // ---- lifecycle ------------------------------------------------------------
 
-  /** New tab (or first show): fresh index, shadow on the cursor. */
+  /** New tab (or first show): fresh index, read the cursor. */
   async function startTab() {
     rebuild()
     await nextTick()
     realign()
     const ta = opts.textarea.value
     caret = ta ? ta.selectionEnd : 0
-    shadow.reset(index ? wordCoord(index, caret) : 0)
+    trails.clear()
     schedule()
   }
 

@@ -1,29 +1,30 @@
-// Focus engine, part 2: the focus wave and the shadow's span.
+// Focus engine, part 2: the attention field and the focus.
 //
-// A bell curve, peak 1 at the focus point x₀, falls off with distance:
-//   b(x) = exp(−(x − x₀)² / 2σ²)
-// A unit's score is its AVERAGE bell value over its length on the ruler — so
-// a long sentence, spread over the curve's lower slopes, scores lower than a
-// short one at the same distance. That is what makes long sentences and
-// paragraphs harder to hold in focus. The average has a closed form (two
-// normal-CDF lookups), so no per-letter loop.
+// A focal point x₀ on the word ruler emits a bell-shaped field of attention,
+// peak 1 at x₀:
+//   b(x) = exp(−(x − x₀)² / 2σ²)          σ = the field's decay length, in words
+// Every scale (words, sentences, paragraphs, sections) is laid on the same word
+// ruler. A unit's ATTENTION is the field's AVERAGE over the unit's span, so a
+// unit gets less attention both when it is farther away and when it is longer.
+// (Area under the curve would make longer units take more attention, which is
+// not how focus feels; the average has a closed form via erf, so no loops.)
 //
-// Rulers ("mode"):
-//   linear — every scale measured in words (a paragraph's length = its words)
-//   nested — each scale measured in units of the scale below: sentences in
-//            words, paragraphs in sentences, sections in paragraphs.
-// Intensity is always given in words; on a nested ruler it is converted by
-// the document's average words per child unit, so the slider means about
-// the same spread in either mode.
+// The FOCUS is the run of units that holds 60% of the cumulative attention at
+// that scale: starting from the unit under the focal point, add whichever
+// neighbour (left or right) gets more attention, until the units taken hold at
+// least 60% of the attention of all units. Always one contiguous run, and the
+// unit under the focal point is always in it.
 
-import { type FocusIndex, type Scale, type Units, floorIndex, unitsOf } from './segment'
+import { type FocusIndex, type Scale, floorIndex, unitsOf } from './segment'
 
-export type Mode = 'linear' | 'nested'
+/** Share of the cumulative attention that is "in focus". */
+export const FOCUS_SHARE = 0.6
 
-/** Below this average bell value a unit is out of the shadow (fixed cut-off). */
-export const THRESHOLD = 0.4
+// Beyond this many σ the field is below 1e-14: units out there get no attention.
+const REACH = 8
+const EPS = 1e-12
 
-// erf: Abramowitz & Stegun 7.1.26 (|error| < 1.5e-7) — plenty for scores.
+// erf: Abramowitz & Stegun 7.1.26 (|error| < 1.5e-7) — plenty for attention.
 function erf(x: number): number {
   const s = x < 0 ? -1 : 1
   const a = Math.abs(x)
@@ -34,7 +35,7 @@ function erf(x: number): number {
 const SQRT2 = Math.SQRT2
 const SQRT2PI = Math.sqrt(2 * Math.PI)
 
-/** Average of the peak-1 bell (centre c, width σ) over [a, b). */
+/** Average of the peak-1 bell (centre c, decay σ) over [a, b): a unit's attention. */
 export function bellAverage(a: number, b: number, c: number, sigma: number): number {
   if (sigma <= 0) return a <= c && c < b ? 1 : 0
   const len = b - a
@@ -43,94 +44,71 @@ export function bellAverage(a: number, b: number, c: number, sigma: number): num
   return area / len
 }
 
-/** A ruler: where each unit starts and ends, and the focus point, in one coordinate. */
-interface Ruler {
-  lo: Int32Array
-  hi: Int32Array
-  /** Converts a position on the word ruler to this ruler. */
-  fromWords: (x: number) => number
-  /** Converts a width in words to this ruler's units. */
-  sigmaFromWords: (sigma: number) => number
-}
-
-/** Position on a ruler whose units are `child` (each child = 1), from a word position. */
-function childCoord(child: Units, x: number): number {
-  if (child.length === 0) return 0
-  const k = floorIndex(child.w0, x)
-  if (k < 0) return 0
-  if (x >= child.w1[k]) return k + 1
-  return k + (x - child.w0[k]) / Math.max(1, child.w1[k] - child.w0[k])
-}
-
-function rulerFor(index: FocusIndex, scale: Scale, mode: Mode): Ruler {
-  const words = (u: Units): Ruler => ({ lo: u.w0, hi: u.w1, fromWords: (x) => x, sigmaFromWords: (s) => s })
-  if (mode === 'linear' || scale === 'word' || scale === 'sentence') return words(unitsOf(index, scale))
-  // nested: paragraphs on the sentence ruler, sections on the paragraph ruler
-  const child = scale === 'paragraph' ? index.sentences : index.paragraphs
-  const range = scale === 'paragraph' ? { lo: index.paraSentences.s0, hi: index.paraSentences.s1 } : { lo: index.sectionParas.p0, hi: index.sectionParas.p1 }
-  const wordsPerChild = child.length ? index.words.length / child.length : 1
-  return {
-    lo: range.lo,
-    hi: range.hi,
-    fromWords: (x) => childCoord(child, x),
-    sigmaFromWords: (s) => s / Math.max(1e-9, wordsPerChild),
-  }
-}
-
 export interface FocusSpan {
   scale: Scale
-  /** First and last unit in the span (inclusive) and the unit under the focus point. */
+  /** First and last unit in focus (inclusive), and the unit under the focal point. */
   first: number
   last: number
   center: number
   /** Character range in the source, from the first unit's start to the last unit's end. */
   start: number
   end: number
-  /** Word range [w0, w1) the span covers. */
+  /** Word range [w0, w1) the focus covers. */
   w0: number
   w1: number
-  /** Score of each unit first..last. */
-  scores: Float32Array
+  /** Attention of each unit first..last. */
+  attention: Float32Array
+  /** Share of the cumulative attention the focus holds (≥ FOCUS_SHARE unless it is everything). */
+  share: number
 }
 
 /**
- * The span of units held in focus around a point on the word ruler: start at
- * the unit under the point (always included) and extend each way until the
- * first unit whose score falls to the cut-off. Always one contiguous run.
+ * The focus at one scale around a focal point on the word ruler: the units
+ * holding FOCUS_SHARE of the cumulative attention, grown outward from the unit
+ * under the point by always taking the neighbour with more attention.
  */
-export function focusSpan(
-  index: FocusIndex,
-  scale: Scale,
-  mode: Mode,
-  xWords: number,
-  intensityWords: number,
-  threshold = THRESHOLD,
-): FocusSpan | null {
-  const units = unitsOf(index, scale)
-  const n = units.length
+export function focusSpan(index: FocusIndex, scale: Scale, x0: number, sigma: number, share = FOCUS_SHARE): FocusSpan | null {
+  const u = unitsOf(index, scale)
+  const n = u.length
   if (n === 0) return null
-  const r = rulerFor(index, scale, mode)
-  const c = r.fromWords(xWords)
-  const sigma = r.sigmaFromWords(intensityWords)
-  const score = (i: number) => bellAverage(r.lo[i], r.hi[i], c, sigma)
+  const att = (i: number) => bellAverage(u.w0[i], u.w1[i], x0, sigma)
 
-  const k = Math.min(n - 1, Math.max(0, floorIndex(r.lo, c)))
+  // Only units within reach of the field get any attention.
+  const lo = Math.min(n - 1, floorIndex(u.w1, x0 - REACH * sigma) + 1)
+  const hi = Math.min(n - 1, Math.max(0, floorIndex(u.w0, x0 + REACH * sigma)))
+  let total = 0
+  for (let i = lo; i <= hi; i++) total += att(i)
+
+  const k = Math.min(n - 1, Math.max(0, floorIndex(u.w0, x0)))
   let first = k
   let last = k
-  while (first > 0 && score(first - 1) > threshold) first--
-  while (last < n - 1 && score(last + 1) > threshold) last++
+  let held = att(k)
+  let left = first > 0 ? att(first - 1) : -1
+  let right = last < n - 1 ? att(last + 1) : -1
+  while (held < share * total && (left > EPS || right > EPS)) {
+    if (left >= right) {
+      first--
+      held += left
+      left = first > 0 ? att(first - 1) : -1
+    } else {
+      last++
+      held += right
+      right = last < n - 1 ? att(last + 1) : -1
+    }
+  }
 
-  const scores = new Float32Array(last - first + 1)
-  for (let i = first; i <= last; i++) scores[i - first] = score(i)
+  const attention = new Float32Array(last - first + 1)
+  for (let i = first; i <= last; i++) attention[i - first] = att(i)
   return {
     scale,
     first,
     last,
     center: k,
-    start: units.start[first],
-    end: units.end[last],
-    w0: units.w0[first],
-    w1: units.w1[last],
-    scores,
+    start: u.start[first],
+    end: u.end[last],
+    w0: u.w0[first],
+    w1: u.w1[last],
+    attention,
+    share: total > 0 ? held / total : 1,
   }
 }

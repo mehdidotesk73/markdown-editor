@@ -87,10 +87,12 @@ markdown ─ lexMarkdown() ─▶ tokens ─┬─ walk: display math, images, i
 - **Cost:** a short doc exports in ~0.2 s; a long one using all five font styles ~1.5 s in the
   sandbox (font subsetting/embedding per export dominates).
 
-## §1d — Focus engine and the shadow (`src/lib/focus/`)
+## §1d — Focus engine (`src/lib/focus/`)
 
 The analytical driver for features that follow the cursor. Pure modules (no DOM) plus one
-browser-side composable:
+browser-side composable. The model, in the user's terms: a **focal point** emits a bell-shaped
+**attention field**; each unit's attention is the field's average over the unit; the **focus** is
+the run of units holding 60% of the cumulative attention.
 
 - **`segment.ts` — the index.** `buildIndex(text)` splits the source into blocks (paragraphs, list
   items, headings, table rows; fenced code is one block and one sentence), sections (at
@@ -99,35 +101,46 @@ browser-side composable:
   [w0, w1)**. The shared ruler is the word: word *i* occupies [i, i+1); a sentence's length is
   its word count. Units with no words are dropped. `wordCoord(index, offset)` puts the cursor on
   the ruler (fractionally inside a word). ~30 ms per 10k words; ~330 ms for 100k.
-- **`wave.ts` — scores and spans.** A peak-1 bell b(x) = exp(−(x−x₀)²/2σ²) on the ruler, σ =
-  **intensity** in words. A unit's score is its **average** bell value over its length (closed
-  form via erf), so long sentences/paragraphs score lower and are harder to hold in focus.
-  Rulers: **linear** (every scale in words) or **nested** (paragraphs in sentences, sections in
-  paragraphs; σ converted by the document's mean words per child). `focusSpan` starts at the
-  unit under the point (always included) and extends each way until a unit's score falls to the
-  fixed cut-off **0.4** — one contiguous span, with its source/word ranges and per-unit scores.
-  ~27 µs per cursor move for all four scales on a 100k-word document.
-- **`shadow.ts` — the leash.** The shadow stays put while the cursor is within **distance**
-  words of it; beyond that it is dragged to stay exactly that far behind, in either direction.
+- **`wave.ts` — attention and focus.** A peak-1 bell b(x) = exp(−(x−x₀)²/2σ²) on the word ruler,
+  σ = the field's **decay** length in words. Every scale is laid on the same word ruler (there is
+  no nested ruler any more). A unit's **attention** is the field's **average** over [w0, w1)
+  (closed form via erf), so a unit gets less attention when it is farther *and* when it is
+  longer; area under the curve was rejected because it gives long units *more* attention.
+  `focusSpan(index, scale, x0, σ)` sums the attention of every unit within 8σ, then grows a
+  contiguous run from the unit under x₀ (always included), each step taking the neighbour with
+  more attention, until the run holds **`FOCUS_SHARE` = 60%** of the total. Returns the run's
+  source/word ranges, each unit's attention and the share held. ~10 µs per call on the guide.
+- **`focal.ts` — lag along the cursor path.** A `Trail` per scale records the last distinct units
+  the cursor has been in (consecutive repeats collapse; each entry keeps the cursor's latest word
+  position in that unit; up to `MAX_LAG` + 1 = 21 entries). `Trails` feeds every scale on each
+  cursor update, so switching scale keeps its history. The focal point at lag L is the entry L
+  steps back (the oldest entry if the trail is shorter); lag 0 is the cursor. It follows the
+  path, not document order: a jump elsewhere is caught up with L steps later. Cleared on a tab
+  switch.
 - **`align.ts` — source → preview.** Greedy in-order word match (lookahead 60) between source
   words and rendered preview words. Every match must be **confirmed** by the next words lining up
   (2 of the next 6 source words), and words inside `$…$` / `$$…$$` are left out (the preview shows
   rendered math) — otherwise a stray formula letter or URL word matches far ahead and the rest of
   the document drifts. Markup-only words go unmatched.
 - **Showcase:** `docs/focus-shadow-showcase.md` explains the model and is laid out (tiny vs long
-  sentences, word lists, paragraph lists, nested sections, a Linear/Nested demo) to exercise it.
+  sentences, word lists, paragraph lists, nested sections) to exercise it. It is also the text a
+  new document opens with.
 - **`useFocusShadow.ts` — the browser side.** Follows the textarea's caret (key/click/select +
   `selectionchange`), rebuilds the index 150 ms after typing pauses and immediately on a tab
-  switch (no per-tab state; the shadow resets to the cursor), re-aligns after each preview
-  render, computes once per animation frame, and draws the span with the **CSS Custom Highlight
-  API** (`::highlight(focus-shadow)` in `markdown.css`) — no DOM changes. It exposes a `frame`
-  (`cursorX`, `shadowX`, `span` with scores, the span's source `text`): the hook for an AI
-  pointer. Settings (`settings.ts`, localStorage `md-editor:focus:v2`): enabled, panel (controls
-  shown — independent of enabled), scale, mode, intensity 1–60 (default 15), distance 0–200
-  (default 0).
+  switch (no per-tab state), re-aligns after each preview render, computes once per animation
+  frame, and draws the focus with the **CSS Custom Highlight API** (`::highlight(focus-shadow)` in
+  `markdown.css`) — no DOM changes. Each compute records the cursor in the trails. It exposes a `frame` (`cursorX`, `focalX`, `span` with each
+  unit's attention, `count` of units in focus, the focus's source `text`): the hook for an AI
+  pointer. The controls show `count` live ("3 sentences in focus").
+- **Settings** (`settings.ts`, localStorage `md-editor:focus:v3`): enabled, panel (controls shown —
+  independent of enabled), scale, **decay per scale** (σ in words; logarithmic slider with a range
+  per scale — words 0.3–40, sentences 1–300, paragraphs 2–1000, sections 5–3000; defaults 1 / 12 /
+  30 / 150, chosen by the user by trial), lag 0–20 units (default 0). The user tunes each
+  scale's decay by trial in the app.
 
-Why intensity is the bell's width rather than a threshold: reach grows linearly with σ but as
-√(−2 ln(1−I)) with a threshold, which bunches the slider's effect at both ends.
+Superseded designs (see `docs/experience.md`): a fixed 0.4 cut-off on the average, an
+"intensity" slider in words shared by all scales (1–60: useless above the sentence scale), a
+nested ruler (paragraphs counted in sentences), and a leash distance in words.
 
 ## §2 — Header/Footer Wrapper Template
 
@@ -167,7 +180,7 @@ This is the shell that wraps every page/tab. It provides version checking, updat
 
 ### Styling
 
-Buttons use one component, `UiButton.vue` (sizes tag/compact/regular/large), styled as translucent **liquid glass**: per tone `--tint` (colour of the inner light), `--bodyc` (body colour, defaults to the tint), `--body` (body alpha, near 0 = clear) and `--glow` (light collected at the bottom); the main action is deep background-coloured glass, not a hue; every highlight, rim and glow uses the theme's `--liquid-white`; background layers give a top specular highlight, the bottom light and the clear body; inset box-shadows give a rim brightest on top and an internal glow rising from the bottom edge; `::before` casts a glow below, `::after` is a light streak that sweeps on hover, `:active` sinks it. Text labels only — no emoji. The body background carries soft colour glows (fixed) so the glass has something to show. **`TabBar.vue`** is a liquid nav: the bar is a pill of clear glass (the scroller itself: backdrop blur, sheen on top, milky light at the bottom, inset rim). The active tab sits in a **recessed well** — an absolutely positioned pill behind the names with a deep fill (`--liquid-deep`), inner shadows (dark upper edge, lit lower lip), a faint rim and a little cool light in its floor — no hue. On a switch, two `Spring`s (centre, width) move the well per animation frame; each tab gets `--lit` from `labelSink()` (smoothstep of distance), which drives its colour (muted → full `--text`), a soft glow and a 1px press. Tabs scroll sideways when there are many. **Themes:** `src/styles/vars.css` holds two full token sets — Sage on `:root` (dark, default) and Porcelain on `:root[data-theme='light']` — covering surfaces, text, accents, shadows (`--shadow-rgb`, `--liquid-drop`), the page backdrop (`--bg-image`: sage glow / dot grid), panels (`--paper-*`), glass (`--liquid-*`, `--glass-body-a`, `--well-*`), the main-action override (`--primary-bg`: a no-op transparent layer in Sage, a solid ink pill in Porcelain) and `--font-display` (Fraunces in Porcelain). `lib/useTheme.ts` sets `data-theme` on `<html>` at import, before first paint, and updates `<meta name=theme-color>`. Components never branch on the theme; they only read tokens. The editor/preview panes use the **paper** tokens (`--paper-*`), set by each theme; neither uses pure white. Rendered markdown uses `src/styles/markdown.css` (`.md-body` reads the paper tokens; h1–h3 take `--font-display`). The PDF export doesn't use these styles (`lib/pdf`). Mobile-safe padding with `safe-area-inset` for notch/bottom-bar devices.
+Buttons use one component, `UiButton.vue` (sizes tag/compact/regular/large, all compact), styled **matte**: a flat solid fill (`--btn-bg`), a 1px border (`--btn-border`), `--btn-radius` corners, no gradients, blur or shadows; hover → `--btn-bg-hover` / `--btn-border-hover`, pressed → `--btn-bg-press`. The main action (`tone="primary"`) and toggles that are on (`active`) use `--btn-primary-*` (Sage: pale sage, dark text; Porcelain: dark ink). `--c` is the label colour and containers may set it (pane heads use `--paper-muted`). Icons: `iconLeft` / `iconRight` props, each a Lucide component (`@lucide/vue`) or a Unicode status-mark string (rendered as `.mark`); under `t-attention` the icon or mark turns amber (Save when unsaved, Reconnect); Lucide icons render as `.ic` at 1.2em with `stroke-width: var(--icon-stroke, 1.75)`. Label-less with one icon → `.square`. No emoji. **`TabBar.vue`** is matte too: the scroller is a flat bar (`--bg-elev`, `--btn-border` hairline). The active tab sits on a **well** — an absolutely positioned flat fill behind the names (`--btn-bg-hover`, `--btn-border-hover`, `--btn-radius`). On a switch, two `Spring`s (centre, width) move the well per animation frame; each tab gets `--lit` from `labelSink()` (smoothstep of distance), which drives its colour (muted → full `--text`). The ＋ is a small square matte button. Tabs scroll sideways when there are many. **Themes:** `src/styles/vars.css` holds two full token sets — Sage on `:root` (dark, default) and Porcelain on `:root[data-theme='light']` — covering surfaces, text, accents, shadows (`--shadow-rgb`, `--liquid-drop`), the page backdrop (`--bg-image`: sage glow / dot grid), panels (`--paper-*`), matte buttons and tab bar (`--btn-*`; the older `--liquid-*` glass tokens are now only used by the top bar's popover) and `--font-display` (Fraunces in Porcelain). `lib/useTheme.ts` sets `data-theme` on `<html>` at import, before first paint, and updates `<meta name=theme-color>`. Components never branch on the theme; they only read tokens. The editor/preview panes use the **paper** tokens (`--paper-*`), set by each theme; neither uses pure white. Rendered markdown uses `src/styles/markdown.css` (`.md-body` reads the paper tokens; h1–h3 take `--font-display`). The PDF export doesn't use these styles (`lib/pdf`). Mobile-safe padding with `safe-area-inset` for notch/bottom-bar devices.
 
 ## §3 — Data Layer (api/)
 

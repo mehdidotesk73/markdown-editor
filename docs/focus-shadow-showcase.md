@@ -1,4 +1,4 @@
-# The Focus Shadow
+# Focus
 
 *How Markdown Lab follows your attention, and how we built it.*
 
@@ -10,37 +10,36 @@ Each open file gets its own tab. You can hide the writing side to read, or hide 
 
 ## What this document is
 
-This document is about one feature of the editor: the **focus shadow**. As you move through your text, a shadow trails a little way behind your cursor, and the formatted side underlines the stretch of text it is focused on. It is a quiet record of what you have just been reading or writing, and the groundwork for future features that look at your text alongside you.
+This document is about one feature of the editor: the **focus**. As you move through your text, a field of attention follows your cursor, and the formatted side underlines the stretch of text that holds most of it. It is a quiet record of what you are reading or writing, and the groundwork for future features that look at your text alongside you.
 
 The document does two things at once.
 
-**It explains how the focus shadow works.** We start with the idea, then build it up piece by piece:
+**It explains how the focus works.** We start with the idea, then build it up piece by piece:
 
 - the four sizes of text it pays attention to — words, sentences, paragraphs and sections;
 - the single ruler, counted in words, that lets those sizes be compared;
-- the "wave" of focus around the shadow, and how each piece of text gets a score from it;
-- the two controls, intensity and distance, and why they work the way they do;
-- the two ways of counting a paragraph's length;
+- the field of attention around the focal point, and how each piece of text gets its share;
+- why the focus is the stretch holding 60% of the attention;
+- the two controls, decay and lag, and why decay is tuned per scale;
 - how the underline is drawn, and how fast all of it runs.
 
 **It shows the behaviour as you read.** The sections are written in deliberately different shapes:
 
 - runs of tiny sentences, and runs of sentences that go on for a long time;
 - lists of single words, and lists of whole paragraphs;
-- sections nested inside sections;
-- two paragraphs of the same length but very different structure, side by side.
+- sections nested inside sections.
 
-Each shape makes the shadow behave differently. Over short sentences the underline stretches across many of them; over long ones it shrinks to one or two. Over a list of single words it covers a whole column; over a deep heading it jumps a section at a time. Section 10, at the end, is a playground made only of these shapes.
+Each shape makes the focus behave differently. Over short sentences the underline stretches across many of them; over long ones it shrinks to one or two. Over a list of single words it covers a whole column; over a deep heading it jumps a section at a time. Section 9, at the end, is a playground made only of these shapes.
 
-**To follow along:** open this file in Markdown Lab, make sure the shadow is **On** (open the **Shadow** panel under the Preview heading to check), and move your cursor through the text. Try changing the scale between Words, Sentences, Paragraphs and Sections, and nudge the Intensity and Distance sliders as you go. The shadow starts at intensity 15 and distance 0, sitting right on your cursor; raise the distance to watch it trail behind.
+**To follow along:** open this file in Markdown Lab, make sure the focus is **On** (open the **Focus** panel under the Preview heading to check), and move your cursor through the text. Try changing the scale between Words, Sentences, Paragraphs and Sections, and nudge the Decay and Lag sliders as you go — the counter on the right says how many units are in focus. Lag starts at 0, with the focus following your cursor live; raise it and the focus trails your path a few steps behind.
 
 ## 1. The idea in one breath
 
-You read. Your cursor moves. Your attention is not a point. It is a blur. It is sharpest where you are. It fades with distance. Some of it lingers behind you. The shadow is that lingering part. It trails your cursor. It marks what you just passed. It does this at four sizes. Words. Sentences. Paragraphs. Sections.
+You read. Your cursor moves. Your attention is not a point. It is a field. It is strongest at one spot. It fades with distance. Near things get more of it. Long things get less of it. The focus is the stretch that holds most of it. It sits at your cursor. Or a few steps behind it, along the way you came. It works at four sizes. Words. Sentences. Paragraphs. Sections.
 
 ## 2. Four sizes of attention
 
-Text is not one long string; it is nested. Words sit inside sentences, sentences inside paragraphs, paragraphs inside sections, and each of those is a different size of thing that you can be focused on. The focus shadow works at all four sizes at once, and you choose which one the preview underlines.
+Text is not one long string; it is nested. Words sit inside sentences, sentences inside paragraphs, paragraphs inside sections, and each of those is a different size of thing that you can be focused on. The focus works at each of the four sizes, and you choose which one the preview underlines.
 
 ### 2.1 Words
 
@@ -66,7 +65,7 @@ The same is true one level up, and paragraphs can be long in two different ways:
 
 - **A few long sentences.** A paragraph can also be long because its sentences are long, each one carrying a full idea with all of its conditions and exceptions attached, so that even two or three of them fill as much space as a dozen short ones would, and ask for a different kind of attention.
 
-- **Both.** Most real paragraphs mix the two, and the shadow treats them according to how you choose to count them (see section 7).
+- **Both.** Most real paragraphs mix the two. The focus measures every paragraph by its words, so a paragraph's length is the same whichever way it got long.
 
 ### 2.4 Sections
 
@@ -84,127 +83,108 @@ To compare things of different sizes, we need one ruler for all of them. The rul
 
 Punctuation, list bullets and markdown symbols are not words, so they take up no room on the ruler. Code blocks count as a single sentence each.
 
-## 4. The wave
+## 4. The attention field
 
-### 4.1 A bell curve centred on the shadow
+### 4.1 A field emitted from the focal point
 
-Focus is a bell curve laid along the ruler, peaking at 1 exactly where the shadow sits and fading on either side:
+The **focal point** sits on the ruler and emits a field of attention: a bell curve that peaks at 1 right at the focal point and fades on either side.
 
 $$ b(x) = e^{-\frac{(x - x_0)^2}{2\sigma^2}} $$
 
-Here $x_0$ is the shadow's position and $\sigma$ is how wide the bell is.
+Here $x_0$ is the focal point and $\sigma$ is the field's **decay**: how many words it takes for attention to fade. A small decay is a tight beam; a large one spreads wide. The field is the same everywhere — at a word, a sentence or a section, it is this one equation, read off the word ruler.
 
-### 4.2 A unit's score is its average
+### 4.2 A unit's attention is the field's average over it
 
-Every word, sentence, paragraph and section gets a score: the **average** height of the bell across its length. Not the total. The average.
+Every word, sentence, paragraph and section gets a share of attention: the **average** height of the field across its length.
 
-That one choice is what makes length matter. A short sentence near the peak sits entirely on the high part of the curve, so its average stays high. A long sentence, even one that starts right next to the peak, stretches out over the falling slopes, and its average drops. The longer it runs, the lower it scores.
+There were two ways to measure it, and the choice matters:
 
-The average has an exact formula — two lookups of the bell's area — so no letter-by-letter loop is ever needed.
+- **Area under the curve** adds up the field over the unit's length. A longer unit collects more, so long sentences would take *more* attention than short ones. That is not how attention feels.
+- **Average over the unit** divides that area by the length. A unit gets less attention when it is farther away *and* when it is longer, because a long unit stretches out over the field's fading slopes.
 
-### 4.3 A worked example
+The focus uses the average. It has an exact formula — two lookups of the bell's area — so no letter-by-letter loop is ever needed.
 
-Set the intensity to 12 and put the shadow in the middle of a sentence. Now compare two neighbourhoods.
+### 4.3 What is in focus: 60% of the attention
 
-When the neighbouring sentences are short, four words each:
+Add up the attention of every unit at the chosen scale. The **focus** is the smallest unbroken run of units, starting from the one under the focal point, that holds **60%** of that total. It grows outward one unit at a time, always taking whichever neighbour — left or right — gets more attention, until it holds 60%.
 
-- the next one out scores 0.94
-- the one after that, 0.80
-- then 0.61
-- then 0.41
-- then 0.25 — below the cut-off
+Because the cut is a share of the total rather than a fixed height on the curve, the focus always means the same thing: the part of the text that holds most of your attention right now.
 
-When the neighbouring sentences are long, twenty words each, the very next one already scores only 0.30, so the underline stays on the shadow's own sentence.
+### 4.4 A worked example
 
-The cut-off is 0.4. With short sentences, four on each side clear it, nine in all. With long ones, none do. Same intensity, same distance from the shadow — the difference is entirely how long the sentences are.
+Set the decay to 15 words and put the focal point in the middle of a sentence. Compare two neighbourhoods.
 
-## 5. Intensity
+When the sentences are short, four words each, attention falls off slowly from one sentence to the next:
 
-Intensity is the width of the bell, measured in words. Raise it and the bell spreads, more units clear the cut-off, and the underline grows.
+- the focal sentence gets 1.00
+- the next one out, 0.96
+- then 0.87
+- then 0.73
+- then 0.57, 0.41, 0.28…
 
-We tried two ways of controlling the size of the underline before settling on this one:
+Seven sentences — three on each side — hold 60% of the total, so seven are underlined.
 
-1. **A threshold slider.** Move the cut-off itself between 0 and 1. It works, but it feels wrong: the underline's reach grows like the square root of a logarithm of the slider, so the first notch jumps, the middle crawls, and the last tenth of the slider runs off to infinity.
-2. **A width slider.** Move the bell's width. The underline's reach grows in direct proportion, so every notch adds the same amount.
+When the sentences are long, twenty words each, the focal sentence gets 0.93, the next one only 0.43, and the one after 0.04. The focal sentence and one neighbour already hold 60%, so two are underlined.
 
-The width felt right, so it became *intensity*, and the cut-off is fixed at 0.4.
+Same decay, same focal point. The difference is entirely how long the sentences are.
 
-## 6. The shadow
+## 5. Decay, tuned per scale
 
-The shadow is a point on the ruler that follows your cursor on a leash.
+Decay is measured in words, and each scale remembers its own. A decay that underlines a handful of words would underline a single sentence and nothing at all beyond its own section, so each scale needs its own setting:
 
-1. While your cursor moves within *distance* words of the shadow, the shadow stays where it is.
-2. When your cursor gets further away than that, the shadow is pulled along, so that it stays exactly *distance* words behind.
-3. This works in both directions. Read forwards and it trails behind you; read backwards and it trails behind you the other way.
-4. At distance 0 the shadow sits right on your cursor.
+| Scale | Default decay | Typically in focus |
+|---|---|---|
+| Words | 1 word | 2 words |
+| Sentences | 12 words | 2–3 sentences |
+| Paragraphs | 30 words | about 3 paragraphs |
+| Sections | 150 words | about 3 sections |
 
-Small back-and-forth movements, like going back a word to fix a typo, do not move the shadow at all. Only real progress through the text pulls it along.
+The decay slider is logarithmic, so each notch changes the field by the same proportion, whether it is 2 words wide or 2,000. The counter under the Preview heading shows how many units are in focus right now, so you can tune each scale by eye.
 
-### 6.1 From shadow to underline
+## 6. Lag: following your path
 
-Once the shadow has a position, the underline is built outward from it:
+The focal point follows the path your cursor has taken, a set number of steps behind. That number is the **lag**, and a step is one unit of the scale you are viewing:
 
-- The unit under the shadow is always included, however long it is. Otherwise a very long sentence could fail its own test and leave no underline at all.
-- The underline grows to the left, one unit at a time, until it meets a unit scoring 0.4 or less.
-- It does the same to the right.
-- It stops at the first unit that fails, even if a unit further out would have passed, so the underline is always one unbroken stretch from point a to point b.
+1. At lag 0, the focal point is the cursor itself: the focus follows you live.
+2. The app remembers the last units your cursor has been in, in the order you visited them. Moving around inside one sentence is still one step; moving into the next sentence is a new step.
+3. At lag 2 on the Sentences scale, the focal point sits in the sentence you were in two sentences ago. On Words it is two words ago; on Paragraphs, two paragraphs ago.
+4. It follows the path, not the page. If you jump from the top of the document to the bottom, the focus stays at the top for a couple of steps, then catches up.
+5. Inside that unit, the focal point is where your cursor last was when you were there.
+6. Until you have made enough moves, it sits on the oldest place it remembers.
 
-## 7. Linear and nested counting
-
-How long is a paragraph? There are two honest answers, and the shadow offers both.
-
-**Linear** counts words. A paragraph of forty words is forty units long, whether those words come as one long sentence or as ten short ones. Everything, from words to sections, is measured on the same word ruler.
-
-**Nested** counts the next unit down. A paragraph is as long as its number of sentences, and a section is as long as its number of paragraphs. Under nested counting, a paragraph of ten short sentences is *longer* than a paragraph of one long sentence, even when they hold the same number of words.
-
-Here are two paragraphs of almost the same number of words. To see the difference, set the scale to *Paragraphs*, the distance to 0 and the intensity to 20, then put your cursor in the second of them (the one-sentence paragraph) and switch between Linear and Nested:
-
-- **Linear:** the underline covers both paragraphs. Counted in words, the eight-sentence paragraph is no longer than its neighbour, so it stays in focus.
-- **Nested:** the eight-sentence paragraph drops out — eight sentences makes it long — and the underline reaches forward instead, over the paragraph that follows.
-
-The first has eight short sentences. It reads in steps. Each step is small. You never get lost. But there are many steps. Each one asks for a moment. Together they add up. That is the point.
-
-The second has just one sentence, and it reads as a single sustained movement that carries you from its opening words all the way to its close without a pause, which is a different kind of effort.
-
-In both modes, the intensity slider still means words: on a nested ruler, it is converted using the document's average number of words per sentence, or per paragraph, so the slider feels about the same either way.
-
-## 8. Following the cursor
+## 7. Following the cursor
 
 The focus engine does not keep anything per tab. Instead:
 
-- when you move the cursor or select text, the shadow and its underline are recomputed;
-- when you switch to another tab, that tab's text is re-indexed and the shadow starts again on its cursor;
+- when you move the cursor or select text, the step is added to the path, and the focal point and the focus are recomputed;
+- when you switch to another tab, that tab's text is re-indexed and the path starts fresh;
 - when you type, the index is rebuilt once you pause for a moment, so typing stays smooth even in very large files.
 
-### 8.1 Drawing the underline
+### 7.1 Drawing the underline
 
-The cursor lives in the markdown source, but the underline is drawn in the rendered preview, so the two have to be matched up. The engine lines up the words of the source with the words of the preview, in order. Markup that only exists on one side — the address inside a [link](https://example.com), the commands inside a formula — is simply skipped. Then the browser's built-in text highlighting draws a plain underline from the first word of the span to the last, without changing the preview at all.
+The cursor lives in the markdown source, but the underline is drawn in the rendered preview, so the two have to be matched up. The engine lines up the words of the source with the words of the preview, in order. Markup that only exists on one side — the address inside a [link](https://example.com), the commands inside a formula — is simply skipped. Then the browser's built-in text highlighting draws a plain underline from the first word of the focus to the last, without changing the preview at all.
 
-### 8.2 How fast it is
+### 7.2 How fast it is
 
-On a document of a hundred thousand words:
+On a document of a hundred thousand words, re-indexing after a pause in typing takes about **330 milliseconds**. Each cursor move only looks at the units the field actually reaches, about **10 microseconds** on this guide. The underline is redrawn at most once per screen refresh.
 
-- a cursor move, at all four scales, takes about **27 microseconds**;
-- re-indexing after a pause in typing takes about **330 milliseconds** (about 30 milliseconds per ten thousand words);
-- the underline is redrawn at most once per screen refresh.
+## 8. What it is for
 
-## 9. What it is for
+The underline is not decoration. It is the visible face of a set of numbers: for every unit near the focal point, at every scale, a share of attention between 0 and 1. Those shares, and the stretch of text they cover, are what a future AI step can read — a pointer that says *look here, at this window of text, this much*. With a lag, that pointer settles on what you have just read, rather than chasing every keystroke.
 
-The underline is not decoration. It is the visible face of a set of numbers: for every unit around the shadow, at every scale, a score between 0 and 1. Those scores, and the stretch of text they cover, are what a future AI step can read — a pointer that says *look here, at this window of text, this much*. Because the shadow lags behind the cursor, that pointer settles on what you have just read, rather than chasing every keystroke.
+## 9. Playground
 
-## 10. Playground
+The sections below exist only to be moved through. Try each one at each scale, and at a few decays.
 
-The sections below exist only to be moved through. Try each one at each scale, and at a few intensities.
-
-### 10.1 A run of tiny sentences
+### 9.1 A run of tiny sentences
 
 Go. Stop. Look. Wait. Read on. Turn back. Try again. Now slow. Now fast. Breathe. Keep going. Almost there. Done.
 
-### 10.2 A run of long sentences
+### 9.2 A run of long sentences
 
-This sentence is long on purpose, stretching out across the line so that the bell curve has to reach a long way to cover it, which pulls its average score down. The next one does the same thing, adding clause after clause and detail after detail, so that it too sits mostly on the lower slopes of the curve. And this third one completes the set, long enough that even a generous intensity can only hold one or two of them in focus at a time.
+This sentence is long on purpose, stretching out across the line so that the bell curve has to reach a long way to cover it, which pulls its average attention down. The next one does the same thing, adding clause after clause and detail after detail, so that it too sits mostly on the lower slopes of the curve. And this third one completes the set, long enough that even a generous decay can only hold one or two of them in focus at a time.
 
-### 10.3 A list of single words
+### 9.3 A list of single words
 
 - alpha
 - bravo
@@ -215,32 +195,32 @@ This sentence is long on purpose, stretching out across the line so that the bel
 - golf
 - hotel
 
-### 10.4 A list of paragraphs
+### 9.4 A list of paragraphs
 
 1. **The first item is a paragraph.** It has three sentences. Each is short.
 
-2. **The second item is a longer paragraph,** made of fewer but fuller sentences, each one carrying more words, so that under linear counting it is longer than the first even though it has fewer sentences.
+2. **The second item is a longer paragraph,** made of fewer but fuller sentences, each one carrying more words, so that, counted in words, it is longer than the first even though it has fewer sentences.
 
 3. **The third item is short.** Just two sentences.
 
-### 10.5 Nested all the way down
+### 9.5 Nested all the way down
 
-#### 10.5.1 A small section
+#### 9.5.1 A small section
 
 One paragraph. Two short sentences.
 
-#### 10.5.2 Another small section
+#### 9.5.2 Another small section
 
 Also small. With a list:
 
 - one
 - two
 
-##### 10.5.2.1 Deeper still
+##### 9.5.2.1 Deeper still
 
 The deepest section in this document. Move between the headings here with the scale set to *Sections* and watch the underline step from one to the next.
 
-### 10.6 A mix
+### 9.6 A mix
 
 A short sentence. Then a much longer one that wanders on for a while before it finally makes its point, and only then lets you go. Short again.
 

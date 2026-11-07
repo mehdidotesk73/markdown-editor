@@ -2,12 +2,12 @@
 import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { isDirty, type Tab } from '../lib/useTabs'
 import { labelSink, Spring } from '../lib/liquidTabs'
+import { Plus, X } from '@lucide/vue'
 
-// Liquid-glass tab bar. A clear glass bar holds the tab names; the active tab
-// sits in a well pressed into the glass — a recess with a shadowed upper edge,
-// a lit lower lip and a soft rim of light. Picking another tab springs the
-// well across; each name lights up as the well arrives under it and dims as
-// it leaves, in proportion to the distance, frame by frame.
+// Matte tab bar, in the same style as the buttons (UiButton): a flat bar with a
+// hairline border; the active tab sits on a flat raised fill (the "well").
+// Picking another tab springs the fill across; each name brightens as the fill
+// arrives under it and dims as it leaves, in proportion to the distance.
 
 const props = defineProps<{ tabs: Tab[]; activeId: string | null }>()
 const emit = defineEmits<{
@@ -16,9 +16,9 @@ const emit = defineEmits<{
   (e: 'new'): void
 }>()
 
-const BAR_H = 46
-const WELL_H = 34
-const WELL_EXTRA = 6 // the well is this much wider than the tab it holds
+const BAR_H = 32
+const WELL_H = 24
+const WELL_EXTRA = 4 // the well is this much wider than the tab it holds
 
 const scroller = ref<HTMLElement>()
 const track = ref<HTMLElement>()
@@ -161,7 +161,7 @@ function onKey(e: KeyboardEvent, t: Tab) {
   <div class="dock" :style="{ '--bar-h': `${BAR_H}px`, '--well-h': `${WELL_H}px` }">
     <div ref="scroller" class="scroller">
       <div ref="track" class="track" role="tablist" aria-label="Open files">
-        <!-- The well pressed into the glass under the active tab. -->
+        <!-- The flat fill under the active tab. -->
         <div v-if="activeId && ww > 0" class="well" :style="wellStyle" aria-hidden="true" />
 
         <div
@@ -182,12 +182,11 @@ function onKey(e: KeyboardEvent, t: Tab) {
           <span v-if="t.access === 'needs-access'" class="warn" aria-hidden="true">⚠</span>
           <span class="name">{{ t.name }}</span>
           <button class="x" :aria-label="`Close ${t.name}`" tabindex="-1" @click.stop="$emit('close', t)">
-            <span class="dot" aria-hidden="true">●</span>
-            <span class="cross" aria-hidden="true">✕</span>
+            <X class="cross" aria-hidden="true" />
           </button>
         </div>
 
-        <button class="add" aria-label="New tab" title="New file" @click="$emit('new')">+</button>
+        <button class="add" aria-label="New tab" title="New file" @click="$emit('new')"><Plus class="plus" aria-hidden="true" /></button>
       </div>
     </div>
   </div>
@@ -195,32 +194,18 @@ function onKey(e: KeyboardEvent, t: Tab) {
 
 <style scoped>
 .dock {
-  padding: 0.25rem 0.5rem 0.45rem;
+  padding: 0.2rem 0.5rem 0.35rem;
 }
 
-/* The bar itself: a pill of clear, faintly smoky glass — sheen along the top,
-   milky light collected inside along the bottom edge, bright rim. It scrolls
+/* The bar: flat, with a hairline border, like the buttons. It scrolls
    sideways when there are many tabs. */
 .scroller {
   overflow-x: auto;
   overflow-y: hidden;
   scrollbar-width: none;
-  border-radius: 999px;
-  background:
-    linear-gradient(180deg, hsl(var(--liquid-white) / 0.14), hsl(var(--liquid-white) / 0) 38%),
-    radial-gradient(120% 95% at 50% 140%, var(--liquid-milk), transparent 60%),
-    var(--liquid-smoke);
-  backdrop-filter: blur(18px) saturate(180%);
-  -webkit-backdrop-filter: blur(18px) saturate(180%);
-  box-shadow:
-    inset 0 1px 0 hsl(var(--liquid-white) / 0.55),
-    inset 1px 0 0 hsl(var(--liquid-white) / 0.14),
-    inset -1px 0 0 hsl(var(--liquid-white) / 0.12),
-    inset 0 -1px 0 hsl(var(--liquid-white) / 0.4),
-    inset 0 -10px 16px -12px var(--liquid-milk),
-    0 0 0 0.5px hsl(var(--liquid-white) / 0.2),
-    0 0 0 0.5px rgba(var(--shadow-rgb), calc(var(--liquid-drop) * 0.4)),
-    0 8px 18px -8px rgba(var(--shadow-rgb), var(--liquid-drop));
+  border: 1px solid var(--btn-border);
+  border-radius: calc(var(--btn-radius) + 0.15rem);
+  background: var(--bg-elev);
 }
 .scroller::-webkit-scrollbar {
   display: none;
@@ -230,39 +215,27 @@ function onKey(e: KeyboardEvent, t: Tab) {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.2rem;
   min-width: 100%;
   width: max-content;
   height: var(--bar-h);
-  padding: 0 0.55rem;
+  padding: 0 0.2rem;
 }
 
-/* The well: a recess pressed into the glass, deep like the background. No
-   hue — light and shadow make it: the upper inner edge falls into shadow,
-   the lower lip catches the light, a faint rim traces the cut, and a little
-   cool light collects in its floor. */
+/* The active tab's fill: a matte button surface that springs between tabs. */
 .well {
   position: absolute;
   left: 0;
-  top: calc((var(--bar-h) - var(--well-h)) / 2);
+  top: calc((var(--bar-h) - var(--well-h)) / 2 - 1px);
   height: var(--well-h);
-  border-radius: 999px;
-  background:
-    radial-gradient(90% 90% at 50% 125%, hsl(var(--liquid-light) / 0.16), transparent 62%),
-    linear-gradient(180deg, hsl(var(--liquid-deep) / var(--liquid-deep-a)), hsl(var(--liquid-deep) / calc(var(--liquid-deep-a) * 0.7)));
-  box-shadow:
-    inset 0 2px 5px rgba(var(--shadow-rgb), var(--well-shade)),
-    inset 0 1px 1px rgba(var(--shadow-rgb), calc(var(--well-shade) * 0.85)),
-    inset 0 -1px 0 hsl(var(--liquid-white) / var(--well-lip)),
-    inset 0 -6px 10px -6px hsl(var(--liquid-light) / 0.28),
-    0 1px 0 hsl(var(--liquid-white) / calc(var(--well-lip) * 0.9)),
-    0 -1px 0 rgba(var(--shadow-rgb), calc(var(--well-shade) * 0.5)),
-    0 0 0 1px hsl(var(--liquid-white) / calc(var(--well-lip) * 0.5));
+  border: 1px solid var(--btn-border-hover);
+  border-radius: var(--btn-radius);
+  background: var(--btn-bg-hover);
   pointer-events: none;
   will-change: transform, width;
 }
 
-/* Tabs: a name lights up as the well arrives under it (--lit, 0 → 1). */
+/* Tabs: a name brightens as the fill arrives under it (--lit, 0 → 1). */
 .tab {
   --lit: 0;
   position: relative;
@@ -270,16 +243,14 @@ function onKey(e: KeyboardEvent, t: Tab) {
   flex: 0 0 auto;
   height: var(--well-h);
   max-width: 15rem;
-  padding: 0 0.2rem 0 0.9rem;
+  padding: 0 0.1rem 0 0.65rem;
   display: flex;
   align-items: center;
-  gap: 0.3rem;
-  border-radius: 999px;
+  gap: 0.2rem;
+  border-radius: var(--btn-radius);
   color: color-mix(in srgb, var(--text) calc(var(--lit) * 100%), var(--text-muted));
-  font-size: 0.84rem;
+  font-size: 0.8rem;
   font-weight: 550;
-  text-shadow: 0 0 calc(var(--lit) * 10px) hsl(var(--liquid-light) / calc(var(--lit) * 0.45));
-  transform: translateY(calc(var(--lit) * 1px)); /* pressed in, ever so slightly */
   cursor: pointer;
   user-select: none;
   outline: none;
@@ -302,86 +273,78 @@ function onKey(e: KeyboardEvent, t: Tab) {
 }
 .warn {
   color: var(--warn);
-  font-size: 0.78rem;
+  font-size: 0.75rem;
 }
 
-/* Close / unsaved: an amber dot that turns into ✕ on hover. */
+/* Unsaved: the tab's name turns amber (full amber when active, a little
+   softer when not), instead of a dot or an outline. */
+.tab.dirty,
+.tab.dirty:not(.current):hover {
+  color: color-mix(in srgb, var(--warn) calc(70% + var(--lit) * 30%), var(--text-muted));
+}
+
+/* Close: a small ✕, brighter on hover. */
 .x {
   flex: 0 0 auto;
   display: grid;
   place-items: center;
-  width: 1.35rem;
-  height: 1.35rem;
+  width: 1.15rem;
+  height: 1.15rem;
   padding: 0;
   border: 0;
-  border-radius: 50%;
+  border-radius: calc(var(--btn-radius) - 0.1rem);
   background: none;
   color: inherit;
-  font-size: 0.66rem;
   opacity: 0.5;
 }
 .x:hover {
   opacity: 1;
-  background: hsl(var(--liquid-white) / 0.14);
+  background: var(--btn-bg-press);
 }
-.x .dot,
 .x .cross {
-  grid-area: 1 / 1;
+  width: 0.8rem;
+  height: 0.8rem;
+  stroke-width: 2;
 }
-.x .dot {
-  display: none;
-  color: var(--warn);
-}
-.dirty .x {
-  opacity: 1;
-}
-.dirty .x .dot {
-  display: block;
-}
-.dirty .x .cross {
-  display: none;
-}
-.dirty .x:hover .dot {
-  display: none;
-}
-.dirty .x:hover .cross {
-  display: block;
+.add .plus {
+  width: 0.95rem;
+  height: 0.95rem;
+  stroke-width: 1.75;
 }
 
+/* New tab: a small square matte button. */
 .add {
   position: relative;
   z-index: 1;
   flex: 0 0 auto;
   display: grid;
   place-items: center;
-  width: 1.9rem;
-  height: 1.9rem;
-  margin-left: 0.2rem;
+  width: var(--well-h);
+  height: var(--well-h);
+  margin-left: 0.1rem;
   padding: 0 0 1px;
-  border: 0;
-  border-radius: 50%;
+  border: 1px solid var(--btn-border);
+  border-radius: var(--btn-radius);
+  background: var(--btn-bg);
   color: var(--text-muted);
-  font-size: 1.1rem;
+  font-size: 0.95rem;
   font-weight: 400;
-  background: linear-gradient(hsl(var(--liquid-white) / 0.12), hsl(var(--liquid-white) / 0.02)), var(--liquid-smoke);
-  box-shadow:
-    0 0 0 1px hsl(var(--liquid-white) / 0.28),
-    0 0 0 0.5px rgba(var(--shadow-rgb), calc(var(--liquid-drop) * 0.4)),
-    0 1px 1px hsl(var(--liquid-white) / 0.3) inset,
-    0 3px 8px rgba(var(--shadow-rgb), calc(var(--liquid-drop) * 0.7));
+  cursor: pointer;
   transition:
-    color 0.2s,
-    box-shadow 0.2s,
-    translate 0.15s;
+    background-color 0.12s ease,
+    border-color 0.12s ease,
+    color 0.12s ease;
 }
 .add:hover {
   color: var(--text);
-  box-shadow:
-    0 0 0 1px hsl(var(--liquid-white) / 0.5),
-    0 1px 1px hsl(var(--liquid-white) / 0.5) inset,
-    0 0 12px hsl(var(--liquid-light) / 0.25);
+  background: var(--btn-bg-hover);
+  border-color: var(--btn-border-hover);
 }
 .add:active {
-  translate: 0 1px;
+  background: var(--btn-bg-press);
+}
+.add:focus-visible {
+  outline: 2px solid var(--accent-blue);
+  outline-offset: 2px;
 }
 </style>

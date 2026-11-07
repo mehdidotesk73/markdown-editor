@@ -402,6 +402,16 @@ look wrong in a shot taken <0.25 s later. Wait out the transition before judging
 
 ## Version History
 
+### v0.7.0 — 2026-11-07
+- **Changed:** Focus model rebuilt on the user's terms: a focal point emits a bell attention field (decay σ in words); a unit's attention is the field's average over it; the focus is the run holding 60% of the cumulative attention. Decay is tuned per scale (log slider); lag follows the cursor's path: the focal point is the unit the cursor was in L distinct units ago (a first version shifted it L units back in document order — not what the user meant). Live "N sentences in focus" counter. Nested ruler, fixed 0.4 cut-off and the shared 1–60 intensity removed — at intensity 1–4 nothing above the word scale moved, and paragraphs needed 30–60
+- **Docs:** guide (now "Focus"), Help, system-design §1d, CLAUDE.md
+
+### v0.6.0 — 2026-11-07
+- **Changed:** Buttons are compact and matte (flat fill, hairline border, small radius; `--btn-*` tokens), replacing the liquid-glass buttons; sizes tightened again after a look on iPhone
+- **Added:** Lucide icons (`@lucide/vue`) on buttons: `iconLeft` / `iconRight` + label in any mix; tab close / new and pane rails use them too. Unsaved shows as an amber Save icon and an amber tab name (an amber outline was tried and rejected), not ● dots. Picked over Iconoir after a side-by-side of 40 icons (Lucide 39/40, Iconoir 28/40)
+- **Changed:** Tab bar is matte too (flat bar, flat springing fill under the active tab); the focus panel's dropdowns match the buttons
+- **Docs:** CLAUDE.md, system-design, TODO
+
 ### v0.5.0 — 2026-11-07
 - **Added:** Focus shadow — focus engine (`lib/focus/`), preview underline via CSS Custom Highlight API, Intensity / Distance / scale / Linear-Nested controls
 - **Infrastructure:** `ES2022.Intl` types for `Intl.Segmenter`

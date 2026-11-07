@@ -12,6 +12,26 @@ collapsible panes and a draggable divider, Save / Save as / Export PDF (html2pdf
 drafts + file handles persisted in IndexedDB, external-change pickup on focus, dark slate
 theme from power-gis, Help modal now renders `docs/concepts/*.md`.
 
+### v0.7.0 — Focus as a share of attention (2026-11-07)
+
+The focus engine now follows the user's model: a focal point emits a bell-shaped attention field
+whose decay (in words) is tuned per scale; each unit's attention is the field's average over it;
+the units holding 60% of the cumulative attention are in focus and underlined. Lag makes the
+focus follow the cursor's path that many units behind. A counter shows how many units are in focus. The nested ruler and
+the fixed cut-off are gone.
+
+Default decays tuned by the user in the app: words 1, sentences 12, paragraphs 30 (sections 150,
+not yet tuned).
+
+### v0.6.0 — Compact matte buttons with Lucide icons (2026-11-07)
+
+Every `UiButton` is now compact and matte: a flat solid fill, a hairline border and small rounded
+corners, with no gradients, blur, glow or sheen. The main action and toggles that are on get a
+solid fill (pale sage in Sage, dark ink in Porcelain). Colours are `--btn-*` tokens per theme.
+The tab bar matches: a flat bar with a hairline border, and a flat fill under the active tab
+that still springs between tabs. The focus panel's dropdowns use the same tokens.
+Buttons carry Lucide icons (`@lucide/vue`): an icon on the left, on the right, a label, or any mix.
+
 ### v0.5.0 — Focus shadow (2026-11-07)
 
 A focus engine (`src/lib/focus/`): `buildIndex` segments the source into words, sentences,
@@ -31,7 +51,7 @@ Porcelain adds a dot-grid page, frosted white glass, an ink-pill main action and
 headings (`@fontsource/fraunces`).
 
 
-Every button uses the shared `UiButton`, restyled as hue-lit liquid glass (layered inner
+Every button uses the shared `UiButton` (since restyled compact and matte), first styled as hue-lit liquid glass (layered inner
 light, glow below, hover light sweep, press sink), including the formerly hand-styled Update
 available, popover reload and footer buttons (new `tag` size). Emoji icons removed — text
 labels only. The tab bar is a liquid nav: a clear glass pill where the active tab sits in a deep

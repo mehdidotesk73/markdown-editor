@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { buildIndex, splitBlocks, wordCoord } from './segment'
-import { bellAverage, focusSpan } from './wave'
-import { Shadow } from './shadow'
+import { bellAverage, focusSpan, FOCUS_SHARE } from './wave'
+import { MAX_LAG, Trail, Trails } from './focal'
 import { alignWords, mathRanges, previewRange } from './align'
 
 const DOC = `# Intro
@@ -47,101 +47,134 @@ describe('segmentation', () => {
   })
 })
 
-describe('focus wave', () => {
-  it('peaks at 1 at the focus point and averages lower over longer spans', () => {
+describe('attention field and focus', () => {
+  it('peaks at 1 at the focal point and averages lower over longer spans', () => {
     expect(bellAverage(4.999, 5.001, 5, 3)).toBeCloseTo(1, 3)
     const short = bellAverage(5, 8, 4, 3)
     const long = bellAverage(5, 20, 4, 3)
     expect(long).toBeLessThan(short)
   })
 
-  it('is symmetric about the focus point', () => {
+  it('is symmetric about the focal point', () => {
     expect(bellAverage(0, 2, 5, 3)).toBeCloseTo(bellAverage(8, 10, 5, 3), 6)
   })
 
   // Sentences start with a capital, as real ones do: sentence splitting (ICU) won't
   // break before a lowercase word, in case the full stop ends an abbreviation.
   const sentence = (n: number) => Array.from({ length: n }, (_, i) => (i ? `w${i}` : 'W0')).join(' ') + '.'
-  const shortDoc = Array.from({ length: 30 }, () => sentence(4)).join(' ')
-  const longDoc = Array.from({ length: 30 }, () => sentence(20)).join(' ')
+  const shortDoc = Array.from({ length: 40 }, () => sentence(4)).join(' ')
+  const longDoc = Array.from({ length: 40 }, () => sentence(20)).join(' ')
+  const count = (s: ReturnType<typeof focusSpan>) => s!.last - s!.first + 1
 
-  it('holds fewer long sentences than short ones at the same intensity', () => {
-    const s = buildIndex(shortDoc)
-    const l = buildIndex(longDoc)
-    const midS = s.words.length / 2
-    const midL = l.words.length / 2
-    const spanS = focusSpan(s, 'sentence', 'linear', midS, 12)!
-    const spanL = focusSpan(l, 'sentence', 'linear', midL, 12)!
-    expect(spanS.last - spanS.first + 1).toBeGreaterThan(spanL.last - spanL.first + 1)
+  it('holds 60% of the cumulative attention, and no unit more than it needs', () => {
+    const ix = buildIndex(shortDoc)
+    const x = ix.words.length / 2 + 0.5
+    const sp = focusSpan(ix, 'sentence', x, 12)!
+    expect(sp.share).toBeGreaterThanOrEqual(FOCUS_SHARE)
+    // dropping the weakest unit at either end would fall short of 60%
+    const total = sp.attention.reduce((a, b) => a + b, 0) / sp.share
+    const weakest = Math.min(sp.attention[0], sp.attention[sp.attention.length - 1])
+    expect(sp.attention.reduce((a, b) => a + b, 0) - weakest).toBeLessThan(FOCUS_SHARE * total)
   })
 
-  it('grows the span as intensity rises', () => {
+  it('on the word scale, covers about 1.7σ words (60% of a bell)', () => {
     const ix = buildIndex(shortDoc)
-    const mid = ix.words.length / 2
+    const x = ix.words.length / 2 + 0.5
+    for (const sigma of [3, 6, 12]) {
+      const n = count(focusSpan(ix, 'word', x, sigma))
+      expect(n).toBeGreaterThanOrEqual(Math.floor(1.6 * sigma))
+      expect(n).toBeLessThanOrEqual(Math.ceil(1.9 * sigma) + 1)
+    }
+  })
+
+  it('holds fewer long sentences than short ones at the same decay', () => {
+    const s = buildIndex(shortDoc)
+    const l = buildIndex(longDoc)
+    const nS = count(focusSpan(s, 'sentence', s.words.length / 2 + 0.5, 15))
+    const nL = count(focusSpan(l, 'sentence', l.words.length / 2 + 0.5, 15))
+    expect(nS).toBeGreaterThan(nL)
+  })
+
+  it('grows as the decay length rises', () => {
+    const ix = buildIndex(shortDoc)
+    const x = ix.words.length / 2 + 0.5
     let prev = 0
-    for (const intensity of [2, 6, 12, 24]) {
-      const sp = focusSpan(ix, 'word', 'linear', mid, intensity)!
-      const n = sp.last - sp.first + 1
+    for (const sigma of [2, 6, 12, 24]) {
+      const n = count(focusSpan(ix, 'sentence', x, sigma))
       expect(n).toBeGreaterThanOrEqual(prev)
       prev = n
     }
-    expect(prev).toBeGreaterThan(10)
+    expect(prev).toBeGreaterThan(5)
   })
 
-  it('always includes the unit under the focus point, even a very long one', () => {
+  it('always includes the unit under the focal point, and is contiguous', () => {
     const ix = buildIndex(sentence(400))
-    const sp = focusSpan(ix, 'sentence', 'linear', 200, 2)!
+    const sp = focusSpan(ix, 'sentence', 200, 2)!
     expect(sp.first).toBe(0)
     expect(sp.last).toBe(0)
-  })
-
-  it('returns a contiguous span with scores, and source and word ranges', () => {
-    const ix = buildIndex(shortDoc)
-    const sp = focusSpan(ix, 'sentence', 'linear', 40, 12)!
-    expect(sp.scores.length).toBe(sp.last - sp.first + 1)
-    expect(sp.start).toBe(ix.sentences.start[sp.first])
-    expect(sp.end).toBe(ix.sentences.end[sp.last])
-    expect(sp.w0).toBe(ix.sentences.w0[sp.first])
-  })
-
-  it('measures paragraphs differently in nested mode (by sentences, not words)', () => {
-    // paragraphs of 1 long sentence vs 4 short sentences, same word count
-    const p1 = sentence(16)
-    const p4 = [sentence(4), sentence(4), sentence(4), sentence(4)].join(' ')
-    const doc = Array.from({ length: 12 }, (_, i) => (i % 2 ? p1 : p4)).join('\n\n')
-    const ix = buildIndex(doc)
-    const mid = ix.words.length / 2
-    const lin = focusSpan(ix, 'paragraph', 'linear', mid, 24)!
-    const nes = focusSpan(ix, 'paragraph', 'nested', mid, 24)!
-    expect(lin.scores.join()).not.toBe(nes.scores.join())
+    const ix2 = buildIndex(shortDoc)
+    const sp2 = focusSpan(ix2, 'sentence', 40, 12)!
+    expect(sp2.first).toBeLessThanOrEqual(sp2.center)
+    expect(sp2.last).toBeGreaterThanOrEqual(sp2.center)
+    expect(sp2.start).toBe(ix2.sentences.start[sp2.first])
+    expect(sp2.end).toBe(ix2.sentences.end[sp2.last])
   })
 
   it('handles an empty document', () => {
-    expect(focusSpan(buildIndex(''), 'sentence', 'linear', 0, 10)).toBeNull()
+    expect(focusSpan(buildIndex(''), 'sentence', 0, 10)).toBeNull()
   })
 })
 
-describe('shadow', () => {
-  it('trails the cursor at exactly the distance, forwards and backwards', () => {
-    const s = new Shadow()
-    s.reset(0)
-    for (let x = 0; x <= 100; x += 7) s.step(x, 20)
-    expect(s.step(100, 20)).toBe(80)
-    for (let x = 100; x >= 0; x -= 7) s.step(x, 20)
-    expect(s.step(0, 20)).toBe(20)
+describe('lag along the cursor path', () => {
+  it('is the cursor itself at lag 0', () => {
+    const t = new Trail()
+    t.record(3, 3.5)
+    expect(t.at(0)).toBe(3.5)
   })
 
-  it('stays put while the cursor moves within the distance', () => {
-    const s = new Shadow()
-    s.reset(50)
-    expect(s.step(60, 20)).toBe(50)
-    expect(s.step(40, 20)).toBe(50)
+  it('collapses moves within one unit and keeps the latest position in it', () => {
+    const t = new Trail()
+    t.record(0, 0.2)
+    t.record(0, 0.8)
+    t.record(1, 1.5)
+    expect(t.length).toBe(2)
+    expect(t.at(1)).toBe(0.8)
   })
 
-  it('sits on the cursor at distance 0', () => {
-    const s = new Shadow()
-    expect(s.step(33, 0)).toBe(33)
-    expect(s.step(12, 0)).toBe(12)
+  it('follows the path, not document order: A → C → B with lag 1 is C', () => {
+    const t = new Trail()
+    t.record(0, 0.5) // A
+    t.record(2, 2.5) // C
+    t.record(1, 1.5) // B
+    expect(t.at(1)).toBe(2.5)
+    expect(t.at(2)).toBe(0.5)
+  })
+
+  it('counts a return to an earlier unit as a new step', () => {
+    const t = new Trail()
+    t.record(0, 0.5)
+    t.record(1, 1.5)
+    t.record(0, 0.6)
+    expect(t.length).toBe(3)
+    expect(t.at(1)).toBe(1.5)
+  })
+
+  it('uses the oldest entry until the trail is long enough, and forgets past MAX_LAG', () => {
+    const t = new Trail()
+    t.record(0, 0.5)
+    t.record(1, 1.5)
+    expect(t.at(5)).toBe(0.5)
+    for (let i = 2; i < MAX_LAG + 10; i++) t.record(i, i + 0.5)
+    expect(t.length).toBe(MAX_LAG + 1)
+  })
+
+  it('keeps one trail per scale, so lag counts units of the scale in view', () => {
+    const ix = buildIndex('One two three. Four five six. Seven eight nine.')
+    const trails = new Trails()
+    for (const x of [0.5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5]) trails.record(ix, x) // walk words 0..6
+    expect(trails.focal('word', 2, 6.5)).toBe(4.5) // two words back
+    expect(trails.focal('sentence', 1, 6.5)).toBe(5.5) // previous sentence, last place in it
+    expect(trails.focal('sentence', 0, 6.5)).toBe(6.5)
   })
 })
 
