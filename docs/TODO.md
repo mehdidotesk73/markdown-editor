@@ -12,6 +12,17 @@ collapsible panes and a draggable divider, Save / Save as / Export PDF (html2pdf
 drafts + file handles persisted in IndexedDB, external-change pickup on focus, dark slate
 theme from power-gis, Help modal now renders `docs/concepts/*.md`.
 
+### v0.7.0 — Focus as a share of attention (2026-11-07)
+
+The focus engine now follows the user's model: a focal point emits a bell-shaped attention field
+whose decay (in words) is tuned per scale; each unit's attention is the field's average over it;
+the units holding 60% of the cumulative attention are in focus and underlined. Distance counts
+units of the current scale. A counter shows how many units are in focus. The nested ruler and
+the fixed cut-off are gone.
+
+Next: the user tunes each scale's default decay by trial in the app; bake the values they settle
+on into `DEFAULT_DECAY`.
+
 ### v0.6.0 — Compact matte buttons with Lucide icons (2026-11-07)
 
 Every `UiButton` is now compact and matte: a flat solid fill, a hairline border and small rounded

@@ -15,28 +15,29 @@ A markdown editor for files on **your own computer**. The app runs entirely in y
 - **Dark / Light** (top bar) switches the whole app between a dark sage-grey look and a light porcelain one. Your choice is remembered.
 - **Math:** write LaTeX between dollar signs — `$x^2$` inside a sentence, or `$$ E = mc^2 $$` for a formula on its own line.
 
-## The focus shadow
+## The focus
 
-As you move through your text, a **shadow** follows the cursor a little way behind, and the
-preview **underlines** the stretch of text it's focused on. It's a quiet guide to what you were
-just reading or writing, and the basis for future features that look at your text with you.
+As you move through your text, a field of **attention** follows the cursor, and the preview
+**underlines** the stretch of text that holds most of it (60%). It's a quiet guide to what you're
+reading or writing, and the basis for future features that look at your text with you. Nearby
+text gets more attention than far text, and short sentences or paragraphs get more than long ones.
 
 The controls sit under the Preview heading:
 
-- **Shadow ▾** opens or closes this panel. Closing it only hides the controls — the shadow keeps
-  running, and the panel shows whether it's **On** or **Off**.
-- **On / Off** turns the shadow itself on or off.
-- **Sentences / Words / Paragraphs / Sections** chooses what gets underlined.
-- **Intensity** sets how far the focus spreads. Higher means a longer underline. Long sentences
-  and paragraphs take more focus, so the same intensity covers fewer long ones than short ones.
-- **Distance** sets how many words the shadow trails behind your cursor, whichever way you move.
-  At 0 (the default) it sits right on the cursor.
-- **Linear / Nested** chooses how paragraphs and sections are measured: by their words
-  (Linear), or by their sentences and paragraphs (Nested).
+- **Focus ⌄** opens or closes this panel. Closing it only hides the controls — the focus keeps
+  running.
+- **On / Off** turns the focus itself on or off.
+- **Words / Sentences / Paragraphs / Sections** chooses what gets underlined.
+- **Decay** sets how far attention reaches, in words: higher spreads it wider, so more is
+  underlined. Each scale remembers its own decay, so you can tune each one separately.
+- **Distance** puts the focal point that many steps behind your cursor, counted in the scale
+  you're viewing: 2 on Sentences means two sentences back. At 0 (the default) it's your cursor.
+- The **counter** on the right shows how many words, sentences, paragraphs or sections are in
+  focus right now.
 
 The underline needs a recent browser (Chrome, Edge, Safari 17.2+, Firefox 140+).
 
-To see every effect, open the guide *The Focus Shadow* (`docs/focus-shadow-showcase.md` in the project) and move through it.
+To see every effect, open the guide *Focus* (`docs/focus-shadow-showcase.md` in the project) and move through it.
 
 **Shortcuts:** `Ctrl/⌘ S` save · `Ctrl/⌘ ⇧ S` save as · `Ctrl/⌘ O` open · `Ctrl/⌘ P` export PDF · `Ctrl/⌘ \` hide/show editor · `Ctrl/⌘ ⇧ \` hide/show preview.
 

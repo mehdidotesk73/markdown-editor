@@ -87,10 +87,12 @@ markdown ─ lexMarkdown() ─▶ tokens ─┬─ walk: display math, images, i
 - **Cost:** a short doc exports in ~0.2 s; a long one using all five font styles ~1.5 s in the
   sandbox (font subsetting/embedding per export dominates).
 
-## §1d — Focus engine and the shadow (`src/lib/focus/`)
+## §1d — Focus engine (`src/lib/focus/`)
 
 The analytical driver for features that follow the cursor. Pure modules (no DOM) plus one
-browser-side composable:
+browser-side composable. The model, in the user's terms: a **focal point** emits a bell-shaped
+**attention field**; each unit's attention is the field's average over the unit; the **focus** is
+the run of units holding 60% of the cumulative attention.
 
 - **`segment.ts` — the index.** `buildIndex(text)` splits the source into blocks (paragraphs, list
   items, headings, table rows; fenced code is one block and one sentence), sections (at
@@ -99,35 +101,42 @@ browser-side composable:
   [w0, w1)**. The shared ruler is the word: word *i* occupies [i, i+1); a sentence's length is
   its word count. Units with no words are dropped. `wordCoord(index, offset)` puts the cursor on
   the ruler (fractionally inside a word). ~30 ms per 10k words; ~330 ms for 100k.
-- **`wave.ts` — scores and spans.** A peak-1 bell b(x) = exp(−(x−x₀)²/2σ²) on the ruler, σ =
-  **intensity** in words. A unit's score is its **average** bell value over its length (closed
-  form via erf), so long sentences/paragraphs score lower and are harder to hold in focus.
-  Rulers: **linear** (every scale in words) or **nested** (paragraphs in sentences, sections in
-  paragraphs; σ converted by the document's mean words per child). `focusSpan` starts at the
-  unit under the point (always included) and extends each way until a unit's score falls to the
-  fixed cut-off **0.4** — one contiguous span, with its source/word ranges and per-unit scores.
-  ~27 µs per cursor move for all four scales on a 100k-word document.
-- **`shadow.ts` — the leash.** The shadow stays put while the cursor is within **distance**
-  words of it; beyond that it is dragged to stay exactly that far behind, in either direction.
+- **`wave.ts` — attention and focus.** A peak-1 bell b(x) = exp(−(x−x₀)²/2σ²) on the word ruler,
+  σ = the field's **decay** length in words. Every scale is laid on the same word ruler (there is
+  no nested ruler any more). A unit's **attention** is the field's **average** over [w0, w1)
+  (closed form via erf), so a unit gets less attention when it is farther *and* when it is
+  longer; area under the curve was rejected because it gives long units *more* attention.
+  `focusSpan(index, scale, x0, σ)` sums the attention of every unit within 8σ, then grows a
+  contiguous run from the unit under x₀ (always included), each step taking the neighbour with
+  more attention, until the run holds **`FOCUS_SHARE` = 60%** of the total. Returns the run's
+  source/word ranges, each unit's attention and the share held. ~10 µs per call on the guide.
+- **`focal.ts` — the focal point.** `focalPoint(index, scale, cursorX, D)`: the cursor's unit at
+  the current scale, then D units back (a fixed lag in document order, clamped at the start), at
+  the same relative position inside the unit. D = 0 is the cursor itself.
 - **`align.ts` — source → preview.** Greedy in-order word match (lookahead 60) between source
   words and rendered preview words. Every match must be **confirmed** by the next words lining up
   (2 of the next 6 source words), and words inside `$…$` / `$$…$$` are left out (the preview shows
   rendered math) — otherwise a stray formula letter or URL word matches far ahead and the rest of
   the document drifts. Markup-only words go unmatched.
 - **Showcase:** `docs/focus-shadow-showcase.md` explains the model and is laid out (tiny vs long
-  sentences, word lists, paragraph lists, nested sections, a Linear/Nested demo) to exercise it.
+  sentences, word lists, paragraph lists, nested sections) to exercise it. It is also the text a
+  new document opens with.
 - **`useFocusShadow.ts` — the browser side.** Follows the textarea's caret (key/click/select +
   `selectionchange`), rebuilds the index 150 ms after typing pauses and immediately on a tab
-  switch (no per-tab state; the shadow resets to the cursor), re-aligns after each preview
-  render, computes once per animation frame, and draws the span with the **CSS Custom Highlight
-  API** (`::highlight(focus-shadow)` in `markdown.css`) — no DOM changes. It exposes a `frame`
-  (`cursorX`, `shadowX`, `span` with scores, the span's source `text`): the hook for an AI
-  pointer. Settings (`settings.ts`, localStorage `md-editor:focus:v2`): enabled, panel (controls
-  shown — independent of enabled), scale, mode, intensity 1–60 (default 15), distance 0–200
-  (default 0).
+  switch (no per-tab state), re-aligns after each preview render, computes once per animation
+  frame, and draws the focus with the **CSS Custom Highlight API** (`::highlight(focus-shadow)` in
+  `markdown.css`) — no DOM changes. It exposes a `frame` (`cursorX`, `focalX`, `span` with each
+  unit's attention, `count` of units in focus, the focus's source `text`): the hook for an AI
+  pointer. The controls show `count` live ("3 sentences in focus").
+- **Settings** (`settings.ts`, localStorage `md-editor:focus:v3`): enabled, panel (controls shown —
+  independent of enabled), scale, **decay per scale** (σ in words; logarithmic slider with a range
+  per scale — words 0.3–40, sentences 1–300, paragraphs 2–1000, sections 5–3000; defaults 2 / 15 /
+  30 / 150, each about 3 units on prose), distance 0–20 units (default 0). The user tunes each
+  scale's decay by trial in the app.
 
-Why intensity is the bell's width rather than a threshold: reach grows linearly with σ but as
-√(−2 ln(1−I)) with a threshold, which bunches the slider's effect at both ends.
+Superseded designs (see `docs/experience.md`): a fixed 0.4 cut-off on the average, an
+"intensity" slider in words shared by all scales (1–60: useless above the sentence scale), a
+nested ruler (paragraphs counted in sentences), and a leash distance in words.
 
 ## §2 — Header/Footer Wrapper Template
 

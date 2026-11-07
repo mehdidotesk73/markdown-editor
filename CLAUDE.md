@@ -87,14 +87,17 @@ is under it (`--lit`). `labelSink` + `Spring` in `src/lib/liquidTabs.ts` (unit-t
 `prefers-reduced-motion`. It was liquid glass (a recess pressed into a glass pill) until the user
 moved the whole chrome to matte — see `docs/experience.md`.
 
-**Focus shadow (`src/lib/focus/`, `docs/system-design.md` §1d):** the analytical driver for
-cursor-following features. A pure engine segments the source into words / sentences / paragraphs
-/ sections on a shared word ruler, scores each unit by its *average* peak-1 bell value (σ =
-**intensity**, in words — length matters above the word level), and a **shadow** trails the cursor
-on a leash of **distance** words. The span above a fixed 0.4 cut-off is underlined in the preview
-with the CSS Custom Highlight API. No per-tab state: the index rebuilds on tab switch and after
-typing pauses. The user rejected a separate threshold slider (non-linear feel) and a
-per-document "typical length" normalisation (length must count).
+**Focus (`src/lib/focus/`, `docs/system-design.md` §1d):** the analytical driver for
+cursor-following features (formerly "focus shadow"). A pure engine segments the source into words /
+sentences / paragraphs / sections, all on one **word ruler**. A **focal point** — `distance` units
+of the current scale behind the cursor (fixed lag; 0 = the cursor) — emits a bell **attention
+field** with **decay** σ in words. Each unit's attention is the field's **average** over it (farther
+and longer both mean less; area-under-curve was rejected because longer would mean more). The
+**focus** is the contiguous run holding **60% of the cumulative attention**, underlined in the
+preview with the CSS Custom Highlight API, with a live counter ("3 sentences in focus"). Decay is
+stored **per scale** on a log slider — the user tunes each scale by trial. Rejected along the way: a
+threshold slider, a fixed 0.4 cut-off, a shared "intensity" in words, the nested ruler, a
+per-document typical-length normalisation, and a leash distance in words. No per-tab state.
 
 **Panels ("paper"):** the editor and preview panes use `--paper-*` tokens, which each theme
 sets (Sage: dark green-grey page; Porcelain: warm off-white page). Never pure white text or
@@ -190,13 +193,13 @@ src/
     pdf/inlineMath.ts      inline TeX → Unicode text
     useTheme.ts            Dark (Sage) / Light (Porcelain) app theme → data-theme on <html>
     liquidTabs.ts          tab bar motion: how lit each tab is, the spring (pure; tested)
-    focus/                 focus engine: segment, wave, shadow, align (pure; tested) +
-                           useFocusShadow (preview underline), settings
+    focus/                 focus engine: segment, wave (attention + 60% focus), focal (focal
+                           point), align (pure; tested) + useFocusShadow (underline), settings
     useVersionCheck.ts     compares the running build with the live one
   components/
     Workspace.vue          editor + preview panes, collapse rails, draggable divider, scroll sync
     TabBar.vue             matte tab bar: flat bar + springing fill under the active tab
-    FocusControls.vue      focus-shadow controls under the Preview header
+    FocusControls.vue      focus controls under the Preview header (decay, distance, counter)
     HelpModal.vue          renders docs/concepts/*.md into the Help modal
     ui/UiButton.vue        the app's button (sizes, tones, Lucide icons left/right)
   styles/

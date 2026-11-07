@@ -91,7 +91,7 @@ const html = computed(() => renderMarkdown(props.tab.content))
 const words = computed(() => (props.tab.content.match(/\S+/g) ?? []).length)
 
 // The focus shadow: trails the cursor and underlines its span in the preview.
-const { supported: shadowSupported } = useFocusShadow({
+const { supported: shadowSupported, frame: focusFrame } = useFocusShadow({
   tabId: computed(() => props.tab.id),
   text: computed(() => props.tab.content),
   html,
@@ -210,7 +210,7 @@ onBeforeUnmount(endDrag)
           <span class="pane-title">Preview</span>
           <span class="pane-meta" />
         </header>
-        <FocusControls :supported="shadowSupported" />
+        <FocusControls :supported="shadowSupported" :count="focusFrame?.count ?? 0" />
         <div ref="preview" class="preview-scroll">
           <!-- eslint-disable-next-line vue/no-v-html — sanitized by DOMPurify in lib/markdown.ts -->
           <article class="md-body" v-html="html" />
