@@ -53,6 +53,7 @@
   --paper-link: #a9c4b0;
   --paper-quote: #5f6c62;
   --paper-selection: rgba(200, 215, 190, 0.2);
+  --shadow-underline: rgba(226, 232, 218, 0.55); /* the focus shadow's underline */
 
   /* Liquid glass (UiButton, tab bar). No accent hue in the glass: selection
      is carried by light and shadow. */
@@ -119,6 +120,7 @@
   --paper-link: #4a5f7a;
   --paper-quote: #d3cdc1;
   --paper-selection: rgba(120, 100, 70, 0.16);
+  --shadow-underline: rgba(38, 38, 42, 0.4);
 
   --liquid-white: 0 0% 100%;
   --liquid-light: 0 0% 100%;

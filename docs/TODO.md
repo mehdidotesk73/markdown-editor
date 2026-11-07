@@ -12,6 +12,15 @@ collapsible panes and a draggable divider, Save / Save as / Export PDF (html2pdf
 drafts + file handles persisted in IndexedDB, external-change pickup on focus, dark slate
 theme from power-gis, Help modal now renders `docs/concepts/*.md`.
 
+### v0.5.0 — Focus shadow (2026-11-07)
+
+A focus engine (`src/lib/focus/`): `buildIndex` segments the source into words, sentences,
+paragraphs and sections on a shared word ruler; `focusSpan` scores units by their average
+peak-1 bell value (σ = intensity in words; linear or nested rulers) and returns the contiguous
+span above a fixed 0.4 cut-off; `Shadow` trails the cursor on a leash; `alignWords` maps source
+words to the preview. `useFocusShadow` underlines the shadow's span in the preview with the CSS
+Custom Highlight API. Controls under the Preview header (`FocusControls.vue`). 15 unit tests.
+
 ### v0.4.0 — Sage & Porcelain themes, liquid-glass buttons and tabs (2026-11-06)
 
 Whole-app themes chosen from a canvas of nine sketches: Dark = Sage, Light = Porcelain
@@ -55,6 +64,9 @@ One-time setup — tick these off as they're done:
 - [ ] Verify on a real desktop Chrome: open → reload → Reconnect → save (can't be tested in the sandbox)
 
 ## Code
+
+- Focus: hand the shadow's `frame` (span text + scores) to an AI agent — debounce until the shadow settles, cache by text hash
+- Focus: incremental index updates (re-segment only the edited block) for very large documents
 
 - Syntax highlighting in code blocks (preview + PDF)
 

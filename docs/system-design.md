@@ -87,6 +87,42 @@ markdown ─ lexMarkdown() ─▶ tokens ─┬─ walk: display math, images, i
 - **Cost:** a short doc exports in ~0.2 s; a long one using all five font styles ~1.5 s in the
   sandbox (font subsetting/embedding per export dominates).
 
+## §1d — Focus engine and the shadow (`src/lib/focus/`)
+
+The analytical driver for features that follow the cursor. Pure modules (no DOM) plus one
+browser-side composable:
+
+- **`segment.ts` — the index.** `buildIndex(text)` splits the source into blocks (paragraphs, list
+  items, headings, table rows; fenced code is one block and one sentence), sections (at
+  headings), sentences (`Intl.Segmenter`, inside each block) and words (`Intl.Segmenter`,
+  word-like only). Each scale is a set of `Int32Array`s: character range and **word range
+  [w0, w1)**. The shared ruler is the word: word *i* occupies [i, i+1); a sentence's length is
+  its word count. Units with no words are dropped. `wordCoord(index, offset)` puts the cursor on
+  the ruler (fractionally inside a word). ~30 ms per 10k words; ~330 ms for 100k.
+- **`wave.ts` — scores and spans.** A peak-1 bell b(x) = exp(−(x−x₀)²/2σ²) on the ruler, σ =
+  **intensity** in words. A unit's score is its **average** bell value over its length (closed
+  form via erf), so long sentences/paragraphs score lower and are harder to hold in focus.
+  Rulers: **linear** (every scale in words) or **nested** (paragraphs in sentences, sections in
+  paragraphs; σ converted by the document's mean words per child). `focusSpan` starts at the
+  unit under the point (always included) and extends each way until a unit's score falls to the
+  fixed cut-off **0.4** — one contiguous span, with its source/word ranges and per-unit scores.
+  ~27 µs per cursor move for all four scales on a 100k-word document.
+- **`shadow.ts` — the leash.** The shadow stays put while the cursor is within **distance**
+  words of it; beyond that it is dragged to stay exactly that far behind, in either direction.
+- **`align.ts` — source → preview.** Greedy in-order word match (lookahead 40) between source
+  words and rendered preview words; markup-only words (URLs, TeX) go unmatched.
+- **`useFocusShadow.ts` — the browser side.** Follows the textarea's caret (key/click/select +
+  `selectionchange`), rebuilds the index 150 ms after typing pauses and immediately on a tab
+  switch (no per-tab state; the shadow resets to the cursor), re-aligns after each preview
+  render, computes once per animation frame, and draws the span with the **CSS Custom Highlight
+  API** (`::highlight(focus-shadow)` in `markdown.css`) — no DOM changes. It exposes a `frame`
+  (`cursorX`, `shadowX`, `span` with scores, the span's source `text`): the hook for an AI
+  pointer. Settings (`settings.ts`, localStorage): enabled, scale, mode, intensity 1–60,
+  distance 0–200.
+
+Why intensity is the bell's width rather than a threshold: reach grows linearly with σ but as
+√(−2 ln(1−I)) with a threshold, which bunches the slider's effect at both ends.
+
 ## §2 — Header/Footer Wrapper Template
 
 This is the shell that wraps every page/tab. It provides version checking, update affordances, Help modal, and debug logging. See `src/App.vue` for the full implementation.

@@ -78,6 +78,15 @@ glow, pressed 1px) in proportion to how much of the well is under it (`--lit`). 
 An earlier version had a bubble floating *above* the bar with a dent/valley in the bar's edge; the
 user preferred the recess (the raised bubble misaligned at the bar's ends) — see `docs/experience.md`.
 
+**Focus shadow (`src/lib/focus/`, `docs/system-design.md` §1d):** the analytical driver for
+cursor-following features. A pure engine segments the source into words / sentences / paragraphs
+/ sections on a shared word ruler, scores each unit by its *average* peak-1 bell value (σ =
+**intensity**, in words — length matters above the word level), and a **shadow** trails the cursor
+on a leash of **distance** words. The span above a fixed 0.4 cut-off is underlined in the preview
+with the CSS Custom Highlight API. No per-tab state: the index rebuilds on tab switch and after
+typing pauses. The user rejected a separate threshold slider (non-linear feel) and a
+per-document "typical length" normalisation (length must count).
+
 **Panels ("paper"):** the editor and preview panes use `--paper-*` tokens, which each theme
 sets (Sage: dark green-grey page; Porcelain: warm off-white page). Never pure white text or
 background. `.md-body` reads `--paper-*`, so the Help modal follows the theme too.
@@ -172,10 +181,13 @@ src/
     pdf/inlineMath.ts      inline TeX → Unicode text
     useTheme.ts            Dark (Sage) / Light (Porcelain) app theme → data-theme on <html>
     liquidTabs.ts          tab bar motion: how lit each tab is, the spring (pure; tested)
+    focus/                 focus engine: segment, wave, shadow, align (pure; tested) +
+                           useFocusShadow (preview underline), settings
     useVersionCheck.ts     compares the running build with the live one
   components/
     Workspace.vue          editor + preview panes, collapse rails, draggable divider, scroll sync
     TabBar.vue             liquid-glass tab bar: glass pill + springing recessed well
+    FocusControls.vue      focus-shadow controls under the Preview header
     HelpModal.vue          renders docs/concepts/*.md into the Help modal
     ui/UiButton.vue        the app's button (sizes + tones)
   styles/

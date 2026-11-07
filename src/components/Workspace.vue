@@ -3,6 +3,8 @@ import { ref, computed, watch, onBeforeUnmount } from 'vue'
 import { renderMarkdown } from '../lib/markdown'
 import type { Tab } from '../lib/useTabs'
 import UiButton from './ui/UiButton.vue'
+import FocusControls from './FocusControls.vue'
+import { useFocusShadow } from '../lib/focus/useFocusShadow'
 
 // The split view for one tab: markdown source on the left, rendered preview
 // on the right. Either side collapses to a thin rail — collapse the editor to
@@ -87,6 +89,15 @@ const preview = ref<HTMLElement>()
 
 const html = computed(() => renderMarkdown(props.tab.content))
 const words = computed(() => (props.tab.content.match(/\S+/g) ?? []).length)
+
+// The focus shadow: trails the cursor and underlines its span in the preview.
+const { supported: shadowSupported } = useFocusShadow({
+  tabId: computed(() => props.tab.id),
+  text: computed(() => props.tab.content),
+  html,
+  textarea,
+  preview,
+})
 
 // Tab inserts two spaces instead of leaving the editor. execCommand keeps the
 // browser's undo history intact; setRangeText is the fallback.
@@ -199,6 +210,7 @@ onBeforeUnmount(endDrag)
           <span class="pane-title">Preview</span>
           <span class="pane-meta" />
         </header>
+        <FocusControls :supported="shadowSupported" />
         <div ref="preview" class="preview-scroll">
           <!-- eslint-disable-next-line vue/no-v-html — sanitized by DOMPurify in lib/markdown.ts -->
           <article class="md-body" v-html="html" />

@@ -151,3 +151,13 @@
   overflow-y: hidden;
   padding: 0.2em 0;
 }
+
+/* The focus shadow (lib/focus/useFocusShadow.ts): a plain underline from the
+   start to the end of the shadow's span. Drawn with the CSS Custom Highlight
+   API, so the preview's DOM is never touched. */
+::highlight(focus-shadow) {
+  text-decoration: underline;
+  text-decoration-color: var(--shadow-underline);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
