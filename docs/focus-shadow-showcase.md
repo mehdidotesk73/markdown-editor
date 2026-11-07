@@ -2,7 +2,37 @@
 
 *How Markdown Lab follows your attention, and how we built it.*
 
-This document explains the focus shadow from the ground up. It is also a playground. Its sections are written in deliberately different shapes — runs of tiny sentences, sentences that go on for a long time, lists of single words, lists of whole paragraphs, nested sections — so that as you move your cursor through it, you can watch the shadow behave differently on each shape. Open it in Markdown Lab, turn the shadow on under the Preview heading, and read along.
+## What Markdown Lab is
+
+Markdown Lab is a simple editor for markdown files on your own computer. You open a file, write in plain text on the left, and see it formatted on the right as you type. Save puts your changes straight back into the same file. Nothing is uploaded anywhere: the app runs entirely in your browser, and your files stay where they are.
+
+Each open file gets its own tab. You can hide the writing side to read, or hide the formatted side to write, switch between a dark and a light look, and export any document as a PDF.
+
+## What this document is
+
+This document is about one feature of the editor: the **focus shadow**. As you move through your text, a shadow trails a little way behind your cursor, and the formatted side underlines the stretch of text it is focused on. It is a quiet record of what you have just been reading or writing, and the groundwork for future features that look at your text alongside you.
+
+The document does two things at once.
+
+**It explains how the focus shadow works.** We start with the idea, then build it up piece by piece:
+
+- the four sizes of text it pays attention to — words, sentences, paragraphs and sections;
+- the single ruler, counted in words, that lets those sizes be compared;
+- the "wave" of focus around the shadow, and how each piece of text gets a score from it;
+- the two controls, intensity and distance, and why they work the way they do;
+- the two ways of counting a paragraph's length;
+- how the underline is drawn, and how fast all of it runs.
+
+**It shows the behaviour as you read.** The sections are written in deliberately different shapes:
+
+- runs of tiny sentences, and runs of sentences that go on for a long time;
+- lists of single words, and lists of whole paragraphs;
+- sections nested inside sections;
+- two paragraphs of the same length but very different structure, side by side.
+
+Each shape makes the shadow behave differently. Over short sentences the underline stretches across many of them; over long ones it shrinks to one or two. Over a list of single words it covers a whole column; over a deep heading it jumps a section at a time. Section 10, at the end, is a playground made only of these shapes.
+
+**To follow along:** open this file in Markdown Lab, make sure **Shadow** is on under the Preview heading, and move your cursor through the text. Try changing the scale between Words, Sentences, Paragraphs and Sections, and nudge the Intensity and Distance sliders as you go.
 
 ## 1. The idea in one breath
 
@@ -130,7 +160,7 @@ How long is a paragraph? There are two honest answers, and the shadow offers bot
 Here are two paragraphs of almost the same number of words. To see the difference, set the scale to *Paragraphs*, the distance to 0 and the intensity to 20, then put your cursor in the second of them (the one-sentence paragraph) and switch between Linear and Nested:
 
 - **Linear:** the underline covers both paragraphs. Counted in words, the eight-sentence paragraph is no longer than its neighbour, so it stays in focus.
-- **Nested:** the eight-sentence paragraph drops out — eight sentences makes it long — and the underline reaches forward instead, over the next paragraph and the heading after it.
+- **Nested:** the eight-sentence paragraph drops out — eight sentences makes it long — and the underline reaches forward instead, over the paragraph that follows.
 
 The first has eight short sentences. It reads in steps. Each step is small. You never get lost. But there are many steps. Each one asks for a moment. Together they add up. That is the point.
 
