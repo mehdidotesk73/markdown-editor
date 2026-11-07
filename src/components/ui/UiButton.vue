@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { Component } from 'vue'
+
 // The app's one button. Every button in the chrome goes through it, so they all
 // share one look: compact and matte — a flat, solid fill, a hairline border,
 // small rounded corners. No gradients, blur, glow or sheen. Hover lifts the
@@ -9,18 +11,21 @@
 //         regular  — the default
 //         large    — empty-state actions
 //   tone  neutral, primary (the main action: a solid ink / sage fill),
-//         ok (green text), attention (amber ● mark), danger (red text)
+//         ok (green text), attention (amber mark), danger (red text)
 //   active  — on / selected (toggles): filled like primary
 //
-// Labels are text. Use `icon` only for plain Unicode marks that render as
-// text everywhere (⇤ ⇥ ● ✕), never emoji: emoji render as pictures and
-// clash with the matte look. An icon with no label makes a round button; give it an
-// aria-label.
+// Icons: `iconLeft` and `iconRight` each take a Lucide icon component
+// (`import { Save } from '@lucide/vue'`) or a plain Unicode status mark as a
+// string (● ✓). Any mix of left icon, label and right icon works. An icon with
+// no label makes a square button; give it an aria-label. Icons draw in the
+// label colour (currentColor), so tones, hover and themes apply to them too.
+// Never emoji: they render as pictures.
 withDefaults(
   defineProps<{
     size?: 'tag' | 'compact' | 'regular' | 'large'
     tone?: 'neutral' | 'primary' | 'ok' | 'attention' | 'danger'
-    icon?: string
+    iconLeft?: Component | string
+    iconRight?: Component | string
     active?: boolean
     type?: 'button' | 'submit'
   }>(),
@@ -33,10 +38,17 @@ defineSlots<{ default?(): unknown }>()
   <button
     :type="type"
     class="ui-btn"
-    :class="[`sz-${size}`, `t-${tone}`, { active, square: !!icon && !$slots.default }]"
+    :class="[`sz-${size}`, `t-${tone}`, { active, square: !$slots.default && !(iconLeft && iconRight) }]"
   >
-    <span v-if="icon" class="glyph" aria-hidden="true">{{ icon }}</span>
+    <template v-if="iconLeft">
+      <span v-if="typeof iconLeft === 'string'" class="mark" aria-hidden="true">{{ iconLeft }}</span>
+      <component :is="iconLeft" v-else class="ic" aria-hidden="true" />
+    </template>
     <span v-if="$slots.default" class="label"><slot /></span>
+    <template v-if="iconRight">
+      <span v-if="typeof iconRight === 'string'" class="mark" aria-hidden="true">{{ iconRight }}</span>
+      <component :is="iconRight" v-else class="ic" aria-hidden="true" />
+    </template>
   </button>
 </template>
 
@@ -49,7 +61,7 @@ defineSlots<{ default?(): unknown }>()
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.4em;
+  gap: 0.35em;
   border: 1px solid var(--btn-border);
   border-radius: var(--btn-radius);
   background: var(--btn-bg);
@@ -65,9 +77,23 @@ defineSlots<{ default?(): unknown }>()
     border-color 0.12s ease,
     color 0.12s ease;
 }
-.glyph {
-  font-size: 1.1em;
+.mark {
+  font-size: 1em;
   line-height: 1;
+}
+/* Lucide icons: sized to the text, a lighter line than Lucide's default 2px
+   so they sit well in compact buttons. */
+.ic {
+  flex: none;
+  width: 1.2em;
+  height: 1.2em;
+  stroke-width: var(--icon-stroke, 1.75);
+}
+.ui-btn:has(.label) .ic:first-child {
+  margin-left: -0.1em;
+}
+.ui-btn:has(.label) .ic:last-child {
+  margin-right: -0.1em;
 }
 
 .ui-btn:not(:disabled):hover {
@@ -133,7 +159,7 @@ defineSlots<{ default?(): unknown }>()
   --c: var(--ok);
 }
 /* Needs attention (unsaved): an ordinary button — only the ● mark is amber. */
-.t-attention .glyph {
+.t-attention .mark {
   color: var(--warn);
 }
 .t-danger {

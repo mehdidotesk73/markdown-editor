@@ -12,13 +12,14 @@ collapsible panes and a draggable divider, Save / Save as / Export PDF (html2pdf
 drafts + file handles persisted in IndexedDB, external-change pickup on focus, dark slate
 theme from power-gis, Help modal now renders `docs/concepts/*.md`.
 
-### v0.6.0 — Compact matte buttons (2026-11-07)
+### v0.6.0 — Compact matte buttons with Lucide icons (2026-11-07)
 
 Every `UiButton` is now compact and matte: a flat solid fill, a hairline border and small rounded
 corners, with no gradients, blur, glow or sheen. The main action and toggles that are on get a
 solid fill (pale sage in Sage, dark ink in Porcelain). Colours are `--btn-*` tokens per theme.
 The tab bar matches: a flat bar with a hairline border, and a flat fill under the active tab
 that still springs between tabs. The focus panel's dropdowns use the same tokens.
+Buttons carry Lucide icons (`@lucide/vue`): an icon on the left, on the right, a label, or any mix.
 
 ### v0.5.0 — Focus shadow (2026-11-07)
 

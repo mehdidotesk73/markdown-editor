@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@fontsource/fraunces": "^5.3.0",
+    "@lucide/vue": "^1.70.0",
     "dompurify": "^3.4.17",
     "idb-keyval": "^6.3.0",
     "katex": "^0.18.10",

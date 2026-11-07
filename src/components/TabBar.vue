@@ -2,6 +2,7 @@
 import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { isDirty, type Tab } from '../lib/useTabs'
 import { labelSink, Spring } from '../lib/liquidTabs'
+import { Plus, X } from '@lucide/vue'
 
 // Matte tab bar, in the same style as the buttons (UiButton): a flat bar with a
 // hairline border; the active tab sits on a flat raised fill (the "well").
@@ -182,11 +183,11 @@ function onKey(e: KeyboardEvent, t: Tab) {
           <span class="name">{{ t.name }}</span>
           <button class="x" :aria-label="`Close ${t.name}`" tabindex="-1" @click.stop="$emit('close', t)">
             <span class="dot" aria-hidden="true">●</span>
-            <span class="cross" aria-hidden="true">✕</span>
+            <X class="cross" aria-hidden="true" />
           </button>
         </div>
 
-        <button class="add" aria-label="New tab" title="New file" @click="$emit('new')">+</button>
+        <button class="add" aria-label="New tab" title="New file" @click="$emit('new')"><Plus class="plus" aria-hidden="true" /></button>
       </div>
     </div>
   </div>
@@ -298,6 +299,16 @@ function onKey(e: KeyboardEvent, t: Tab) {
 .x .dot,
 .x .cross {
   grid-area: 1 / 1;
+}
+.x .cross {
+  width: 0.8rem;
+  height: 0.8rem;
+  stroke-width: 2;
+}
+.add .plus {
+  width: 0.95rem;
+  height: 0.95rem;
+  stroke-width: 1.75;
 }
 .x .dot {
   display: none;

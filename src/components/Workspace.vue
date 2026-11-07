@@ -4,6 +4,7 @@ import { renderMarkdown } from '../lib/markdown'
 import type { Tab } from '../lib/useTabs'
 import UiButton from './ui/UiButton.vue'
 import FocusControls from './FocusControls.vue'
+import { PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Plug } from '@lucide/vue'
 import { useFocusShadow } from '../lib/focus/useFocusShadow'
 
 // The split view for one tab: markdown source on the left, rendered preview
@@ -144,7 +145,7 @@ onBeforeUnmount(endDrag)
         <strong>{{ tab.name }}</strong> was open last time. Allow access again to save it and
         pick up changes made outside the editor.
       </span>
-      <UiButton size="compact" tone="attention" @click="$emit('reconnect')">Reconnect</UiButton>
+      <UiButton size="compact" tone="attention" :icon-left="Plug" @click="$emit('reconnect')">Reconnect</UiButton>
     </div>
 
     <div
@@ -160,7 +161,7 @@ onBeforeUnmount(endDrag)
           <span class="pane-meta">{{ words }} {{ words === 1 ? 'word' : 'words' }}</span>
           <UiButton
             size="compact"
-            icon="⇤"
+            :icon-left="PanelLeftClose"
             aria-label="Collapse editor (read focus)"
             title="Collapse editor — read focus"
             @click="toggleEditor"
@@ -179,7 +180,7 @@ onBeforeUnmount(endDrag)
         />
       </div>
       <button v-else class="rail" title="Show editor" aria-label="Show editor" @click="toggleEditor">
-        <span class="rail-icon" aria-hidden="true">⇥</span>
+        <PanelLeftOpen class="rail-icon" aria-hidden="true" />
         <span class="rail-label">Markdown</span>
       </button>
 
@@ -201,7 +202,7 @@ onBeforeUnmount(endDrag)
         <header class="pane-head preview-head">
           <UiButton
             size="compact"
-            icon="⇥"
+            :icon-left="PanelRightClose"
             aria-label="Collapse preview (edit focus)"
             title="Collapse preview — edit focus"
             @click="togglePreview"
@@ -217,7 +218,7 @@ onBeforeUnmount(endDrag)
         </div>
       </div>
       <button v-else class="rail" title="Show preview" aria-label="Show preview" @click="togglePreview">
-        <span class="rail-icon" aria-hidden="true">⇤</span>
+        <PanelRightOpen class="rail-icon" aria-hidden="true" />
         <span class="rail-label">Preview</span>
       </button>
     </div>
@@ -390,6 +391,11 @@ onBeforeUnmount(endDrag)
 .rail:hover {
   color: var(--paper-text);
   border-color: var(--accent-blue);
+}
+.rail-icon {
+  width: 1rem;
+  height: 1rem;
+  stroke-width: 1.75;
 }
 .rail-label {
   writing-mode: vertical-rl;

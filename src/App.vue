@@ -3,6 +3,21 @@ import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import HelpModal from './components/HelpModal.vue'
 import TabBar from './components/TabBar.vue'
 import Workspace from './components/Workspace.vue'
+import {
+  Check,
+  CircleHelp,
+  Copy,
+  FileDown,
+  FilePen,
+  FilePlus,
+  FolderOpen,
+  Moon,
+  RefreshCw,
+  RotateCw,
+  Save,
+  ScrollText,
+  Sun,
+} from '@lucide/vue'
 import UiButton from './components/ui/UiButton.vue'
 import { debugState, logDebug, logAsText } from './debug'
 import { setupPWAUpdates } from './pwa'
@@ -184,11 +199,12 @@ const helpDoc = ref('overview')
       </div>
 
       <div v-if="active" class="toolbar" role="toolbar" aria-label="File actions">
-        <UiButton size="compact" title="Open a local file (Ctrl/⌘+O)" @click="onOpen">Open</UiButton>
+        <UiButton size="compact" :icon-left="FolderOpen" title="Open a local file (Ctrl/⌘+O)" @click="onOpen">Open</UiButton>
         <UiButton
           size="compact"
           :tone="savedFlash ? 'ok' : activeDirty ? 'attention' : 'neutral'"
-          :icon="savedFlash ? '✓' : activeDirty ? '●' : undefined"
+          :icon-left="savedFlash ? Check : Save"
+          :icon-right="activeDirty && !savedFlash ? '●' : undefined"
           :title="`${saveLabel} (Ctrl/⌘+S)`"
           @click="onSave(false)"
         >
@@ -197,6 +213,7 @@ const helpDoc = ref('overview')
         <UiButton
           v-if="supportsFileSystemAccess"
           size="compact"
+          :icon-left="FilePen"
           title="Save to a different file (Ctrl/⌘+Shift+S)"
           @click="onSave(true)"
         >
@@ -206,6 +223,7 @@ const helpDoc = ref('overview')
           size="compact"
           tone="primary"
           :disabled="exporting"
+          :icon-left="FileDown"
           title="Download the document as a PDF (Ctrl/⌘+P)"
           @click="onExport"
         >
@@ -220,6 +238,7 @@ const helpDoc = ref('overview')
             size="compact"
             tone="primary"
             :active="showUpdatePanel"
+            :icon-left="RefreshCw"
             @click="showUpdatePanel = !showUpdatePanel"
           >
             Update available
@@ -227,18 +246,19 @@ const helpDoc = ref('overview')
           <div v-if="showUpdatePanel && updateAvailable" class="update-pop" role="dialog">
             <div class="up-line">running {{ buildId }} · {{ buildTime }}</div>
             <div class="up-line">live {{ published?.commit }} · {{ published?.builtAt }}</div>
-            <UiButton size="tag" tone="primary" @click="onReloadLatest">Update ready — Reload</UiButton>
+            <UiButton size="tag" tone="primary" :icon-left="RotateCw" @click="onReloadLatest">Update ready — Reload</UiButton>
           </div>
         </div>
         <UiButton
           size="compact"
           :title="`Theme: ${theme}. Click for ${theme === 'light' ? 'dark' : 'light'}.`"
           :aria-label="`Switch to ${theme === 'light' ? 'dark' : 'light'} theme`"
+          :icon-left="theme === 'light' ? Sun : Moon"
           @click="toggleTheme"
         >
           {{ theme === 'light' ? 'Light' : 'Dark' }}
         </UiButton>
-        <UiButton size="compact" aria-label="Help" title="Help" @click="showHelp = true">? Help</UiButton>
+        <UiButton size="compact" :icon-left="CircleHelp" title="Help" @click="showHelp = true">Help</UiButton>
       </div>
     </header>
 
@@ -261,8 +281,8 @@ const helpDoc = ref('overview')
           right. <strong>Save</strong> writes straight back to the file. Each tab is its own file.
         </p>
         <div class="empty-actions">
-          <UiButton size="large" tone="primary" @click="onOpen">Open a file</UiButton>
-          <UiButton size="large" @click="tabs.newDocument()">New file</UiButton>
+          <UiButton size="large" tone="primary" :icon-left="FolderOpen" @click="onOpen">Open a file</UiButton>
+          <UiButton size="large" :icon-left="FilePlus" @click="tabs.newDocument()">New file</UiButton>
         </div>
         <p v-if="!supportsFileSystemAccess" class="note">
           <span aria-hidden="true">⚠</span> This browser can't write to files on your computer, so Save will
@@ -290,16 +310,22 @@ const helpDoc = ref('overview')
           size="tag"
           :tone="errorCount > 0 ? 'danger' : 'neutral'"
           :active="showDebug && !errorCount"
+          :icon-left="ScrollText"
           @click="showDebug = !showDebug"
         >
           {{ showDebug ? 'Hide logs' : 'View logs' }}
           <span v-if="errorCount" class="err-count">{{ errorCount }}</span>
         </UiButton>
 
-        <UiButton size="tag" :tone="updateAvailable ? 'primary' : 'neutral'" @click="onReloadLatest">
+        <UiButton
+          size="tag"
+          :tone="updateAvailable ? 'primary' : 'neutral'"
+          :icon-left="alreadyLatest ? Check : RotateCw"
+          @click="onReloadLatest"
+        >
           {{
             alreadyLatest
-              ? 'Already on the latest build ✓'
+              ? 'Already on the latest build'
               : updateAvailable
                 ? 'Update ready — Reload'
                 : 'Reload latest'
@@ -312,8 +338,8 @@ const helpDoc = ref('overview')
           <span class="muted">
             {{ debugState.logs.length }} {{ debugState.logs.length === 1 ? 'entry' : 'entries' }}
           </span>
-          <UiButton size="tag" :tone="copied ? 'ok' : 'neutral'" @click="copyLog">
-            {{ copied ? 'Copied ✓' : 'Copy log' }}
+          <UiButton size="tag" :tone="copied ? 'ok' : 'neutral'" :icon-left="copied ? Check : Copy" @click="copyLog">
+            {{ copied ? 'Copied' : 'Copy log' }}
           </UiButton>
         </div>
         <p class="log-hint muted">Something not working? Tap <strong>Copy log</strong> and paste it to Claude.</p>

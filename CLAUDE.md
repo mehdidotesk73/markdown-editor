@@ -70,9 +70,13 @@ blur, glow or sheen; hover lifts the fill a shade, pressing darkens it. The main
 toggles that are on get a solid fill (Sage: pale sage with dark text; Porcelain: dark ink).
 Colours are the `--btn-*` tokens in `vars.css`. The user swapped the earlier liquid-glass buttons
 for this, then asked for less vertical padding — don't bring the glass back, and keep them tight.
-The tab bar and the focus panel's dropdowns use the same matte tokens. **No emoji icons**
-(they render as pictures): button labels are text; `icon` is only for plain Unicode marks
-(⇤ ⇥ ● ✓ ✕ ▸ ▾).
+The tab bar and the focus panel's dropdowns use the same matte tokens.
+**Icons are Lucide** (`@lucide/vue`, chosen over Iconoir for its depth: ~2,000 icons). A button
+takes any mix of `iconLeft`, label and `iconRight`; each icon prop takes a Lucide component or a
+plain Unicode status mark as a string (● for unsaved, amber under `tone="attention"`). Icons draw
+in `currentColor` at 1.2em with a 1.75 stroke (`--icon-stroke`), so tones and themes apply. An
+icon with no label is a square button and needs an `aria-label`. **No emoji** — they render as
+pictures.
 
 **Tab bar (`TabBar.vue`) is matte, like the buttons:** a flat bar with a hairline border; the
 active tab sits on a flat raised fill (the "well", `--btn-bg-hover`). Switching tabs springs the
@@ -189,10 +193,10 @@ src/
     useVersionCheck.ts     compares the running build with the live one
   components/
     Workspace.vue          editor + preview panes, collapse rails, draggable divider, scroll sync
-    TabBar.vue             liquid-glass tab bar: glass pill + springing recessed well
+    TabBar.vue             matte tab bar: flat bar + springing fill under the active tab
     FocusControls.vue      focus-shadow controls under the Preview header
     HelpModal.vue          renders docs/concepts/*.md into the Help modal
-    ui/UiButton.vue        the app's button (sizes + tones)
+    ui/UiButton.vue        the app's button (sizes, tones, Lucide icons left/right)
   styles/
     vars.css               all theme tokens: Sage (:root) and Porcelain ([data-theme='light'])
     markdown.css           rendered-markdown styles (.md-body) for preview + Help

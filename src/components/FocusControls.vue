@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import UiButton from './ui/UiButton.vue'
+import { ChevronDown, ChevronRight, Eye, EyeOff } from '@lucide/vue'
 import { focusSettings as s, INTENSITY_RANGE, DISTANCE_RANGE } from '../lib/focus/settings'
 import type { Scale } from '../lib/focus/segment'
 
@@ -23,7 +24,7 @@ const scales: { value: Scale; label: string }[] = [
   <div class="focus-bar" role="group" aria-label="Focus shadow">
     <UiButton
       size="tag"
-      :icon="s.panel ? '▾' : '▸'"
+      :icon-right="s.panel ? ChevronDown : ChevronRight"
       :aria-expanded="s.panel"
       :title="s.panel ? 'Hide the shadow controls (the shadow keeps running)' : 'Show the shadow controls'"
       @click="s.panel = !s.panel"
@@ -38,6 +39,7 @@ const scales: { value: Scale; label: string }[] = [
         size="tag"
         :active="s.enabled"
         :aria-pressed="s.enabled"
+        :icon-left="s.enabled ? Eye : EyeOff"
         :title="s.enabled ? 'Turn the focus shadow off' : 'Turn the focus shadow on'"
         @click="s.enabled = !s.enabled"
       >
