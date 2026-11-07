@@ -130,8 +130,8 @@ the run of units holding 60% of the cumulative attention.
   pointer. The controls show `count` live ("3 sentences in focus").
 - **Settings** (`settings.ts`, localStorage `md-editor:focus:v3`): enabled, panel (controls shown —
   independent of enabled), scale, **decay per scale** (σ in words; logarithmic slider with a range
-  per scale — words 0.3–40, sentences 1–300, paragraphs 2–1000, sections 5–3000; defaults 2 / 15 /
-  30 / 150, each about 3 units on prose), distance 0–20 units (default 0). The user tunes each
+  per scale — words 0.3–40, sentences 1–300, paragraphs 2–1000, sections 5–3000; defaults 1 / 12 /
+  30 / 150, chosen by the user by trial), distance 0–20 units (default 0). The user tunes each
   scale's decay by trial in the app.
 
 Superseded designs (see `docs/experience.md`): a fixed 0.4 cut-off on the average, an

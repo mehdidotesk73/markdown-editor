@@ -20,8 +20,8 @@ the units holding 60% of the cumulative attention are in focus and underlined. D
 units of the current scale. A counter shows how many units are in focus. The nested ruler and
 the fixed cut-off are gone.
 
-Next: the user tunes each scale's default decay by trial in the app; bake the values they settle
-on into `DEFAULT_DECAY`.
+Default decays tuned by the user in the app: words 1, sentences 12, paragraphs 30 (sections 150,
+not yet tuned).
 
 ### v0.6.0 — Compact matte buttons with Lucide icons (2026-11-07)
 

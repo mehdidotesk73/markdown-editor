@@ -132,12 +132,12 @@ Same decay, same focal point. The difference is entirely how long the sentences 
 
 Decay is measured in words, and each scale remembers its own. A decay that underlines a handful of words would underline a single sentence and nothing at all beyond its own section, so each scale needs its own setting:
 
-| Scale | A decay of about … | underlines about three units |
+| Scale | Default decay | Typically in focus |
 |---|---|---|
-| Words | 2 words | 3–4 words |
-| Sentences | 15 words | 3 sentences |
-| Paragraphs | 30 words | 3 paragraphs |
-| Sections | 150 words | 3 sections |
+| Words | 1 word | 2 words |
+| Sentences | 12 words | 2–3 sentences |
+| Paragraphs | 30 words | about 3 paragraphs |
+| Sections | 150 words | about 3 sections |
 
 The decay slider is logarithmic, so each notch changes the field by the same proportion, whether it is 2 words wide or 2,000. The counter under the Preview heading shows how many units are in focus right now, so you can tune each scale by eye.
 
