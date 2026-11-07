@@ -15,11 +15,14 @@ UI structure:
 - **Top bar** — title, file actions (Open, Save, Save as…, Export PDF), theme toggle
   (Dark = Sage / Light = Porcelain), Help.
 - **Tab bar** — one tab per open file; amber ● = unsaved, ⚠ = needs reconnecting, italic =
-  not linked to a file yet; ＋ makes a new untitled tab.
+  not linked to a file yet; ＋ makes a new document.
 - **Workspace** (`Workspace.vue`) — markdown source (left) and rendered preview (right),
   with a draggable divider. Either pane collapses to a thin rail: editor collapsed = read
-  focus, preview collapsed = edit focus. Stacks vertically under 760 px.
+  focus, preview collapsed = edit focus. Always side by side (left/right), even on a phone.
 - **Empty state** — Open a file / New file, shown when no tabs are open.
+- **New document:** ＋, New file and Ctrl/⌘+Alt+N all call `newDocument()` (`useTabs.ts`) — one path.
+  It opens prefilled with `docs/focus-shadow-showcase.md` (imported `?raw`), counted as unchanged
+  until edited.
 
 How files work (see `src/lib/fileAccess.ts`, `src/lib/useTabs.ts`):
 
@@ -77,6 +80,15 @@ glow, pressed 1px) in proportion to how much of the well is under it (`--lit`). 
 `Spring` in `src/lib/liquidTabs.ts` (unit-tested). Respects `prefers-reduced-motion`.
 An earlier version had a bubble floating *above* the bar with a dent/valley in the bar's edge; the
 user preferred the recess (the raised bubble misaligned at the bar's ends) — see `docs/experience.md`.
+
+**Focus shadow (`src/lib/focus/`, `docs/system-design.md` §1d):** the analytical driver for
+cursor-following features. A pure engine segments the source into words / sentences / paragraphs
+/ sections on a shared word ruler, scores each unit by its *average* peak-1 bell value (σ =
+**intensity**, in words — length matters above the word level), and a **shadow** trails the cursor
+on a leash of **distance** words. The span above a fixed 0.4 cut-off is underlined in the preview
+with the CSS Custom Highlight API. No per-tab state: the index rebuilds on tab switch and after
+typing pauses. The user rejected a separate threshold slider (non-linear feel) and a
+per-document "typical length" normalisation (length must count).
 
 **Panels ("paper"):** the editor and preview panes use `--paper-*` tokens, which each theme
 sets (Sage: dark green-grey page; Porcelain: warm off-white page). Never pure white text or
@@ -172,10 +184,13 @@ src/
     pdf/inlineMath.ts      inline TeX → Unicode text
     useTheme.ts            Dark (Sage) / Light (Porcelain) app theme → data-theme on <html>
     liquidTabs.ts          tab bar motion: how lit each tab is, the spring (pure; tested)
+    focus/                 focus engine: segment, wave, shadow, align (pure; tested) +
+                           useFocusShadow (preview underline), settings
     useVersionCheck.ts     compares the running build with the live one
   components/
     Workspace.vue          editor + preview panes, collapse rails, draggable divider, scroll sync
     TabBar.vue             liquid-glass tab bar: glass pill + springing recessed well
+    FocusControls.vue      focus-shadow controls under the Preview header
     HelpModal.vue          renders docs/concepts/*.md into the Help modal
     ui/UiButton.vue        the app's button (sizes + tones)
   styles/
@@ -204,7 +219,10 @@ package-lock.json              committed — CI runs `npm ci` and needs it
 - **Never lose text.** Every tab's draft is persisted to IndexedDB on change; closing a dirty
   tab confirms; `beforeunload` warns while anything is unsaved; background PWA updates wait.
 - **Rendered HTML is always sanitized** (`renderMarkdown`) before `v-html`.
-- **Desktop-first, phone-safe:** keep controls tappable and the stacked layout working.
+- **Desktop-first, phone-safe:** keep controls tappable and the side-by-side panes usable at phone width.
+- **No zoom on focus (iOS):** `index.html` adds `maximum-scale=1` to the viewport on iPhone/iPad only, so
+  tapping the editor doesn't zoom in and crop the preview. iOS still allows pinch-zoom; don't add it
+  for Android, where it would block pinch-zoom.
 
 ## Debugging on device (no console)
 

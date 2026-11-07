@@ -381,10 +381,31 @@ theme-agnostic. After any theme work, check `getComputedStyle(document.documentE
 a canvas of nine full-app mockups (same layout, different palettes) let the user pick in one go:
 Sage for dark, Porcelain for light.
 
+**`Intl.Segmenter` won't start a sentence at a lowercase word.** "one two. three four." is one
+sentence to ICU (the full stop could end an abbreviation); "One two. Three four." is two. Real
+prose is fine, but test fixtures must capitalise sentence starts. Fenced code is split line by
+line, so the focus engine treats a code block as a single sentence.
+
+**Unconfirmed greedy alignment drifts on real documents.** Matching source words to preview
+words "first equal word within 40" passed unit tests but failed on a long document: a formula's
+`x` matched a later italic *x*, the pointer jumped ahead, and everything after lost its underline.
+Requiring each match to be confirmed by the following words, and skipping math, fixed it. Test the
+focus underline on a long, varied document (`docs/focus-shadow-showcase.md`), not just fixtures.
+
+**A threshold slider feels non-linear; a width slider doesn't.** For the focus shadow, the
+underline's reach is ≈ σ·√(−2 ln(1−I)). Sliding the bell's width σ moves it evenly; sliding the
+threshold I jumps at the start and explodes near 1. So "intensity" became the width, with the
+cut-off fixed at 0.4.
+
 Headless screenshots catch colour transitions mid-flight: a button that just changed tone can
 look wrong in a shot taken <0.25 s later. Wait out the transition before judging colour.
 
 ## Version History
+
+### v0.5.0 — 2026-11-07
+- **Added:** Focus shadow — focus engine (`lib/focus/`), preview underline via CSS Custom Highlight API, Intensity / Distance / scale / Linear-Nested controls
+- **Infrastructure:** `ES2022.Intl` types for `Intl.Segmenter`
+- **Docs:** Help (focus shadow), system-design §1d, TODO
 
 ### v0.4.0 — 2026-11-06
 - **Added:** Whole-app Dark (Sage) / Light (Porcelain) themes; Fraunces display face in Porcelain

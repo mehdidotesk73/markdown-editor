@@ -10,10 +10,33 @@ A markdown editor for files on **your own computer**. The app runs entirely in y
 - **Write on the left, read on the right.** The preview updates as you type. Drag the line between the two panes to resize them.
 - **Focus modes:** click **⇤** on the Markdown pane to hide the editor and read the document full-width. Click **⇥** on the Preview pane to hide the preview and write full-width. Click the thin bar on the side to bring a pane back.
 - **Save** (or `Ctrl/⌘ S`) writes your changes back to the file on your computer. A tab with unsaved changes shows an amber ●.
-- **New file** (＋ on the tab bar) starts an empty tab; the first Save asks where to put the file.
+- **New file** (＋ on the tab bar, or Ctrl/⌘ Alt N) opens a new document that starts with the guide to Markdown Lab and the focus shadow — read it, or select all and replace it with your own text. The first Save asks where to put the file.
 - **Export PDF** downloads the document as a PDF straight away. The text in it is real (you can select and search it), pages never cut a line in half, and formulas are typeset. The first export takes a moment longer while the PDF tools and fonts load; after that they're kept for offline use too.
 - **Dark / Light** (top bar) switches the whole app between a dark sage-grey look and a light porcelain one. Your choice is remembered.
 - **Math:** write LaTeX between dollar signs — `$x^2$` inside a sentence, or `$$ E = mc^2 $$` for a formula on its own line.
+
+## The focus shadow
+
+As you move through your text, a **shadow** follows the cursor a little way behind, and the
+preview **underlines** the stretch of text it's focused on. It's a quiet guide to what you were
+just reading or writing, and the basis for future features that look at your text with you.
+
+The controls sit under the Preview heading:
+
+- **Shadow ▾** opens or closes this panel. Closing it only hides the controls — the shadow keeps
+  running, and the panel shows whether it's **On** or **Off**.
+- **On / Off** turns the shadow itself on or off.
+- **Sentences / Words / Paragraphs / Sections** chooses what gets underlined.
+- **Intensity** sets how far the focus spreads. Higher means a longer underline. Long sentences
+  and paragraphs take more focus, so the same intensity covers fewer long ones than short ones.
+- **Distance** sets how many words the shadow trails behind your cursor, whichever way you move.
+  At 0 (the default) it sits right on the cursor.
+- **Linear / Nested** chooses how paragraphs and sections are measured: by their words
+  (Linear), or by their sentences and paragraphs (Nested).
+
+The underline needs a recent browser (Chrome, Edge, Safari 17.2+, Firefox 140+).
+
+To see every effect, open the guide *The Focus Shadow* (`docs/focus-shadow-showcase.md` in the project) and move through it.
 
 **Shortcuts:** `Ctrl/⌘ S` save · `Ctrl/⌘ ⇧ S` save as · `Ctrl/⌘ O` open · `Ctrl/⌘ P` export PDF · `Ctrl/⌘ \` hide/show editor · `Ctrl/⌘ ⇧ \` hide/show preview.
 

@@ -139,7 +139,7 @@ function onKey(e: KeyboardEvent) {
     void onExport()
   } else if (e.altKey && k === 'n') {
     e.preventDefault()
-    tabs.newTab()
+    tabs.newDocument()
   } else if (e.key === '\\' || e.code === 'Backslash') {
     e.preventDefault()
     if (e.shiftKey) workspace.value?.togglePreview()
@@ -248,7 +248,7 @@ const helpDoc = ref('overview')
       :active-id="state.activeId"
       @activate="tabs.activate"
       @close="tabs.close"
-      @new="tabs.newTab"
+      @new="tabs.newDocument()"
     />
 
     <Workspace v-if="active" ref="workspace" :tab="active" @reconnect="tabs.reconnect(active)" />
@@ -262,7 +262,7 @@ const helpDoc = ref('overview')
         </p>
         <div class="empty-actions">
           <UiButton size="large" tone="primary" @click="onOpen">Open a file</UiButton>
-          <UiButton size="large" @click="tabs.newTab">New file</UiButton>
+          <UiButton size="large" @click="tabs.newDocument()">New file</UiButton>
         </div>
         <p v-if="!supportsFileSystemAccess" class="note">
           <span aria-hidden="true">⚠</span> This browser can't write to files on your computer, so Save will

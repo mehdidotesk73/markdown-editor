@@ -3,6 +3,8 @@ import { ref, computed, watch, onBeforeUnmount } from 'vue'
 import { renderMarkdown } from '../lib/markdown'
 import type { Tab } from '../lib/useTabs'
 import UiButton from './ui/UiButton.vue'
+import FocusControls from './FocusControls.vue'
+import { useFocusShadow } from '../lib/focus/useFocusShadow'
 
 // The split view for one tab: markdown source on the left, rendered preview
 // on the right. Either side collapses to a thin rail — collapse the editor to
@@ -56,8 +58,8 @@ defineExpose({ toggleEditor, togglePreview, layout })
 const both = computed(() => layout.value.editor && layout.value.preview)
 const gridColumns = computed(() => {
   const l = layout.value
-  if (both.value) return `${l.split}fr auto ${1 - l.split}fr`
-  return l.editor ? '1fr auto var(--rail)' : 'var(--rail) auto 1fr'
+  if (both.value) return `minmax(0, ${l.split}fr) auto minmax(0, ${1 - l.split}fr)`
+  return l.editor ? 'minmax(0, 1fr) auto var(--rail)' : 'var(--rail) auto minmax(0, 1fr)'
 })
 
 // ---- draggable divider -----------------------------------------------------
@@ -72,8 +74,7 @@ function startDrag(e: PointerEvent) {
 function onDrag(e: PointerEvent) {
   if (!dragging.value || !root.value) return
   const r = root.value.getBoundingClientRect()
-  const vertical = r.width < 760 // stacked layout on narrow screens
-  const ratio = vertical ? (e.clientY - r.top) / r.height : (e.clientX - r.left) / r.width
+  const ratio = (e.clientX - r.left) / r.width
   layout.value.split = Math.min(0.8, Math.max(0.2, ratio))
 }
 function endDrag() {
@@ -87,6 +88,15 @@ const preview = ref<HTMLElement>()
 
 const html = computed(() => renderMarkdown(props.tab.content))
 const words = computed(() => (props.tab.content.match(/\S+/g) ?? []).length)
+
+// The focus shadow: trails the cursor and underlines its span in the preview.
+const { supported: shadowSupported } = useFocusShadow({
+  tabId: computed(() => props.tab.id),
+  text: computed(() => props.tab.content),
+  html,
+  textarea,
+  preview,
+})
 
 // Tab inserts two spaces instead of leaving the editor. execCommand keeps the
 // browser's undo history intact; setRangeText is the fallback.
@@ -199,6 +209,7 @@ onBeforeUnmount(endDrag)
           <span class="pane-title">Preview</span>
           <span class="pane-meta" />
         </header>
+        <FocusControls :supported="shadowSupported" />
         <div ref="preview" class="preview-scroll">
           <!-- eslint-disable-next-line vue/no-v-html — sanitized by DOMPurify in lib/markdown.ts -->
           <article class="md-body" v-html="html" />
@@ -388,38 +399,16 @@ onBeforeUnmount(endDrag)
   text-transform: uppercase;
 }
 
-/* Narrow screens: stack editor above preview; rails become bars. */
+/* Narrow screens: panes stay side by side, with tighter padding. */
 @media (max-width: 760px) {
   .panes {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: var(--cols);
+    padding: 0.35rem;
   }
-  .divider {
-    width: auto;
-    height: 0.5rem;
-    cursor: row-resize;
+  .source {
+    padding: 0.75rem 0.7rem 2rem;
   }
-  .divider::after {
-    inset: 0.2rem 25%;
-  }
-  .rail {
-    flex-direction: row;
-    justify-content: center;
-    padding: 0 0.6rem;
-  }
-  .rail-label {
-    writing-mode: horizontal-tb;
-  }
-  .rail-icon {
-    transform: rotate(90deg);
-  }
-  .pane-head :deep(.glyph) {
-    display: inline-block;
-    transform: rotate(90deg);
-  }
-  .source,
   .preview-scroll {
-    padding-bottom: 2rem;
+    padding: 0.8rem 0.8rem 2rem;
   }
 }
 </style>
