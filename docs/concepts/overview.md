@@ -10,7 +10,7 @@ A markdown editor for files on **your own computer**. The app runs entirely in y
 - **Write on the left, read on the right.** The preview updates as you type. Drag the line between the two panes to resize them.
 - **Focus modes:** click **⇤** on the Markdown pane to hide the editor and read the document full-width. Click **⇥** on the Preview pane to hide the preview and write full-width. Click the thin bar on the side to bring a pane back.
 - **Save** (or `Ctrl/⌘ S`) writes your changes back to the file on your computer. A tab with unsaved changes shows an amber ●.
-- **New file** (＋ on the tab bar) starts an empty tab; the first Save asks where to put the file.
+- **New file** (＋ on the tab bar, or Ctrl/⌘ Alt N) opens a new document that starts with the guide to Markdown Lab and the focus shadow — read it, or select all and replace it with your own text. The first Save asks where to put the file.
 - **Export PDF** downloads the document as a PDF straight away. The text in it is real (you can select and search it), pages never cut a line in half, and formulas are typeset. The first export takes a moment longer while the PDF tools and fonts load; after that they're kept for offline use too.
 - **Dark / Light** (top bar) switches the whole app between a dark sage-grey look and a light porcelain one. Your choice is remembered.
 - **Math:** write LaTeX between dollar signs — `$x^2$` inside a sentence, or `$$ E = mc^2 $$` for a formula on its own line.

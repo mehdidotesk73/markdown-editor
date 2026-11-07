@@ -20,7 +20,8 @@ peak-1 bell value (σ = intensity in words; linear or nested rulers) and returns
 span above a fixed 0.4 cut-off; `Shadow` trails the cursor on a leash; `alignWords` maps source
 words to the preview. `useFocusShadow` underlines the shadow's span in the preview with the CSS
 Custom Highlight API. Controls under the Preview header (`FocusControls.vue`). 17 unit tests.
-`docs/focus-shadow-showcase.md`: a guide to the model, laid out to demo every effect.
+`docs/focus-shadow-showcase.md`: a guide to the model, laid out to demo every effect. New documents
+(＋, New file, Ctrl/⌘+Alt+N — one path, `newDocument()`) open prefilled with it.
 
 ### v0.4.0 — Sage & Porcelain themes, liquid-glass buttons and tabs (2026-11-06)
 

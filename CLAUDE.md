@@ -15,11 +15,14 @@ UI structure:
 - **Top bar** — title, file actions (Open, Save, Save as…, Export PDF), theme toggle
   (Dark = Sage / Light = Porcelain), Help.
 - **Tab bar** — one tab per open file; amber ● = unsaved, ⚠ = needs reconnecting, italic =
-  not linked to a file yet; ＋ makes a new untitled tab.
+  not linked to a file yet; ＋ makes a new document.
 - **Workspace** (`Workspace.vue`) — markdown source (left) and rendered preview (right),
   with a draggable divider. Either pane collapses to a thin rail: editor collapsed = read
   focus, preview collapsed = edit focus. Stacks vertically under 760 px.
 - **Empty state** — Open a file / New file, shown when no tabs are open.
+- **New document:** ＋, New file and Ctrl/⌘+Alt+N all call `newDocument()` (`useTabs.ts`) — one path.
+  It opens prefilled with `docs/focus-shadow-showcase.md` (imported `?raw`), counted as unchanged
+  until edited.
 
 How files work (see `src/lib/fileAccess.ts`, `src/lib/useTabs.ts`):
 

@@ -11,6 +11,8 @@ import {
   type PickedFile,
 } from './fileAccess'
 import { logDebug } from '../debug'
+// What a new document starts with: the guide to Markdown Lab and the focus shadow.
+import STARTER from '../../docs/focus-shadow-showcase.md?raw'
 
 /**
  * One open document. A tab is "linked" when it holds a handle to a real file
@@ -182,13 +184,19 @@ function untitledName(): string {
   return n === 1 ? 'Untitled.md' : `Untitled ${n}.md`
 }
 
-function newTab() {
+/**
+ * The one way to start a new document (＋ on the tab bar, New file on the
+ * empty screen, Ctrl/⌘+Alt+N). It opens prefilled with the starter text —
+ * the Focus Shadow guide — and counts as unchanged until edited, so closing
+ * it untouched doesn't ask. Its first Save asks where to put the file.
+ */
+function newDocument() {
   const tab: Tab = {
     id: newId(),
     name: untitledName(),
     handle: null,
-    content: '',
-    saved: '',
+    content: STARTER,
+    saved: STARTER,
     lastModified: 0,
     access: 'unlinked',
   }
@@ -251,7 +259,7 @@ export function useTabs() {
     active,
     anyDirty,
     openFiles,
-    newTab,
+    newDocument,
     save,
     close,
     activate,
