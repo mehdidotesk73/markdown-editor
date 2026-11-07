@@ -220,6 +220,9 @@ package-lock.json              committed — CI runs `npm ci` and needs it
   tab confirms; `beforeunload` warns while anything is unsaved; background PWA updates wait.
 - **Rendered HTML is always sanitized** (`renderMarkdown`) before `v-html`.
 - **Desktop-first, phone-safe:** keep controls tappable and the side-by-side panes usable at phone width.
+- **No zoom on focus (iOS):** `index.html` adds `maximum-scale=1` to the viewport on iPhone/iPad only, so
+  tapping the editor doesn't zoom in and crop the preview. iOS still allows pinch-zoom; don't add it
+  for Android, where it would block pinch-zoom.
 
 ## Debugging on device (no console)
 
