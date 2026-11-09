@@ -4,6 +4,7 @@ import { renderMarkdown } from '../lib/markdown'
 import type { Tab } from '../lib/useTabs'
 import UiButton from './ui/UiButton.vue'
 import FocusControls from './FocusControls.vue'
+import { indentEdit } from '../lib/indent'
 import { PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Plug } from '@lucide/vue'
 import { useFocusShadow } from '../lib/focus/useFocusShadow'
 
@@ -101,14 +102,21 @@ const { supported: shadowSupported, frame: focusFrame } = useFocusShadow({
 
 // Tab inserts two spaces instead of leaving the editor. execCommand keeps the
 // browser's undo history intact; setRangeText is the fallback.
+// Tab / Shift+Tab: indent or outdent the selected lines (or insert an indent
+// at the cursor). Goes through execCommand so it lands on the undo stack.
 function onKeydown(e: KeyboardEvent) {
-  if (e.key !== 'Tab' || e.shiftKey || e.ctrlKey || e.metaKey || e.altKey) return
+  if (e.key !== 'Tab' || e.ctrlKey || e.metaKey || e.altKey) return
   e.preventDefault()
   const ta = e.target as HTMLTextAreaElement
-  if (!document.execCommand('insertText', false, '  ')) {
-    ta.setRangeText('  ', ta.selectionStart, ta.selectionEnd, 'end')
-    props.tab.content = ta.value
-  }
+  const edit = indentEdit(ta.value, ta.selectionStart, ta.selectionEnd, e.shiftKey)
+  if (edit.from === edit.to && !edit.insert) return
+  ta.setSelectionRange(edit.from, edit.to)
+  const ok = edit.insert
+    ? document.execCommand('insertText', false, edit.insert)
+    : document.execCommand('delete')
+  if (!ok) ta.setRangeText(edit.insert, edit.from, edit.to, 'end')
+  ta.setSelectionRange(edit.selStart, edit.selEnd)
+  props.tab.content = ta.value
 }
 
 function onInput(e: Event) {
@@ -209,8 +217,8 @@ onBeforeUnmount(endDrag)
           />
           <span class="pane-title">Preview</span>
           <span class="pane-meta" />
+          <FocusControls :supported="shadowSupported" :count="focusFrame?.count ?? 0" />
         </header>
-        <FocusControls :supported="shadowSupported" :count="focusFrame?.count ?? 0" />
         <div ref="preview" class="preview-scroll">
           <!-- eslint-disable-next-line vue/no-v-html — sanitized by DOMPurify in lib/markdown.ts -->
           <article class="md-body" v-html="html" />
@@ -296,9 +304,17 @@ onBeforeUnmount(endDrag)
   --c: var(--paper-text);
 }
 .preview-head {
-  padding: 0 0.8rem 0 0.35rem;
+  padding: 0 0.35rem;
+}
+/* The focus dropdown is positioned against the preview pane. */
+.preview-pane {
+  position: relative;
 }
 .pane-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -307,6 +323,7 @@ onBeforeUnmount(endDrag)
 }
 .pane-meta {
   flex: 1;
+  min-width: 0;
   font-size: 0.72rem;
   color: var(--paper-muted);
 }

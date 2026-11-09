@@ -131,9 +131,9 @@ the run of units holding 60% of the cumulative attention.
   frame, and draws the focus with the **CSS Custom Highlight API** (`::highlight(focus-shadow)` in
   `markdown.css`) — no DOM changes. Each compute records the cursor in the trails. It exposes a `frame` (`cursorX`, `focalX`, `span` with each
   unit's attention, `count` of units in focus, the focus's source `text`): the hook for an AI
-  pointer. The controls show `count` live ("3 sentences in focus").
-- **Settings** (`settings.ts`, localStorage `md-editor:focus:v3`): enabled, panel (controls shown —
-  independent of enabled), scale, **decay per scale** (σ in words; logarithmic slider with a range
+  pointer. The controls (`FocusControls.vue`) are a **Focus** button at the right of the Preview header — eye / crossed-out eye for on/off, label, chevron — that drops down a panel over the preview (positioned against `.preview-pane`) with the on/off eye toggle, scale, decay, lag and the live `count` ("3 sentences in focus"). The panel stays open until the button is clicked again (or Escape), so the user can tune while moving the cursor; on a narrow pane (container query) each slider gets its own full-width row.
+- **Settings** (`settings.ts`, localStorage `md-editor:focus:v4`): enabled (default **off**), panel
+  (default **closed**; independent of enabled), scale, **decay per scale** (σ in words; logarithmic slider with a range
   per scale — words 0.3–40, sentences 1–300, paragraphs 2–1000, sections 5–3000; defaults 1 / 12 /
   30 / 150, chosen by the user by trial), lag 0–20 units (default 0). The user tunes each
   scale's decay by trial in the app.
