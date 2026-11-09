@@ -31,7 +31,7 @@ The document does two things at once.
 
 Each shape makes the focus behave differently. Over short sentences the underline stretches across many of them; over long ones it shrinks to one or two. Over a list of single words it covers a whole column; over a deep heading it jumps a section at a time. Section 9, at the end, is a playground made only of these shapes.
 
-**To follow along:** open this file in Markdown Lab, make sure the focus is **On** (open the **Focus** panel under the Preview heading to check), and move your cursor through the text. Try changing the scale between Words, Sentences, Paragraphs and Sections, and nudge the Decay and Lag sliders as you go — the counter on the right says how many units are in focus. Lag starts at 0, with the focus following your cursor live; raise it and the focus trails your path a few steps behind.
+**To follow along:** open this file in Markdown Lab, make sure the focus is on (the **Focus** button at the top right of the Preview shows an open eye; click it for the settings), and move your cursor through the text. Try changing the scale between Words, Sentences, Paragraphs and Sections, and nudge the Decay and Lag sliders as you go — the counter on the right says how many units are in focus. Lag starts at 0, with the focus following your cursor live; raise it and the focus trails your path a few steps behind.
 
 ## 1. The idea in one breath
 

@@ -22,11 +22,11 @@ As you move through your text, a field of **attention** follows the cursor, and 
 reading or writing, and the basis for future features that look at your text with you. Nearby
 text gets more attention than far text, and short sentences or paragraphs get more than long ones.
 
-The controls sit under the Preview heading:
+The **Focus** button sits at the top right of the Preview pane. Its eye shows whether the focus
+is on (eye) or off (crossed-out eye). Click it to drop down the focus settings; click it again to
+close them — the focus keeps running either way:
 
-- **Focus ⌄** opens or closes this panel. Closing it only hides the controls — the focus keeps
-  running.
-- The **eye** button turns the focus itself on (filled eye) or off (crossed-out eye).
+- The **eye** button in the panel turns the focus itself on or off.
 - **Words / Sentences / Paragraphs / Sections** chooses what gets underlined.
 - **Decay** sets how far attention reaches, in words: higher spreads it wider, so more is
   underlined. Each scale remembers its own decay, so you can tune each one separately.
@@ -40,7 +40,7 @@ The underline needs a recent browser (Chrome, Edge, Safari 17.2+, Firefox 140+).
 
 To see every effect, open the guide *Focus* (`docs/focus-shadow-showcase.md` in the project) and move through it.
 
-**Shortcuts:** `Ctrl/⌘ S` save · `Ctrl/⌘ ⇧ S` save as · `Ctrl/⌘ O` open · `Ctrl/⌘ P` export PDF · `Ctrl/⌘ \` hide/show editor · `Ctrl/⌘ ⇧ \` hide/show preview.
+**Shortcuts:** `Tab` / `⇧ Tab` indent / outdent the selected lines · `Ctrl/⌘ S` save · `Ctrl/⌘ ⇧ S` save as · `Ctrl/⌘ O` open · `Ctrl/⌘ P` export PDF · `Ctrl/⌘ \` hide/show editor · `Ctrl/⌘ ⇧ \` hide/show preview.
 
 ## Common Questions
 

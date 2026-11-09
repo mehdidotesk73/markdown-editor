@@ -192,6 +192,7 @@ src/
     pdf/markdownToPdf.ts   tokens → pdfmake document (pure; *.test.ts beside it)
     pdf/math.ts            display TeX → SVG via MathJax (lazy chunk)
     pdf/inlineMath.ts      inline TeX → Unicode text
+    indent.ts              Tab / Shift+Tab indent / outdent of selected lines (pure; tested)
     useTheme.ts            Dark (Sage) / Light (Porcelain) app theme → data-theme on <html>
     liquidTabs.ts          tab bar motion: how lit each tab is, the spring (pure; tested)
     focus/                 focus engine: segment, wave (attention + 60% focus), focal (lag
@@ -200,7 +201,8 @@ src/
   components/
     Workspace.vue          editor + preview panes, collapse rails, draggable divider, scroll sync
     TabBar.vue             matte tab bar: flat bar + springing fill under the active tab
-    FocusControls.vue      focus controls under the Preview header (decay, lag, counter)
+    FocusControls.vue      Focus button (top right of Preview header) + dropdown panel: on/off,
+                           scale, decay, lag, counter
     HelpModal.vue          renders docs/concepts/*.md into the Help modal
     ui/UiButton.vue        the app's button (sizes, tones, Lucide icons left/right)
   styles/
@@ -228,6 +230,9 @@ package-lock.json              committed — CI runs `npm ci` and needs it
   keep components thin.
 - **Never lose text.** Every tab's draft is persisted to IndexedDB on change; closing a dirty
   tab confirms; `beforeunload` warns while anything is unsaved; background PWA updates wait.
+- **Editor keys:** Tab / Shift+Tab indent / outdent every line the selection touches (no selection:
+  Tab inserts two spaces, Shift+Tab outdents the line) — `lib/indent.ts`, applied through
+  `execCommand` so each step is undoable.
 - **Rendered HTML is always sanitized** (`renderMarkdown`) before `v-html`.
 - **Desktop-first, phone-safe:** keep controls tappable and the side-by-side panes usable at phone width.
 - **No zoom on focus (iOS):** `index.html` adds `maximum-scale=1` to the viewport on iPhone/iPad only, so

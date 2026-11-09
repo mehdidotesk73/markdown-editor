@@ -12,6 +12,13 @@ collapsible panes and a draggable divider, Save / Save as / Export PDF (html2pdf
 drafts + file handles persisted in IndexedDB, external-change pickup on focus, dark slate
 theme from power-gis, Help modal now renders `docs/concepts/*.md`.
 
+### v0.8.0 — Block indent, Focus dropdown (2026-11-09)
+
+Tab and Shift+Tab indent and outdent every line a selection touches (no selection: Tab inserts
+an indent, Shift+Tab outdents the line), as one undoable step. The focus controls became a
+**Focus** button at the top right of the Preview header — the eye shows on/off — that drops down
+the settings panel.
+
 ### v0.7.0 — Focus as a share of attention (2026-11-07)
 
 The focus engine now follows the user's model: a focal point emits a bell-shaped attention field
