@@ -17,7 +17,7 @@ theme from power-gis, Help modal now renders `docs/concepts/*.md`.
 Tab and Shift+Tab indent and outdent every line a selection touches (no selection: Tab inserts
 an indent, Shift+Tab outdents the line), as one undoable step. The focus controls became a
 **Focus** button at the top right of the Preview header — the eye shows on/off — that drops down
-the settings panel.
+the settings panel. The focus now starts off, with the panel closed.
 
 ### v0.7.0 — Focus as a share of attention (2026-11-07)
 

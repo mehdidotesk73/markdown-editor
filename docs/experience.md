@@ -404,6 +404,7 @@ look wrong in a shot taken <0.25 s later. Wait out the transition before judging
 
 ### v0.8.0 — 2026-11-09
 - **Added:** Tab / Shift+Tab indent / outdent the selected block of lines (undoable)
+- **Changed:** The focus starts off and its panel closed (settings key v4; scale, decay and lag carry over)
 - **Changed:** Focus controls move to the top right of the Preview header: a Focus button (eye shows on/off, chevron) with a dropdown settings panel
 
 ### v0.7.0 — 2026-11-07

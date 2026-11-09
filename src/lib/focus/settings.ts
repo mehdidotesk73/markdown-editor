@@ -31,32 +31,46 @@ export const DEFAULT_DECAY: Record<Scale, number> = { word: 1, sentence: 12, par
 // Earlier defaults: a stored value still equal to one of these was never tuned, so it moves to the new default.
 const PREVIOUS_DEFAULT: Partial<Record<Scale, number>> = { word: 2, sentence: 15 }
 
-// v3: the attention-share model (decay per scale, lag in units). From
-// earlier versions only on/off, panel and scale carry over.
-const KEY = 'md-editor:focus:v3'
-const OLD_KEYS = ['md-editor:focus:v2', 'md-editor:focus']
-const DEFAULTS: FocusSettings = { enabled: true, panel: true, scale: 'sentence', decay: { ...DEFAULT_DECAY }, lag: 0 }
+// v4: the focus starts hidden (off) with its panel closed. Earlier versions
+// carry over scale, decay and lag, but not on/off or the panel, so the new
+// defaults reach everyone once.
+const KEY = 'md-editor:focus:v4'
+const OLD_KEYS = ['md-editor:focus:v3', 'md-editor:focus:v2', 'md-editor:focus']
+const DEFAULTS: FocusSettings = { enabled: false, panel: false, scale: 'sentence', decay: { ...DEFAULT_DECAY }, lag: 0 }
+
+type Stored = Partial<FocusSettings> & { distance?: number }
+
+/** Decay from storage: missing scales get defaults; values still at an earlier default move to the new one. */
+function storedDecay(d: Partial<Record<Scale, number>> | undefined): Record<Scale, number> {
+  const decay = { ...DEFAULT_DECAY, ...(d ?? {}) }
+  for (const k of Object.keys(PREVIOUS_DEFAULT) as Scale[]) if (decay[k] === PREVIOUS_DEFAULT[k]) decay[k] = DEFAULT_DECAY[k]
+  return decay
+}
 
 function load(): FocusSettings {
   try {
     const raw = localStorage.getItem(KEY)
     if (raw) {
-      // `distance` (a shift in document order) was replaced by `lag` (along the cursor's path).
-      const { distance: _old, ...s } = JSON.parse(raw) as Partial<FocusSettings> & { distance?: number }
-      const decay = { ...DEFAULT_DECAY, ...(s.decay ?? {}) }
-      for (const k of Object.keys(PREVIOUS_DEFAULT) as Scale[]) if (decay[k] === PREVIOUS_DEFAULT[k]) decay[k] = DEFAULT_DECAY[k]
-      return { ...DEFAULTS, ...s, decay }
+      const s = JSON.parse(raw) as Stored
+      return {
+        enabled: s.enabled ?? DEFAULTS.enabled,
+        panel: s.panel ?? DEFAULTS.panel,
+        scale: s.scale ?? DEFAULTS.scale,
+        decay: storedDecay(s.decay),
+        lag: s.lag ?? DEFAULTS.lag,
+      }
     }
     for (const k of OLD_KEYS) {
       const old = localStorage.getItem(k)
       if (!old) continue
-      const o = JSON.parse(old) as Partial<FocusSettings>
+      const o = JSON.parse(old) as Stored
+      // v3 had per-scale decay and lag; v1/v2 had neither (their sliders meant something else).
+      const v3 = k === 'md-editor:focus:v3'
       return {
         ...DEFAULTS,
-        enabled: o.enabled ?? true,
-        panel: o.panel ?? true,
-        scale: o.scale ?? 'sentence',
-        decay: { ...DEFAULT_DECAY },
+        scale: o.scale ?? DEFAULTS.scale,
+        decay: v3 ? storedDecay(o.decay) : { ...DEFAULT_DECAY },
+        lag: v3 ? (o.lag ?? 0) : 0,
       }
     }
   } catch {

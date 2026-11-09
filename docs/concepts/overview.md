@@ -23,7 +23,7 @@ reading or writing, and the basis for future features that look at your text wit
 text gets more attention than far text, and short sentences or paragraphs get more than long ones.
 
 The **Focus** button sits at the top right of the Preview pane. Its eye shows whether the focus
-is on (eye) or off (crossed-out eye). Click it to drop down the focus settings; click it again to
+is on (eye) or off (crossed-out eye). It starts off. Click it to drop down the focus settings; click it again to
 close them — the focus keeps running either way:
 
 - The **eye** button in the panel turns the focus itself on or off.
