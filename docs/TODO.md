@@ -14,9 +14,9 @@ theme from power-gis, Help modal now renders `docs/concepts/*.md`.
 
 ### v0.10.0 — More looks (2026-11-10)
 
-Looks from the theme canvas are now in the app: Sage, Graphite, Midnight & Champagne and Navy &
-Brass (dark, with a deeper navy), Porcelain and Fog (light). Original, Smoke & Sand and
-Monochrome were tried and dropped. The
+Looks from the theme canvas are now in the app: Navy & Brass (the default dark, with a deeper
+navy), Graphite and Midnight & Champagne (dark), Porcelain and Fog (light), all with the same
+serif for titles and headings. Sage, Original, Smoke & Sand and Monochrome were tried and dropped. The
 arrow beside Dark / Light opens them; Dark / Light flips between the chosen dark and light look.
 
 ### v0.9.0 — Lettered lists, PDF font, softer code blocks (2026-11-10)

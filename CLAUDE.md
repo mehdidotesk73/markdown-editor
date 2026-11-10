@@ -13,7 +13,7 @@ runs in the browser and reads/writes local files through the File System Access 
 UI structure:
 
 - **Top bar** — title, file actions (Open, Save, Save as…, Export PDF), theme toggle
-  (Dark = Sage / Light = Porcelain), Help.
+  (Dark / Light + a look menu), Help.
 - **Tab bar** — one tab per open file; amber name = unsaved, ⚠ = needs reconnecting, italic =
   not linked to a file yet; ＋ makes a new document.
 - **Workspace** (`Workspace.vue`) — markdown source (left) and rendered preview (right),
@@ -50,22 +50,20 @@ How files work (see `src/lib/fileAccess.ts`, `src/lib/useTabs.ts`):
 - Markdown rendering: one shared parser, `src/lib/markdownParser.ts` (`marked` GFM + KaTeX +
   lettered lists `a)`/`A.` from `lib/alphaList.ts`, no DOM), → `DOMPurify` in `src/lib/markdown.ts` for the preview.
 
-**Themes:** six looks from the user's theme canvas (claude.ai/artifact/W3sk5PGenonqPMW1qq3MsH,
-"Markdown Lab Looks"), listed in `src/lib/themes.ts`, each a full token block in `src/styles/vars.css`
-keyed by `data-theme` (Sage's tokens sit on `:root`). Dark: Sage (default), Graphite, Midnight &
-Champagne, Navy & Brass (navy deepened at the user's request). Light: Porcelain (default), Fog.
-Original, Smoke & Sand and Monochrome were added and then dropped by the user — don't re-add.
+**Themes:** five looks from the user's theme canvas (claude.ai/artifact/W3sk5PGenonqPMW1qq3MsH,
+"Markdown Lab Looks"), listed in `src/lib/themes.ts`, each a token block in `src/styles/vars.css`
+keyed by `data-theme`, on top of base tokens on `:root`. Dark: Navy & Brass (default; navy deepened
+at the user's request), Graphite, Midnight & Champagne. Light: Porcelain (default), Fog.
+Sage (the first dark look), Original, Smoke & Sand and Monochrome were dropped by the user — don't
+re-add. **Every look uses the same display serif** (Fraunces, `--font-display` on `:root`, bundled
+via `@fontsource/fraunces`) for the app title and preview headings; body text stays sans.
 The top bar's **Dark / Light** button flips between the viewer's chosen dark and chosen light look;
 the chevron beside it opens the look menu (grouped by mode, a swatch each); picking a look makes it
 the choice for its mode (`src/lib/useTheme.ts`, localStorage `md-editor:theme`; sets `data-theme` on
 `<html>` at import, before first paint). The newer looks' surface, paper and matte-button
-tokens were derived from the canvas palettes by script (`--btn-*` from head/text/light tint); Sage and Porcelain are hand-tuned:
-- **Sage** (`:root`): dark green-grey surfaces, a soft sage glow behind, sage-tinted light
-  on the glass, deep glass for the main action and the selected tab's well.
-- **Porcelain** (`:root[data-theme='porcelain']`): warm porcelain page with a faint dot grid,
-  frosted white glass, warm soft shadows (`--shadow-rgb`), the main action a **solid dark ink
-  pill** (`--primary-bg`), and **Fraunces** serif for the title and preview headings
-  (`--font-display`; `@fontsource/fraunces`, bundled for offline).
+tokens were derived from the canvas palettes by script (`--btn-*` from head/text/light tint);
+Porcelain is hand-tuned (`:root[data-theme='porcelain']`): warm porcelain page with a faint dot grid,
+warm soft shadows (`--shadow-rgb`) and a **solid dark ink** main action.
 Accents have one job each — focus/links, green = saved, amber = unsaved (an amber icon on a button,
 an amber tab name, or a small ⚠ mark — never a tinted fill), red = errors. **No accent hue in the glass**: selection is light and
 shadow. The user rejected, in turn: saturated blue, pale aqua, teal + amber glass, and the navy
@@ -77,7 +75,7 @@ page to 50% opacity); theme differences go in tokens instead.
 tones by job) — no hand-styled `<button>`s in the chrome. The look is **compact and matte**: a
 flat solid fill, a 1px hairline border, small rounded corners (`--btn-radius`), no gradients,
 blur, glow or sheen; hover lifts the fill a shade, pressing darkens it. The main action and
-toggles that are on get a solid fill (Sage: pale sage with dark text; Porcelain: dark ink).
+toggles that are on get a solid fill (dark looks: the look's light tint with dark text; light looks: dark ink).
 Colours are the `--btn-*` tokens in `vars.css`. The user swapped the earlier liquid-glass buttons
 for this, then asked for less vertical padding — don't bring the glass back, and keep them tight.
 The tab bar and the focus panel's dropdowns use the same matte tokens.
@@ -111,7 +109,7 @@ per-document typical-length normalisation, a leash distance in words, and a docu
 "distance" shift. No per-tab state.
 
 **Panels ("paper"):** the editor and preview panes use `--paper-*` tokens, which each theme
-sets (Sage: dark green-grey page; Porcelain: warm off-white page). Never pure white text or
+sets (e.g. Navy & Brass: deep navy page; Porcelain: warm off-white page). Never pure white text or
 background. `.md-body` reads `--paper-*`, so the Help modal follows the theme too.
 
 The app is wrapped in the template's header/footer shell. The top bar carries the Help button (renders `docs/concepts/*.md`) and an "Update available" affordance when a newer PWA build is live — a background update never auto-reloads while a tab has unsaved edits. The footer provides the current build id/timestamp, version-check status against the live origin, a "Reload latest" button to force-refresh a stale cache, and a collapsible debug log with copy-to-clipboard support. See `docs/system-design.md` §2 for the full wrapper template and implementation details.
@@ -219,7 +217,7 @@ src/
     HelpModal.vue          renders docs/concepts/*.md into the Help modal
     ui/UiButton.vue        the app's button (sizes, tones, Lucide icons left/right)
   styles/
-    vars.css               all theme tokens: Sage (:root) + one [data-theme] block per other look
+    vars.css               base tokens (:root) + one [data-theme] block per look
     markdown.css           rendered-markdown styles (.md-body) for preview + Help
 .claude/skills/            finish-setup, ship-feature, add-github-pages, add-statefulness,
                            add-database, update-skills, share-pattern
