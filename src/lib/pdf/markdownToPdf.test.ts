@@ -99,7 +99,7 @@ describe('PDF layout rules', () => {
     const cell = code.table.body[0][0]
     expect(cell.style).toBe('code')
     expect(cell.text).toBe('if (a) {\n    b()\n}')
-    expect(code.layout.fillColor()).toBe('#eef0eb')
+    expect(code.layout.fillColor()).toBe('#f1f3ee')
   })
 
   it('lets long code blocks split across pages (no unbreakable)', () => {

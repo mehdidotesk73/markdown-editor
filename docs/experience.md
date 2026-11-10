@@ -405,7 +405,7 @@ look wrong in a shot taken <0.25 s later. Wait out the transition before judging
 ### v0.9.0 — 2026-11-10
 - **Added:** Lettered lists (`a)` `b)` / `A.` `B.`) in the preview and the PDF
 - **Added:** PDF font choice — Sans, Serif (new DejaVu Serif subsets) or Mono — from a menu beside Export PDF; each export downloads only its font
-- **Changed:** PDF code blocks: a clearly grey tinted panel that wraps long lines and carries across page breaks; over-long tokens are split to fit. (A pale fill read as white; rounded corners — a pre-sized canvas, or a two-pass paint — were tried and dropped in favour of a tint that always applies cleanly.)
+- **Changed:** PDF code blocks: a subtle tint in the Sage theme's off-white (`#f1f3ee`, edge `#e6e9e1`) — a panel that wraps long lines and carries across page breaks; over-long tokens are split to fit. (A pale fill read as white; rounded corners — a pre-sized canvas, or a two-pass paint — were tried and dropped in favour of a tint that always applies cleanly.)
 
 ### v0.8.0 — 2026-11-09
 - **Added:** Tab / Shift+Tab indent / outdent the selected block of lines (undoable)

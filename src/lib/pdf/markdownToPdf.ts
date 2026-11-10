@@ -36,9 +36,11 @@ const C = {
   muted: '#59636e',
   border: '#d5d9e0',
   codeBg: '#f3f5f8',
-  // Code blocks: a grey panel with a soft edge, clearly set apart from the white page.
-  blockBg: '#eef0eb',
-  blockEdge: '#d6d9d1',
+  // Code blocks: the Sage theme's off-white (its --text, #e6e9e1) at about 55% over the
+  // white page for the fill — the same sage-tinted hue, kept subtle — and the
+  // off-white itself for the edge.
+  blockBg: '#f1f3ee',
+  blockEdge: '#e6e9e1',
   link: '#1f5fd1',
   quote: '#4f8ef7',
 }
