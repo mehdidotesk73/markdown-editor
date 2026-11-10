@@ -47,8 +47,8 @@ const HighlightCtor = (globalThis as unknown as { Highlight?: new (...r: Range[]
 function previewWords(root: HTMLElement): PreviewWord[] {
   const out: PreviewWord[] = []
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
-    // Rendered math is skipped: its glyphs don't correspond to source words.
-    acceptNode: (n) => ((n.parentElement?.closest('.katex') ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT)),
+    // Rendered math and diagrams are skipped: their text doesn't follow the source words.
+    acceptNode: (n) => ((n.parentElement?.closest('.katex, .mermaid-block') ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT)),
   })
   for (let n = walker.nextNode() as Text | null; n; n = walker.nextNode() as Text | null) {
     for (const w of wordSeg.segment(n.data)) {

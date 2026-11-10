@@ -161,3 +161,24 @@
   text-decoration-thickness: 2px;
   text-underline-offset: 4px;
 }
+
+/* Mermaid diagrams (lib/diagram.ts): the source shows, faded, until the
+   diagram is drawn; a source that doesn't parse stays as code with a red edge. */
+.md-body .mermaid-block {
+  margin: 0 0 1em;
+}
+.md-body .mermaid-block:not(.is-rendered):not(.is-error) pre {
+  opacity: 0.55;
+}
+.md-body .mermaid-block.is-error pre {
+  border-color: var(--danger);
+}
+.md-body .mermaid-block.is-rendered {
+  display: flex;
+  justify-content: center;
+  overflow-x: auto;
+}
+.md-body .mermaid-block svg {
+  max-width: 100%;
+  height: auto;
+}

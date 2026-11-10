@@ -402,6 +402,11 @@ look wrong in a shot taken <0.25 s later. Wait out the transition before judging
 
 ## Version History
 
+### v0.11.0 — 2026-11-10
+- **Added:** Mermaid diagrams (```` ```mermaid ````) in the preview (in the look's colours) and the PDF (tinted boxes, body-font labels)
+- **Changed:** Offline cache precaches only the app core; PDF, math and diagram chunks are cached on first use
+- **Gotchas:** DOMPurify drops attributes containing `-->` (so the source rides in the code text); svg-to-pdfkit ignores `<style>` and `width="100%"` (so styles are flattened onto elements — read all, then write, or children lose their class-based rules)
+
 ### v0.10.0 — 2026-11-10
 - **Added:** The theme canvas's looks, chosen from a menu beside Dark / Light; Dark / Light flips between the viewer's chosen dark and light look. Kept: Navy & Brass (navy deepened; now the default dark), Graphite, Midnight & Champagne, Porcelain, Fog — all with one display serif (Fraunces); Sage, Original, Smoke & Sand and Monochrome were tried and dropped
 

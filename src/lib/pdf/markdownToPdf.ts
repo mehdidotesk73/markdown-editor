@@ -26,6 +26,15 @@ export interface PdfAssets {
   decode: (s: string) => string
   /** Code-block panel colours (from the current look via pdfCodeTint); default: C.blockBg / C.blockEdge. */
   codeTint?: CodeTint
+  /** Mermaid diagrams by source, as SVG with their size in CSS px. Missing → shown as a code block. */
+  diagrams?: Map<string, { svg: string; width: number; height: number }>
+  /** Set by buildDocument: the body font, which diagram labels fall back to. */
+  bodyFont?: PdfFont
+}
+
+/** Mermaid fenced blocks are drawn as diagrams. */
+export function isMermaid(t: Token): t is Tokens.Code {
+  return t.type === 'code' && ((t as Tokens.Code).lang ?? '').trim().toLowerCase() === 'mermaid'
 }
 
 // ---- page + typography -------------------------------------------------------
@@ -192,8 +201,17 @@ function block(t: Token, a: PdfAssets, width: number): Content | null {
       return { text: tt.tokens ? inline(tt.tokens, a) : a.decode(tt.text) }
     }
 
-    case 'code':
+    case 'code': {
+      const d = isMermaid(t) ? a.diagrams?.get(t.text) : undefined
+      if (d) {
+        // CSS px → pt (×0.75), never wider than the column, nor taller than
+        // ~70% of a page, so a tall chart still fits on the page after its heading.
+        const maxH = 0.7 * (PAGE.height - PAGE.margins[1] - PAGE.margins[3])
+        const w = Math.min(width, d.width * 0.75, (maxH * d.width) / d.height)
+        return { svg: d.svg, width: w, font: a.bodyFont ?? 'Sans', alignment: 'center', margin: [0, 2, 0, 10] }
+      }
       return codeBlock((t as Tokens.Code).text, width, a.codeTint)
+    }
 
     case 'blockquote': {
       const q = t as Tokens.Blockquote
@@ -437,6 +455,7 @@ export function buildDocument(
   codeTint?: CodeTint,
 ): Record<string, unknown> {
   a.codeTint = codeTint
+  a.bodyFont = font
   return {
     info: { title },
     pageSize: 'A4',

@@ -12,6 +12,12 @@ collapsible panes and a draggable divider, Save / Save as / Export PDF (html2pdf
 drafts + file handles persisted in IndexedDB, external-change pickup on focus, dark slate
 theme from power-gis, Help modal now renders `docs/concepts/*.md`.
 
+### v0.11.0 — Mermaid diagrams (2026-11-10)
+
+Code blocks marked `mermaid` are drawn as diagrams in the preview (in the current look's colours)
+and in the PDF (boxes in the code tint, labels in the body font). A diagram with a mistake stays
+as code with a red edge. Mermaid loads only for documents that have a diagram.
+
 ### v0.10.0 — More looks (2026-11-10)
 
 Looks from the theme canvas are now in the app: Navy & Brass (the default dark, with a deeper

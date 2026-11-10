@@ -1,6 +1,6 @@
 import type { Token, Tokens } from 'marked'
 import { lexMarkdown } from './markdownParser'
-import { buildDocument, isDisplayInline, pdfCodeTint, BASE_SIZE, type PdfAssets, type PdfFont, type RenderedMath } from './pdf/markdownToPdf'
+import { buildDocument, isDisplayInline, isMermaid, pdfCodeTint, BASE_SIZE, type PdfAssets, type PdfFont, type RenderedMath } from './pdf/markdownToPdf'
 import { downloadBlob } from './fileAccess'
 
 /** "notes.md" → "notes.pdf" */
@@ -98,8 +98,10 @@ export async function exportMarkdownToPdf(markdown: string, fileName: string, fo
 
   const display = new Set<string>()
   const imageUrls = new Set<string>()
+  const mermaid = new Set<string>()
   let hasInlineMath = false
   walk(tokens, (t) => {
+    if (isMermaid(t)) mermaid.add(t.text)
     if (t.type === 'blockKatex' || isDisplayInline(t)) display.add((t as any).text)
     else if (t.type === 'inlineKatex') hasInlineMath = true
     if (t.type === 'image') imageUrls.add((t as Tokens.Image).href)
@@ -120,15 +122,26 @@ export async function exportMarkdownToPdf(markdown: string, fileName: string, fo
     }
   }
 
+  // Code blocks take a faded version of the current look's code colour; Mermaid
+  // diagrams use the same tint for their boxes, and the body font for labels.
+  const codeTint = pdfCodeTint(getComputedStyle(document.documentElement).getPropertyValue('--paper-code-bg'))
+  const diagrams = new Map<string, { svg: string; width: number; height: number }>()
+  if (mermaid.size) {
+    const { renderDiagramForPdf } = await import('./diagram')
+    for (const src of mermaid) {
+      const d = await renderDiagramForPdf(src, codeTint, FONTS[font].normal)
+      if (d) diagrams.set(src, d)
+    }
+  }
+
   const assets: PdfAssets = {
+    diagrams,
     math,
     images: new Map(images.filter((e): e is [string, NonNullable<(typeof e)[1]>] => !!e[1])),
     inlineMath,
     decode,
   }
   const name = pdfName(fileName)
-  // Code blocks take a faded version of the current look's code colour.
-  const codeTint = pdfCodeTint(getComputedStyle(document.documentElement).getPropertyValue('--paper-code-bg'))
   const def = buildDocument(tokens, name.replace(/\.pdf$/, ''), assets, font, codeTint)
   // Register only the fonts this export uses, so the others are never downloaded.
   pdfMake.setFonts({ [font]: FONTS[font], Mono: FONTS.Mono })
