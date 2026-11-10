@@ -405,7 +405,7 @@ look wrong in a shot taken <0.25 s later. Wait out the transition before judging
 ### v0.9.0 — 2026-11-10
 - **Added:** Lettered lists (`a)` `b)` / `A.` `B.`) in the preview and the PDF
 - **Added:** PDF font choice — Sans, Serif (new DejaVu Serif subsets) or Mono — from a menu beside Export PDF; each export downloads only its font
-- **Changed:** PDF code blocks: soft warm-grey panel with a hairline edge and more padding
+- **Changed:** PDF code blocks: rounded grey panel (canvas rect under pre-wrapped code; a first pass with only a paler table fill read as plain white on screen, and table corners can't round)
 
 ### v0.8.0 — 2026-11-09
 - **Added:** Tab / Shift+Tab indent / outdent the selected block of lines (undoable)
