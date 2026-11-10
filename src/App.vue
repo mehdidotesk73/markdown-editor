@@ -5,6 +5,7 @@ import TabBar from './components/TabBar.vue'
 import Workspace from './components/Workspace.vue'
 import {
   Check,
+  ChevronDown,
   CircleHelp,
   Copy,
   FileDown,
@@ -25,6 +26,8 @@ import { useVersionCheck } from './lib/useVersionCheck'
 import { useTabs, isDirty } from './lib/useTabs'
 import { supportsFileSystemAccess } from './lib/fileAccess'
 import { exportMarkdownToPdf } from './lib/exportPdf'
+import { pdfFont, PDF_FONTS } from './lib/pdfFont'
+import type { PdfFont } from './lib/pdf/markdownToPdf'
 import { useTheme } from './lib/useTheme'
 
 const buildId = __BUILD_ID__
@@ -124,12 +127,25 @@ async function onSave(saveAs = false) {
   }
 }
 
+// The font menu beside Export PDF: pick the PDF's body font (remembered).
+const showFontMenu = ref(false)
+const exportGroup = ref<HTMLElement>()
+function onDocPointer(e: PointerEvent) {
+  if (showFontMenu.value && exportGroup.value && !exportGroup.value.contains(e.target as Node)) showFontMenu.value = false
+}
+onMounted(() => document.addEventListener('pointerdown', onDocPointer))
+onBeforeUnmount(() => document.removeEventListener('pointerdown', onDocPointer))
+function chooseFont(f: PdfFont) {
+  pdfFont.value = f
+  showFontMenu.value = false
+}
+
 async function onExport() {
   if (!active.value || exporting.value) return
   exporting.value = true
   try {
-    await exportMarkdownToPdf(active.value.content, active.value.name)
-    logDebug(`Exported ${active.value.name} to PDF`)
+    await exportMarkdownToPdf(active.value.content, active.value.name, pdfFont.value)
+    logDebug(`Exported ${active.value.name} to PDF (${pdfFont.value})`)
   } catch (e) {
     logDebug(`PDF export failed: ${(e as Error).message}`, 'error')
   } finally {
@@ -218,16 +234,44 @@ const helpDoc = ref('overview')
         >
           Save as…
         </UiButton>
-        <UiButton
-          size="compact"
-          tone="primary"
-          :disabled="exporting"
-          :icon-left="FileDown"
-          title="Download the document as a PDF (Ctrl/⌘+P)"
-          @click="onExport"
-        >
-          {{ exporting ? 'Exporting…' : 'Export PDF' }}
-        </UiButton>
+        <div ref="exportGroup" class="export-group" @keydown.esc="showFontMenu = false">
+          <UiButton
+            size="compact"
+            tone="primary"
+            :disabled="exporting"
+            :icon-left="FileDown"
+            :title="`Download the document as a PDF in ${pdfFont} (Ctrl/⌘+P)`"
+            @click="onExport"
+          >
+            {{ exporting ? 'Exporting…' : 'Export PDF' }}
+          </UiButton>
+          <UiButton
+            size="compact"
+            :icon-left="ChevronDown"
+            :active="showFontMenu"
+            :aria-expanded="showFontMenu"
+            aria-haspopup="menu"
+            :aria-label="`PDF font: ${pdfFont}. Choose another`"
+            :title="`PDF font: ${pdfFont}`"
+            @click="showFontMenu = !showFontMenu"
+          />
+          <div v-if="showFontMenu" class="font-menu" role="menu" aria-label="PDF font">
+            <span class="font-menu-title">PDF font</span>
+            <UiButton
+              v-for="f in PDF_FONTS"
+              :key="f.value"
+              size="compact"
+              role="menuitemradio"
+              class="font-option"
+              :active="pdfFont === f.value"
+              :aria-checked="pdfFont === f.value"
+              :style="{ fontFamily: f.css }"
+              @click="chooseFont(f.value)"
+            >
+              {{ f.label }}
+            </UiButton>
+          </div>
+        </div>
       </div>
 
       <div class="topbar-end">
@@ -394,6 +438,46 @@ const helpDoc = ref('overview')
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem;
+}
+
+/* Export PDF + its font menu: two buttons joined, the menu dropping below. */
+.export-group {
+  position: relative;
+  display: inline-flex;
+  gap: 1px;
+}
+.export-group > :deep(.ui-btn:first-child) {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+.export-group > :deep(.ui-btn:nth-child(2)) {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+.font-menu {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 4px);
+  right: 0;
+  display: grid;
+  gap: 0.3rem;
+  min-width: 8.5rem;
+  padding: 0.45rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-elev);
+  box-shadow: var(--shadow);
+}
+.font-menu-title {
+  padding: 0 0.2rem 0.1rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.font-option {
+  justify-content: flex-start;
 }
 
 .topbar-end {

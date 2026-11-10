@@ -36,7 +36,8 @@ How files work (see `src/lib/fileAccess.ts`, `src/lib/useTabs.ts`):
 - **PDF export** downloads a real-text PDF built in the page with **pdfmake** — no print
   dialog. `src/lib/pdf/markdownToPdf.ts` turns the same `marked` tokens the preview uses into a
   pdfmake document (pure, unit-tested); `src/lib/exportPdf.ts` lazy-loads pdfmake, inlines
-  images, renders display math and downloads. Fonts: DejaVu Sans / Sans Mono, subset to `.woff`
+  images, renders display math and downloads. Body font is the user's pick (Sans / Serif / Mono, menu
+  beside Export PDF, `lib/pdfFont.ts`); code is always Mono. Fonts: DejaVu Sans / Serif / Sans Mono, subset to `.woff`
   in `public/fonts` (pdfmake can't read woff2), chosen because they cover arrows and math
   symbols. Display math → MathJax SVG (`lib/pdf/math.ts`, lazy, only for docs with `$$`); inline
   math → Unicode text (`lib/pdf/inlineMath.ts`), since a PDF text run can't hold an image.
@@ -44,8 +45,8 @@ How files work (see `src/lib/fileAccess.ts`, `src/lib/useTabs.ts`):
   or the print dialog (extra step, serif fallback); see `docs/experience.md`.
 - **Math:** KaTeX via `marked-katex-extension` in standard mode (`$x$`, `$$ … $$`; "$5 and
   $10" stays text). Its `.woff2` fonts are precached by Workbox for offline use.
-- Markdown rendering: one shared parser, `src/lib/markdownParser.ts` (`marked` GFM + KaTeX,
-  no DOM), → `DOMPurify` in `src/lib/markdown.ts` for the preview.
+- Markdown rendering: one shared parser, `src/lib/markdownParser.ts` (`marked` GFM + KaTeX +
+  lettered lists `a)`/`A.` from `lib/alphaList.ts`, no DOM), → `DOMPurify` in `src/lib/markdown.ts` for the preview.
 
 **Themes:** two complete looks, picked by the user from a canvas of nine sketches, switched by the
 top bar's **Dark / Light** button (`src/lib/useTheme.ts` sets `data-theme` on `<html>` at import
@@ -192,6 +193,8 @@ src/
     pdf/markdownToPdf.ts   tokens → pdfmake document (pure; *.test.ts beside it)
     pdf/math.ts            display TeX → SVG via MathJax (lazy chunk)
     pdf/inlineMath.ts      inline TeX → Unicode text
+    alphaList.ts           lettered lists a) b) / A. B. (marked extension; tested)
+    pdfFont.ts             the PDF body font preference (Sans / Serif / Mono)
     indent.ts              Tab / Shift+Tab indent / outdent of selected lines (pure; tested)
     useTheme.ts            Dark (Sage) / Light (Porcelain) app theme → data-theme on <html>
     liquidTabs.ts          tab bar motion: how lit each tab is, the spring (pure; tested)
@@ -217,7 +220,7 @@ docs/
   concepts/*.md            user docs (rendered into the Help modal)
 public/
   favicon.svg, logo-192.png, logo-512.png   app icon (M↓ on slate)
-  fonts/                   DejaVu .woff subsets for the PDF export (+ license)
+  fonts/                   DejaVu Sans / Serif / Mono .woff subsets for the PDF export (+ license)
 .github/workflows/ci.yml       build check on every PR (required by the branch ruleset)
 netlify.toml                   Netlify build + SPA redirect
 package-lock.json              committed — CI runs `npm ci` and needs it

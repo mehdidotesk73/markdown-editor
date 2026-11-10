@@ -36,6 +36,9 @@ const C = {
   muted: '#59636e',
   border: '#d5d9e0',
   codeBg: '#f3f5f8',
+  // Code blocks: a soft warm-grey panel with a hairline edge, set apart from the page.
+  blockBg: '#f5f5f2',
+  blockEdge: '#e4e4de',
   link: '#1f5fd1',
   quote: '#4f8ef7',
 }
@@ -194,15 +197,15 @@ function block(t: Token, a: PdfAssets, width: number): Content | null {
           body: [[{ text: c.text.replace(/\t/g, '    ') || ' ', style: 'code' }]],
         },
         layout: {
-          fillColor: () => C.codeBg,
-          hLineColor: () => C.border,
-          vLineColor: () => C.border,
-          hLineWidth: () => 0.6,
-          vLineWidth: () => 0.6,
-          paddingLeft: () => 8,
-          paddingRight: () => 8,
-          paddingTop: () => 6,
-          paddingBottom: () => 6,
+          fillColor: () => C.blockBg,
+          hLineColor: () => C.blockEdge,
+          vLineColor: () => C.blockEdge,
+          hLineWidth: () => 0.4,
+          vLineWidth: () => 0.4,
+          paddingLeft: () => 10,
+          paddingRight: () => 10,
+          paddingTop: () => 8,
+          paddingBottom: () => 8,
         },
         margin: [0, 0, 0, 9],
       }
@@ -296,6 +299,9 @@ function list(l: Tokens.List, a: PdfAssets, width: number, nested = false): Cont
   const node: Record<string, unknown> = { margin, markerColor: C.muted }
   if (l.ordered) {
     node.ol = items
+    // Lettered lists (alphaList.ts): a) b) c) or A. B. C.
+    const alpha = (l as Tokens.List & { alpha?: 'lower' | 'upper' }).alpha
+    if (alpha) node.type = alpha === 'upper' ? 'upper-alpha' : 'lower-alpha'
     if (typeof l.start === 'number' && l.start !== 1) node.start = l.start
   } else {
     node.ul = items
@@ -334,15 +340,18 @@ function table(tb: Tokens.Table, a: PdfAssets): Content {
 
 type NodeInfo = { headlineLevel?: number; canvas?: unknown }
 
+/** The body font of the PDF (code always uses Mono). */
+export type PdfFont = 'Sans' | 'Serif' | 'Mono'
+
 /** Build the full pdfmake document definition. */
-export function buildDocument(tokens: Token[], title: string, a: PdfAssets): Record<string, unknown> {
+export function buildDocument(tokens: Token[], title: string, a: PdfAssets, font: PdfFont = 'Sans'): Record<string, unknown> {
   return {
     info: { title },
     pageSize: 'A4',
     pageMargins: [...PAGE.margins],
     content: blocks(tokens, a, CONTENT_WIDTH),
     styles,
-    defaultStyle: { font: 'Sans', fontSize: BASE_SIZE, lineHeight: 1.32, color: C.text },
+    defaultStyle: { font, fontSize: BASE_SIZE, lineHeight: 1.32, color: C.text },
     footer: (page: number, pages: number) =>
       pages > 1 ? { text: `${page} / ${pages}`, alignment: 'center', fontSize: 8, color: C.muted, margin: [0, 24, 0, 0] } : null,
     // Never leave a heading alone at the bottom of a page: if nothing but its

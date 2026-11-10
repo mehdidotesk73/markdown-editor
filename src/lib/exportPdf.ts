@@ -1,6 +1,6 @@
 import type { Token, Tokens } from 'marked'
 import { lexMarkdown } from './markdownParser'
-import { buildDocument, isDisplayInline, BASE_SIZE, type PdfAssets, type RenderedMath } from './pdf/markdownToPdf'
+import { buildDocument, isDisplayInline, BASE_SIZE, type PdfAssets, type PdfFont, type RenderedMath } from './pdf/markdownToPdf'
 import { downloadBlob } from './fileAccess'
 
 /** "notes.md" → "notes.pdf" */
@@ -21,6 +21,12 @@ const FONTS = {
     italics: fontUrl('DejaVuSans-Oblique.woff'),
     bolditalics: fontUrl('DejaVuSans-BoldOblique.woff'),
   },
+  Serif: {
+    normal: fontUrl('DejaVuSerif.woff'),
+    bold: fontUrl('DejaVuSerif-Bold.woff'),
+    italics: fontUrl('DejaVuSerif-Italic.woff'),
+    bolditalics: fontUrl('DejaVuSerif-BoldItalic.woff'),
+  },
   Mono: {
     normal: fontUrl('DejaVuSansMono.woff'),
     bold: fontUrl('DejaVuSansMono-Bold.woff'),
@@ -34,7 +40,6 @@ let pdfMakePromise: Promise<any> | null = null
 function loadPdfMake() {
   pdfMakePromise ??= import('pdfmake/build/pdfmake').then((m: any) => {
     const pdfMake = m.default ?? m
-    pdfMake.addFonts(FONTS)
     // Only our own font files may be fetched; images are inlined beforehand.
     const origin = location.origin
     pdfMake.setUrlAccessPolicy((url: string) => url.startsWith(origin + '/'))
@@ -88,7 +93,7 @@ function decode(s: string): string {
  * Heavy pieces load on first use only: pdfmake (~1 MB) on the first export,
  * MathJax (~1.5 MB) only when a document has display math.
  */
-export async function exportMarkdownToPdf(markdown: string, fileName: string): Promise<void> {
+export async function exportMarkdownToPdf(markdown: string, fileName: string, font: PdfFont = 'Sans'): Promise<void> {
   const tokens = lexMarkdown(markdown)
 
   const display = new Set<string>()
@@ -122,7 +127,9 @@ export async function exportMarkdownToPdf(markdown: string, fileName: string): P
     decode,
   }
   const name = pdfName(fileName)
-  const def = buildDocument(tokens, name.replace(/\.pdf$/, ''), assets)
+  const def = buildDocument(tokens, name.replace(/\.pdf$/, ''), assets, font)
+  // Register only the fonts this export uses, so the others are never downloaded.
+  pdfMake.setFonts({ [font]: FONTS[font], Mono: FONTS.Mono })
   const blob: Blob = await pdfMake.createPdf(def).getBlob()
   downloadBlob(name, blob)
 }

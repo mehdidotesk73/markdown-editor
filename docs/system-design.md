@@ -79,6 +79,15 @@ markdown ─ lexMarkdown() ─▶ tokens ─┬─ walk: display math, images, i
   `inlineKatex` token with `displayMode`) → MathJax SVG with `fontCache: 'none'` (inline paths),
   `currentColor` replaced, sized from MathJax's ex units. Inline `$…$` → Unicode text via
   unicodeit (a pdfmake text run can't hold an image). Unrenderable TeX falls back to its source.
+- **Body font** (`lib/pdfFont.ts`, localStorage `md-editor:pdf-font`): Sans / Serif / Mono, picked from
+  the menu beside Export PDF; `buildDocument(…, font)` sets `defaultStyle.font`, code stays Mono. Each
+  export calls `pdfMake.setFonts` with only that font + Mono, so unused faces are never downloaded.
+- **Code blocks:** a one-cell table, fill `#f5f5f2`, 0.4pt `#e4e4de` edge, 10/8pt padding (pdfmake
+  tables can't round corners, and a drawn rounded box can't follow a block across a page break).
+- **Lettered lists** (`lib/alphaList.ts`, a marked block extension): consecutive `a)`/`a.` (or `A)`/`A.`)
+  lines starting at a/A and going up one letter at a time, at least two, become an ordinary ordered
+  `list` token with `alpha: 'lower' | 'upper'`; the preview renders `<ol type="a|A">`, the PDF sets
+  pdfmake's `type: 'lower-alpha' | 'upper-alpha'`. A lone "A. Lincoln…" line stays a paragraph.
 - **Fonts:** DejaVu subsets (Latin, Greek, Cyrillic, punctuation, arrows, math operators, shapes)
   as `.woff`, ~890 KB for six files, fetched by URL; `setUrlAccessPolicy` allows only our origin.
 - **Loading:** pdfmake (~295 KB gz) on first export; MathJax (~600 KB gz) only for docs with

@@ -402,6 +402,11 @@ look wrong in a shot taken <0.25 s later. Wait out the transition before judging
 
 ## Version History
 
+### v0.9.0 — 2026-11-10
+- **Added:** Lettered lists (`a)` `b)` / `A.` `B.`) in the preview and the PDF
+- **Added:** PDF font choice — Sans, Serif (new DejaVu Serif subsets) or Mono — from a menu beside Export PDF; each export downloads only its font
+- **Changed:** PDF code blocks: soft warm-grey panel with a hairline edge and more padding
+
 ### v0.8.0 — 2026-11-09
 - **Added:** Tab / Shift+Tab indent / outdent the selected block of lines (undoable)
 - **Changed:** The focus starts off and its panel closed (settings key v4; scale, decay and lag carry over)

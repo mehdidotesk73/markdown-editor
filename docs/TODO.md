@@ -12,6 +12,12 @@ collapsible panes and a draggable divider, Save / Save as / Export PDF (html2pdf
 drafts + file handles persisted in IndexedDB, external-change pickup on focus, dark slate
 theme from power-gis, Help modal now renders `docs/concepts/*.md`.
 
+### v0.9.0 — Lettered lists, PDF font, softer code blocks (2026-11-10)
+
+Lines starting `a)` `b)` (or `A.` `B.`) now render as lettered lists in the preview and the PDF.
+The PDF's body font is chosen from a menu beside Export PDF (Sans, Serif, Mono) and remembered.
+Code blocks in the PDF sit on a soft warm-grey panel with a faint edge.
+
 ### v0.8.0 — Block indent, Focus dropdown (2026-11-09)
 
 Tab and Shift+Tab indent and outdent every line a selection touches (no selection: Tab inserts
