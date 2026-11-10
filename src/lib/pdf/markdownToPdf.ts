@@ -24,6 +24,8 @@ export interface PdfAssets {
   inlineMath: (tex: string) => string
   /** Decode HTML entities in token text ("&amp;" → "&"). */
   decode: (s: string) => string
+  /** Code-block panel colours (from the current look via pdfCodeTint); default: C.blockBg / C.blockEdge. */
+  codeTint?: CodeTint
 }
 
 // ---- page + typography -------------------------------------------------------
@@ -36,10 +38,10 @@ const C = {
   muted: '#59636e',
   border: '#d5d9e0',
   codeBg: '#f3f5f8',
-  // Code blocks: a subtle warm cream, with a slightly deeper cream edge. The user
-  // picked cream over the Sage off-white, then asked for it quieter than #fff7e8.
-  blockBg: '#fffbf4',
-  blockEdge: '#f2eadb',
+  // Code blocks, when no look colour is given (tests): a soft cream. Exports
+  // derive the tint from the current look instead — see pdfCodeTint.
+  blockBg: '#f9f6f0',
+  blockEdge: '#e3dccf',
   link: '#1f5fd1',
   quote: '#4f8ef7',
 }
@@ -191,7 +193,7 @@ function block(t: Token, a: PdfAssets, width: number): Content | null {
     }
 
     case 'code':
-      return codeBlock((t as Tokens.Code).text, width)
+      return codeBlock((t as Tokens.Code).text, width, a.codeTint)
 
     case 'blockquote': {
       const q = t as Tokens.Blockquote
@@ -276,15 +278,64 @@ export function breakLongTokens(text: string, cols: number): string {
   return text.replace(new RegExp(`\\S{${cols + 1},}`, 'g'), (tok) => tok.match(new RegExp(`.{1,${cols}}`, 'g'))!.join('\n'))
 }
 
-function codeBlock(source: string, width: number): Content {
+export interface CodeTint {
+  bg: string
+  edge: string
+}
+
+/** Parse "#rgb", "#rrggbb" or "rgb(r, g, b)" into 0–255 channels; null if unreadable. */
+function parseColor(css: string): [number, number, number] | null {
+  const s = css.trim()
+  let m = /^#([0-9a-f]{3})$/i.exec(s)
+  if (m) return [0, 1, 2].map((i) => parseInt(m![1][i] + m![1][i], 16)) as [number, number, number]
+  m = /^#([0-9a-f]{6})$/i.exec(s)
+  if (m) return [0, 2, 4].map((i) => parseInt(m![1].slice(i, i + 2), 16)) as [number, number, number]
+  m = /^rgba?\(\s*(\d+)[\s,]+(\d+)[\s,]+(\d+)/i.exec(s)
+  if (m) return [Number(m[1]), Number(m[2]), Number(m[3])]
+  return null
+}
+
+function hslHex(h: number, s: number, l: number): string {
+  const k = (n: number) => (n + h / 30) % 12
+  const a = s * Math.min(l, 1 - l)
+  const f = (n: number) => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)))
+  return '#' + [f(0), f(8), f(4)].map((v) => Math.round(v * 255).toString(16).padStart(2, '0')).join('')
+}
+
+/**
+ * The PDF code-block tint for a look: the preview's code-block colour
+ * (`--paper-code-bg`) kept to its hue, with a little more saturation so the
+ * hue survives, and its lightness lifted to just below white — a much faded
+ * version that still reads on a bright monitor (#fffbf4, ~1.5% off white, did
+ * not). The edge is the same hue a few steps darker.
+ */
+export function pdfCodeTint(css: string | null | undefined): CodeTint {
+  const rgb = css ? parseColor(css) : null
+  if (!rgb) return { bg: C.blockBg, edge: C.blockEdge }
+  const [r, g, b] = rgb.map((v) => v / 255)
+  const max = Math.max(r, g, b)
+  const min = Math.min(r, g, b)
+  const l = (max + min) / 2
+  const d = max - min
+  let h = 0
+  if (d) {
+    h = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4
+    h = (h * 60 + 360) % 360
+  }
+  const s = d ? d / (1 - Math.abs(2 * l - 1)) : 0
+  const sat = Math.min(0.45, Math.max(0.08, s * 1.5))
+  return { bg: hslHex(h, sat, 0.955), edge: hslHex(h, Math.min(0.35, sat), 0.86) }
+}
+
+function codeBlock(source: string, width: number, tint: CodeTint = { bg: C.blockBg, edge: C.blockEdge }): Content {
   const cols = Math.max(8, Math.floor((width - 2 * CODE_PAD_X - 2) / MONO_ADVANCE))
   const text = breakLongTokens(source.replace(/\t/g, '    '), cols) || ' '
   return {
     table: { widths: ['*'], body: [[{ text, style: 'code' }]] },
     layout: {
-      fillColor: () => C.blockBg,
-      hLineColor: () => C.blockEdge,
-      vLineColor: () => C.blockEdge,
+      fillColor: () => tint.bg,
+      hLineColor: () => tint.edge,
+      vLineColor: () => tint.edge,
       hLineWidth: () => 0.6,
       vLineWidth: () => 0.6,
       paddingLeft: () => CODE_PAD_X,
@@ -370,7 +421,14 @@ type NodeInfo = { headlineLevel?: number; canvas?: unknown }
 export type PdfFont = 'Sans' | 'Serif' | 'Mono'
 
 /** Build the full pdfmake document definition. */
-export function buildDocument(tokens: Token[], title: string, a: PdfAssets, font: PdfFont = 'Sans'): Record<string, unknown> {
+export function buildDocument(
+  tokens: Token[],
+  title: string,
+  a: PdfAssets,
+  font: PdfFont = 'Sans',
+  codeTint?: CodeTint,
+): Record<string, unknown> {
+  a.codeTint = codeTint
   return {
     info: { title },
     pageSize: 'A4',

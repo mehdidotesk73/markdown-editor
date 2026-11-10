@@ -82,7 +82,7 @@ markdown ─ lexMarkdown() ─▶ tokens ─┬─ walk: display math, images, i
 - **Body font** (`lib/pdfFont.ts`, localStorage `md-editor:pdf-font`): Sans / Serif / Mono, picked from
   the menu beside Export PDF; `buildDocument(…, font)` sets `defaultStyle.font`, code stays Mono. Each
   export calls `pdfMake.setFonts` with only that font + Mono, so unused faces are never downloaded.
-- **Code blocks** (`codeBlock`): a one-cell table, fill `#fffbf4` (a subtle cream; the user found `#fff6e6`/`#fff7e8` too strong and preferred cream to the Sage off-white `#f1f3ee`), 0.6pt `#f2eadb` edge, 10/8pt
+- **Code blocks** (`codeBlock`): a one-cell table tinted from the current look: `exportPdf` reads the preview's `--paper-code-bg` and `pdfCodeTint` keeps its hue, raises saturation a little (×1.5, 8–45%) and sets lightness to 95.5% for the fill, 86% for the 0.6pt edge (e.g. Navy & Brass → `#eef2f9` / `#cfd8e8`, Porcelain → `#f8f5ef` / `#e8dfcf`). Fixed creams were tried first; `#fffbf4` was ~1.5% off white and vanished on a Windows monitor, leaving only the edge visible. Square corners, 10/8pt
   padding, square corners. The table sizes itself, pdfmake wraps lines at spaces, and a long block
   continues onto the next page with its tint. pdfmake can't break inside a word, so
   `breakLongTokens` splits only tokens longer than a whole line (hashes, URLs) into line-sized

@@ -41,7 +41,9 @@ How files work (see `src/lib/fileAccess.ts`, `src/lib/useTabs.ts`):
   in `public/fonts` (pdfmake can't read woff2), chosen because they cover arrows and math
   symbols. Display math → MathJax SVG (`lib/pdf/math.ts`, lazy, only for docs with `$$`); inline
   math → Unicode text (`lib/pdf/inlineMath.ts`), since a PDF text run can't hold an image.
-  Code blocks are a subtle cream tinted table (`#fffbf4`; square corners; the user chose a tint that always applies,
+  Code blocks are a tinted table whose tint is derived from the current look (`pdfCodeTint`: the
+  preview's `--paper-code-bg` hue, lightness lifted to ~95.5% — a much faded version that still shows
+  on a bright monitor; the earlier `#fffbf4`, ~1.5% off white, vanished on the user's Windows screen); square corners; the user chose a tint that always applies,
   across page breaks too, over rounded panels that need sizing up front).
   The user rejected both earlier approaches — don't go back to html2pdf (sliced screenshots)
   or the print dialog (extra step, serif fallback); see `docs/experience.md`.

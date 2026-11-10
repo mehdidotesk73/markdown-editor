@@ -1,6 +1,6 @@
 import type { Token, Tokens } from 'marked'
 import { lexMarkdown } from './markdownParser'
-import { buildDocument, isDisplayInline, BASE_SIZE, type PdfAssets, type PdfFont, type RenderedMath } from './pdf/markdownToPdf'
+import { buildDocument, isDisplayInline, pdfCodeTint, BASE_SIZE, type PdfAssets, type PdfFont, type RenderedMath } from './pdf/markdownToPdf'
 import { downloadBlob } from './fileAccess'
 
 /** "notes.md" → "notes.pdf" */
@@ -127,7 +127,9 @@ export async function exportMarkdownToPdf(markdown: string, fileName: string, fo
     decode,
   }
   const name = pdfName(fileName)
-  const def = buildDocument(tokens, name.replace(/\.pdf$/, ''), assets, font)
+  // Code blocks take a faded version of the current look's code colour.
+  const codeTint = pdfCodeTint(getComputedStyle(document.documentElement).getPropertyValue('--paper-code-bg'))
+  const def = buildDocument(tokens, name.replace(/\.pdf$/, ''), assets, font, codeTint)
   // Register only the fonts this export uses, so the others are never downloaded.
   pdfMake.setFonts({ [font]: FONTS[font], Mono: FONTS.Mono })
   const blob: Blob = await pdfMake.createPdf(def).getBlob()

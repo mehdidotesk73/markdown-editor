@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { lexMarkdown } from '../markdownParser'
-import { breakLongTokens, buildDocument, isDisplayInline, type Content, type PdfAssets, type RenderedMath } from './markdownToPdf'
+import { breakLongTokens, buildDocument, pdfCodeTint, isDisplayInline, type Content, type PdfAssets, type RenderedMath } from './markdownToPdf'
 import { texToUnicode } from './inlineMath'
 import { texToSvg } from './math'
 
@@ -99,7 +99,31 @@ describe('PDF layout rules', () => {
     const cell = code.table.body[0][0]
     expect(cell.style).toBe('code')
     expect(cell.text).toBe('if (a) {\n    b()\n}')
-    expect(code.layout.fillColor()).toBe('#fffbf4')
+    expect(code.layout.fillColor()).toBe('#f9f6f0')
+  })
+
+  it("derives the code tint from the look's code colour: same hue, near white, still visible", () => {
+    const navy = pdfCodeTint('#101929')
+    const porcelain = pdfCodeTint('#f1eee8')
+    const lum = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)).reduce((a, b) => a + b, 0) / 3
+    for (const t of [navy, porcelain]) {
+      expect(lum(t.bg)).toBeGreaterThan(236) // light: a faded tint, not the dark preview colour
+      expect(lum(t.bg)).toBeLessThan(250) // but clearly off white (#fffbf4 ≈ 251 vanished on screen)
+      expect(lum(t.edge)).toBeLessThan(lum(t.bg))
+    }
+    // navy stays blue (b > r), porcelain stays warm (r > b)
+    const ch = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16))
+    expect(ch(navy.bg)[2]).toBeGreaterThan(ch(navy.bg)[0])
+    expect(ch(porcelain.bg)[0]).toBeGreaterThan(ch(porcelain.bg)[2])
+    expect(pdfCodeTint('rgb(16, 25, 41)')).toEqual(navy)
+    expect(pdfCodeTint('')).toEqual({ bg: '#f9f6f0', edge: '#e3dccf' })
+  })
+
+  it('uses the tint it is given for the panel', () => {
+    const tokens = lexMarkdown('```\nx\n```')
+    const def = buildDocument(tokens, 't', assets(), 'Sans', { bg: '#eef2f8', edge: '#c9d4e6' }) as { content: Node[] }
+    expect(def.content[0].layout.fillColor()).toBe('#eef2f8')
+    expect(def.content[0].layout.hLineColor()).toBe('#c9d4e6')
   })
 
   it('lets long code blocks split across pages (no unbreakable)', () => {
