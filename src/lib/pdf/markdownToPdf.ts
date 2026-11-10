@@ -24,6 +24,8 @@ export interface PdfAssets {
   inlineMath: (tex: string) => string
   /** Decode HTML entities in token text ("&amp;" → "&"). */
   decode: (s: string) => string
+  /** Code-block panel colours (from the current look via pdfCodeTint); default: C.blockBg / C.blockEdge. */
+  codeTint?: CodeTint
 }
 
 // ---- page + typography -------------------------------------------------------
@@ -36,6 +38,10 @@ const C = {
   muted: '#59636e',
   border: '#d5d9e0',
   codeBg: '#f3f5f8',
+  // Code blocks, when no look colour is given (tests): a soft cream. Exports
+  // derive the tint from the current look instead — see pdfCodeTint.
+  blockBg: '#f9f6f0',
+  blockEdge: '#e3dccf',
   link: '#1f5fd1',
   quote: '#4f8ef7',
 }
@@ -186,27 +192,8 @@ function block(t: Token, a: PdfAssets, width: number): Content | null {
       return { text: tt.tokens ? inline(tt.tokens, a) : a.decode(tt.text) }
     }
 
-    case 'code': {
-      const c = t as Tokens.Code
-      return {
-        table: {
-          widths: ['*'],
-          body: [[{ text: c.text.replace(/\t/g, '    ') || ' ', style: 'code' }]],
-        },
-        layout: {
-          fillColor: () => C.codeBg,
-          hLineColor: () => C.border,
-          vLineColor: () => C.border,
-          hLineWidth: () => 0.6,
-          vLineWidth: () => 0.6,
-          paddingLeft: () => 8,
-          paddingRight: () => 8,
-          paddingTop: () => 6,
-          paddingBottom: () => 6,
-        },
-        margin: [0, 0, 0, 9],
-      }
-    }
+    case 'code':
+      return codeBlock((t as Tokens.Code).text, width, a.codeTint)
 
     case 'blockquote': {
       const q = t as Tokens.Blockquote
@@ -267,6 +254,107 @@ function image(img: Tokens.Image, a: PdfAssets, width: number): Content {
   return { image: data.dataUrl, width: w, margin: [0, 2, 0, 9] }
 }
 
+// ---- code blocks ------------------------------------------------------------
+//
+// A one-cell table with a grey tint and a soft hairline edge. A table sizes
+// itself to the code, pdfmake wraps long lines (breaking long tokens too), and
+// a block taller than the space left continues onto the next page, tint and
+// all. Square corners: pdfmake tables can't round them, and the user preferred
+// a tint that always applies cleanly over rounded corners that need the
+// block's height worked out in advance.
+
+const CODE_PAD_X = 10
+const CODE_PAD_Y = 8
+// DejaVu Sans Mono: every character advances 1233/2048 em; code is 8.8pt.
+const MONO_ADVANCE = (1233 / 2048) * 8.8
+
+/**
+ * pdfmake only wraps at spaces, so a token longer than a whole line (a hash, a
+ * URL) would run off the page. Split just those into line-sized pieces; the
+ * font is monospaced, so `cols` characters always fit.
+ */
+export function breakLongTokens(text: string, cols: number): string {
+  if (cols < 1) return text
+  return text.replace(new RegExp(`\\S{${cols + 1},}`, 'g'), (tok) => tok.match(new RegExp(`.{1,${cols}}`, 'g'))!.join('\n'))
+}
+
+export interface CodeTint {
+  bg: string
+  edge: string
+}
+
+/** Parse "#rgb", "#rrggbb" or "rgb(r, g, b)" into 0–255 channels; null if unreadable. */
+function parseColor(css: string): [number, number, number] | null {
+  const s = css.trim()
+  let m = /^#([0-9a-f]{3})$/i.exec(s)
+  if (m) return [0, 1, 2].map((i) => parseInt(m![1][i] + m![1][i], 16)) as [number, number, number]
+  m = /^#([0-9a-f]{6})$/i.exec(s)
+  if (m) return [0, 2, 4].map((i) => parseInt(m![1].slice(i, i + 2), 16)) as [number, number, number]
+  m = /^rgba?\(\s*(\d+)[\s,]+(\d+)[\s,]+(\d+)/i.exec(s)
+  if (m) return [Number(m[1]), Number(m[2]), Number(m[3])]
+  return null
+}
+
+function hslHex(h: number, s: number, l: number): string {
+  const k = (n: number) => (n + h / 30) % 12
+  const a = s * Math.min(l, 1 - l)
+  const f = (n: number) => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)))
+  return '#' + [f(0), f(8), f(4)].map((v) => Math.round(v * 255).toString(16).padStart(2, '0')).join('')
+}
+
+/**
+ * The PDF code-block tint for a look, from the preview's code-block colour
+ * (`--paper-code-bg`): its hue, saturation ×1.3 (capped at 90%), lightness 91%
+ * for the fill and 65% for the edge (edge saturation capped at 80%). Grey looks
+ * carry little colour, so they go a little darker ("grey depth": up to 1.5% at
+ * zero saturation, none from 30% up) to still read on a bright monitor.
+ * Settings chosen by the user in the Code Tint Tuner
+ * (claude.ai/artifact/6tQDbYREFcXJXwHm7JyPUw).
+ */
+export const CODE_TINT = { lightness: 0.91, boost: 1.3, floor: 0, cap: 0.9, greyDepth: 0.015, edgeLightness: 0.65, edgeCap: 0.8 }
+export function pdfCodeTint(css: string | null | undefined): CodeTint {
+  const rgb = css ? parseColor(css) : null
+  if (!rgb) return { bg: C.blockBg, edge: C.blockEdge }
+  const [r, g, b] = rgb.map((v) => v / 255)
+  const max = Math.max(r, g, b)
+  const min = Math.min(r, g, b)
+  const l = (max + min) / 2
+  const d = max - min
+  let h = 0
+  if (d) {
+    h = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4
+    h = (h * 60 + 360) % 360
+  }
+  const s = d ? d / (1 - Math.abs(2 * l - 1)) : 0
+  const k = CODE_TINT
+  const sat = Math.min(k.cap, Math.max(k.floor, s * k.boost))
+  const deepen = k.greyDepth * Math.max(0, 1 - s / 0.3)
+  return {
+    bg: hslHex(h, sat, k.lightness - deepen),
+    edge: hslHex(h, Math.min(k.edgeCap, sat), k.edgeLightness - deepen),
+  }
+}
+
+function codeBlock(source: string, width: number, tint: CodeTint = { bg: C.blockBg, edge: C.blockEdge }): Content {
+  const cols = Math.max(8, Math.floor((width - 2 * CODE_PAD_X - 2) / MONO_ADVANCE))
+  const text = breakLongTokens(source.replace(/\t/g, '    '), cols) || ' '
+  return {
+    table: { widths: ['*'], body: [[{ text, style: 'code' }]] },
+    layout: {
+      fillColor: () => tint.bg,
+      hLineColor: () => tint.edge,
+      vLineColor: () => tint.edge,
+      hLineWidth: () => 0.6,
+      vLineWidth: () => 0.6,
+      paddingLeft: () => CODE_PAD_X,
+      paddingRight: () => CODE_PAD_X,
+      paddingTop: () => CODE_PAD_Y,
+      paddingBottom: () => CODE_PAD_Y,
+    },
+    margin: [0, 0, 0, 9],
+  }
+}
+
 function list(l: Tokens.List, a: PdfAssets, width: number, nested = false): Content {
   const inner = width - 18
   const items = l.items.map((item) => {
@@ -296,6 +384,9 @@ function list(l: Tokens.List, a: PdfAssets, width: number, nested = false): Cont
   const node: Record<string, unknown> = { margin, markerColor: C.muted }
   if (l.ordered) {
     node.ol = items
+    // Lettered lists (alphaList.ts): a) b) c) or A. B. C.
+    const alpha = (l as Tokens.List & { alpha?: 'lower' | 'upper' }).alpha
+    if (alpha) node.type = alpha === 'upper' ? 'upper-alpha' : 'lower-alpha'
     if (typeof l.start === 'number' && l.start !== 1) node.start = l.start
   } else {
     node.ul = items
@@ -334,15 +425,25 @@ function table(tb: Tokens.Table, a: PdfAssets): Content {
 
 type NodeInfo = { headlineLevel?: number; canvas?: unknown }
 
+/** The body font of the PDF (code always uses Mono). */
+export type PdfFont = 'Sans' | 'Serif' | 'Mono'
+
 /** Build the full pdfmake document definition. */
-export function buildDocument(tokens: Token[], title: string, a: PdfAssets): Record<string, unknown> {
+export function buildDocument(
+  tokens: Token[],
+  title: string,
+  a: PdfAssets,
+  font: PdfFont = 'Sans',
+  codeTint?: CodeTint,
+): Record<string, unknown> {
+  a.codeTint = codeTint
   return {
     info: { title },
     pageSize: 'A4',
     pageMargins: [...PAGE.margins],
     content: blocks(tokens, a, CONTENT_WIDTH),
     styles,
-    defaultStyle: { font: 'Sans', fontSize: BASE_SIZE, lineHeight: 1.32, color: C.text },
+    defaultStyle: { font, fontSize: BASE_SIZE, lineHeight: 1.32, color: C.text },
     footer: (page: number, pages: number) =>
       pages > 1 ? { text: `${page} / ${pages}`, alignment: 'center', fontSize: 8, color: C.muted, margin: [0, 24, 0, 0] } : null,
     // Never leave a heading alone at the bottom of a page: if nothing but its

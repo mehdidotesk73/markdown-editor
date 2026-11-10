@@ -64,7 +64,7 @@ interface Block {
 
 const FENCE = /^\s{0,3}(```|~~~)/
 const HEADING = /^\s{0,3}#{1,6}(\s|$)/
-const LIST_ITEM = /^\s*([-*+]|\d+[.)])\s+/
+const LIST_ITEM = /^\s*([-*+]|\d+[.)]|[a-zA-Z][.)])\s+/
 const BLANK = /^\s*$/
 
 /** Split the source into blocks, line by line. Fenced code stays one block. */

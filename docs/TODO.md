@@ -12,6 +12,19 @@ collapsible panes and a draggable divider, Save / Save as / Export PDF (html2pdf
 drafts + file handles persisted in IndexedDB, external-change pickup on focus, dark slate
 theme from power-gis, Help modal now renders `docs/concepts/*.md`.
 
+### v0.10.0 — More looks (2026-11-10)
+
+Looks from the theme canvas are now in the app: Navy & Brass (the default dark, with a deeper
+navy), Graphite and Midnight & Champagne (dark), Porcelain and Fog (light), all with the same
+serif for titles and headings. Sage, Original, Smoke & Sand and Monochrome were tried and dropped. The
+arrow beside Dark / Light opens them; Dark / Light flips between the chosen dark and light look.
+
+### v0.9.0 — Lettered lists, PDF font, softer code blocks (2026-11-10)
+
+Lines starting `a)` `b)` (or `A.` `B.`) now render as lettered lists in the preview and the PDF.
+The PDF's body font is chosen from a menu beside Export PDF (Sans, Serif, Mono) and remembered.
+Code blocks in the PDF sit on a pale panel tinted from the current look (long lines wrap; long blocks continue across pages).
+
 ### v0.8.0 — Block indent, Focus dropdown (2026-11-09)
 
 Tab and Shift+Tab indent and outdent every line a selection touches (no selection: Tab inserts
