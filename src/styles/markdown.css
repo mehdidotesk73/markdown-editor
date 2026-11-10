@@ -78,10 +78,44 @@
 .md-body li + li {
   margin-top: 0.2em;
 }
+/* Nested lists and an item's later paragraphs sit one item-gap below, at every level. */
 .md-body li > ul,
-.md-body li > ol {
+.md-body li > ol,
+.md-body li > p,
+.md-body li > pre,
+.md-body li > blockquote {
   margin: 0.2em 0 0;
 }
+/* Markers as typed: a. / A. / a) / A) / 1) (lists.ts). Classes, not [type=…]:
+   HTML matches the type attribute case-insensitively, so a and A would collide. */
+@counter-style ml-decimal-paren {
+  system: extends decimal;
+  suffix: ') ';
+}
+@counter-style ml-lower-paren {
+  system: extends lower-alpha;
+  suffix: ') ';
+}
+@counter-style ml-upper-paren {
+  system: extends upper-alpha;
+  suffix: ') ';
+}
+.md-body ol.alpha-lower {
+  list-style-type: lower-alpha;
+}
+.md-body ol.alpha-upper {
+  list-style-type: upper-alpha;
+}
+.md-body ol.paren {
+  list-style-type: ml-decimal-paren;
+}
+.md-body ol.alpha-lower.paren {
+  list-style-type: ml-lower-paren;
+}
+.md-body ol.alpha-upper.paren {
+  list-style-type: ml-upper-paren;
+}
+.md-body li.task,
 .md-body li:has(> input[type='checkbox']) {
   list-style: none;
   margin-left: -1.3em;

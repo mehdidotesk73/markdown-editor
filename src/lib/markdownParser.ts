@@ -1,7 +1,7 @@
 import { Marked } from 'marked'
 import markedKatex from 'marked-katex-extension'
 import type { Tokens } from 'marked'
-import { alphaListExtension } from './alphaList'
+import { listExtension } from './lists'
 
 // The one markdown parser, shared by the preview (lib/markdown.ts) and the PDF
 // export (lib/exportPdf.ts), so both read a document identically. No DOM here,
@@ -11,8 +11,8 @@ import { alphaListExtension } from './alphaList'
 //   inline  $x^2$          display  $$ E = mc^2 $$  (or $$ on their own lines)
 // Standard (not "nonStandard") mode, so prices like "$5 and $10" stay text.
 // throwOnError: false shows a bad formula in red instead of breaking the page.
-// Plus lettered lists (a) b) c) / A. B. C.) — see alphaList.ts.
-export const marked = new Marked({ gfm: true, async: false }, markedKatex({ throwOnError: false }), alphaListExtension)
+// Lists are read by lists.ts: - 1. 1) a. a) A. A) markers, nested by indent.
+export const marked = new Marked({ gfm: true, async: false }, markedKatex({ throwOnError: false }), listExtension)
 
 const escapeHtml = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')

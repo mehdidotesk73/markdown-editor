@@ -405,6 +405,7 @@ look wrong in a shot taken <0.25 s later. Wait out the transition before judging
 ### v0.11.0 — 2026-11-10
 - **Added:** Mermaid diagrams (```` ```mermaid ````) in the preview (in the look's colours) and the PDF (tinted boxes, body-font labels)
 - **Changed:** Offline cache precaches only the app core; PDF, math and diagram chunks are cached on first use
+- **Fixed:** Nested lists — any marker (`1.` `1)` `a.` `a)` `A.` `A)` `-`) inside any other, nested by a 2+ space indent, evenly spaced in the preview and the PDF (`lib/lists.ts` replaces `alphaList.ts` and marked's list reader). Plain markdown needs the child under the parent's *text* (3 spaces after `2.`), so `2. item` + 2-space `a. sub` ran into one line, and lettered lists couldn't nest at all
 - **Gotchas:** DOMPurify drops attributes containing `-->` (so the source rides in the code text); svg-to-pdfkit ignores `<style>` and `width="100%"` (so styles are flattened onto elements — read all, then write, or children lose their class-based rules)
 
 ### v0.10.0 — 2026-11-10

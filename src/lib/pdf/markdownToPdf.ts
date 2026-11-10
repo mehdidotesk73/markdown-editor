@@ -393,7 +393,9 @@ function list(l: Tokens.List, a: PdfAssets, width: number, nested = false): Cont
         margin: [0, 0, 0, 2],
       }
     }
-    return { stack, margin: [0, 0, 0, 2] }
+    // An item ending in a nested list takes no gap of its own: that list's
+    // last item already left one, so every row is spaced alike.
+    return { stack, margin: [0, 0, 0, toks[toks.length - 1]?.type === 'list' ? 0 : 2] }
   })
   const margin = nested ? [0, 2, 0, 0] : [0, 0, 0, 7]
   // A pure checklist: the boxes are the markers, so no bullet column.
@@ -402,9 +404,10 @@ function list(l: Tokens.List, a: PdfAssets, width: number, nested = false): Cont
   const node: Record<string, unknown> = { margin, markerColor: C.muted }
   if (l.ordered) {
     node.ol = items
-    // Lettered lists (alphaList.ts): a) b) c) or A. B. C.
-    const alpha = (l as Tokens.List & { alpha?: 'lower' | 'upper' }).alpha
+    // Markers as typed (lists.ts): 1. 1) a. a) A. A)
+    const { alpha, delim } = l as Tokens.List & { alpha?: 'lower' | 'upper'; delim?: '.' | ')' }
     if (alpha) node.type = alpha === 'upper' ? 'upper-alpha' : 'lower-alpha'
+    if (delim === ')') node.separator = ')'
     if (typeof l.start === 'number' && l.start !== 1) node.start = l.start
   } else {
     node.ul = items
