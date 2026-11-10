@@ -41,6 +41,8 @@ How files work (see `src/lib/fileAccess.ts`, `src/lib/useTabs.ts`):
   in `public/fonts` (pdfmake can't read woff2), chosen because they cover arrows and math
   symbols. Display math → MathJax SVG (`lib/pdf/math.ts`, lazy, only for docs with `$$`); inline
   math → Unicode text (`lib/pdf/inlineMath.ts`), since a PDF text run can't hold an image.
+  Code blocks are a grey tinted table (square corners; the user chose a tint that always applies,
+  across page breaks too, over rounded panels that need sizing up front).
   The user rejected both earlier approaches — don't go back to html2pdf (sliced screenshots)
   or the print dialog (extra step, serif fallback); see `docs/experience.md`.
 - **Math:** KaTeX via `marked-katex-extension` in standard mode (`$x$`, `$$ … $$`; "$5 and

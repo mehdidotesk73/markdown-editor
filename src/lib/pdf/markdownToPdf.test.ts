@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { lexMarkdown } from '../markdownParser'
-import { buildDocument, isDisplayInline, wrapCodeLine, type Content, type PdfAssets, type RenderedMath } from './markdownToPdf'
+import { breakLongTokens, buildDocument, isDisplayInline, type Content, type PdfAssets, type RenderedMath } from './markdownToPdf'
 import { texToUnicode } from './inlineMath'
 import { texToSvg } from './math'
 
@@ -94,28 +94,28 @@ describe('PDF layout rules', () => {
     expect(textOf(list.stack[0].columns[1].stack)).toBe('done')
   })
 
-  it('keeps code blocks verbatim in the mono style, on a rounded panel', () => {
+  it('keeps code blocks verbatim in the mono style, on a tinted panel', () => {
     const [code] = content('```\nif (a) {\n    b()\n}\n```') as Node[]
-    const [panel, body] = code.stack
-    expect(body.style).toBe('code')
-    expect(body.text).toBe('if (a) {\n    b()\n}')
-    expect(panel.canvas[0]).toMatchObject({ type: 'rect', r: 5 })
-    // the code sits back over the panel: top margin = -(panel height) + padding
-    expect(body.margin[1]).toBeCloseTo(-panel.canvas[0].h + 8)
-    expect(code.unbreakable).toBe(true)
+    const cell = code.table.body[0][0]
+    expect(cell.style).toBe('code')
+    expect(cell.text).toBe('if (a) {\n    b()\n}')
+    expect(code.layout.fillColor()).toBe('#eef0eb')
   })
 
-  it('wraps long code lines itself, so the panel height is known', () => {
-    expect(wrapCodeLine('abc', 10)).toEqual(['abc'])
-    expect(wrapCodeLine('aaaa bbbb cccc', 10)).toEqual(['aaaa bbbb', 'cccc'])
-    expect(wrapCodeLine('x'.repeat(25), 10)).toEqual(['x'.repeat(10), 'x'.repeat(10), 'x'.repeat(5)])
-    const [code] = content('```\n' + 'y'.repeat(300) + '\n```') as Node[]
-    expect(code.stack[1].text.split('\n').length).toBeGreaterThan(1)
-  })
-
-  it('lets a code block taller than a page split, on a square panel', () => {
+  it('lets long code blocks split across pages (no unbreakable)', () => {
     const [code] = content('```\n' + Array.from({ length: 80 }, (_, i) => `line ${i}`).join('\n') + '\n```') as Node[]
-    expect(code.table.body[0][0].style).toBe('code')
+    expect(code.unbreakable).toBeUndefined()
+    expect(code.table.body[0][0].text.split('\n')).toHaveLength(80)
+  })
+
+  it('splits only tokens longer than a whole line; ordinary lines are left to wrap at spaces', () => {
+    expect(breakLongTokens('short words here', 10)).toBe('short words here')
+    expect(breakLongTokens('a ' + 'x'.repeat(25) + ' b', 10)).toBe('a ' + 'x'.repeat(10) + '\n' + 'x'.repeat(10) + '\n' + 'x'.repeat(5) + ' b')
+    const long = 'word '.repeat(60)
+    const [code] = content('```\n' + long + '\n' + 'h'.repeat(200) + '\n```') as Node[]
+    const lines = code.table.body[0][0].text.split('\n')
+    expect(lines[0]).toBe(long.replace(/\t/g, '    ')) // a long line with spaces is untouched
+    expect(lines.length).toBeGreaterThan(2) // the 200-char token is split
   })
 
   it('builds tables with a header row and column alignment', () => {

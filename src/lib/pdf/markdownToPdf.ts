@@ -36,7 +36,7 @@ const C = {
   muted: '#59636e',
   border: '#d5d9e0',
   codeBg: '#f3f5f8',
-  // Code blocks: a rounded grey panel with a soft edge, clearly set apart from the white page.
+  // Code blocks: a grey panel with a soft edge, clearly set apart from the white page.
   blockBg: '#eef0eb',
   blockEdge: '#d6d9d1',
   link: '#1f5fd1',
@@ -53,7 +53,7 @@ export const styles = {
   h5: { fontSize: 10.5, bold: true, margin: [0, 8, 0, 3] },
   h6: { fontSize: 10.5, bold: true, color: C.muted, margin: [0, 8, 0, 3] },
   p: { margin: [0, 0, 0, 7] },
-  code: { font: 'Mono', fontSize: 8.8, lineHeight: 1.25, preserveLeadingSpaces: true }, // = CODE_SIZE, CODE_LINE_HEIGHT
+  code: { font: 'Mono', fontSize: 8.8, lineHeight: 1.25, preserveLeadingSpaces: true },
 }
 
 // ---- inline ------------------------------------------------------------------
@@ -253,76 +253,44 @@ function image(img: Tokens.Image, a: PdfAssets, width: number): Content {
 
 // ---- code blocks ------------------------------------------------------------
 //
-// A rounded panel. pdfmake tables can't round corners, so the panel is a
-// rounded rectangle drawn on a canvas, and the code is laid over it with a
-// negative top margin. That needs the panel's height up front, so long lines
-// are wrapped here (pdfmake then never wraps them) and the height follows
-// from the line count and DejaVu Sans Mono's metrics. A block too tall for one
-// page falls back to a square, splittable panel.
+// A one-cell table with a grey tint and a soft hairline edge. A table sizes
+// itself to the code, pdfmake wraps long lines (breaking long tokens too), and
+// a block taller than the space left continues onto the next page, tint and
+// all. Square corners: pdfmake tables can't round them, and the user preferred
+// a tint that always applies cleanly over rounded corners that need the
+// block's height worked out in advance.
 
-const CODE_SIZE = 8.8
-const CODE_LINE_HEIGHT = 1.25
-// DejaVu Sans Mono, units per em 2048: advance 1233, ascent 1901, descent 483.
-const MONO_ADVANCE = (1233 / 2048) * CODE_SIZE
-const CODE_LINE = ((1901 + 483) / 2048) * CODE_SIZE * CODE_LINE_HEIGHT
 const CODE_PAD_X = 10
 const CODE_PAD_Y = 8
-const CODE_RADIUS = 5
-const PAGE_BODY = PAGE.height - PAGE.margins[1] - PAGE.margins[3]
+// DejaVu Sans Mono: every character advances 1233/2048 em; code is 8.8pt.
+const MONO_ADVANCE = (1233 / 2048) * 8.8
 
-/** Hard-wrap one line of code to `cols` characters, preferring a space near the end. */
-export function wrapCodeLine(line: string, cols: number): string[] {
-  if (cols < 1 || line.length <= cols) return [line]
-  const out: string[] = []
-  let rest = line
-  while (rest.length > cols) {
-    const space = rest.lastIndexOf(' ', cols)
-    if (space >= cols * 0.6) {
-      // Break at the space, and drop it so the next line doesn't start with one.
-      out.push(rest.slice(0, space))
-      rest = rest.slice(space + 1)
-    } else {
-      out.push(rest.slice(0, cols)) // no good space: break mid-token
-      rest = rest.slice(cols)
-    }
-  }
-  out.push(rest)
-  return out
+/**
+ * pdfmake only wraps at spaces, so a token longer than a whole line (a hash, a
+ * URL) would run off the page. Split just those into line-sized pieces; the
+ * font is monospaced, so `cols` characters always fit.
+ */
+export function breakLongTokens(text: string, cols: number): string {
+  if (cols < 1) return text
+  return text.replace(new RegExp(`\\S{${cols + 1},}`, 'g'), (tok) => tok.match(new RegExp(`.{1,${cols}}`, 'g'))!.join('\n'))
 }
 
 function codeBlock(source: string, width: number): Content {
-  const cols = Math.max(8, Math.floor((width - 2 * CODE_PAD_X) / MONO_ADVANCE) - 1)
-  const lines = (source.replace(/\t/g, '    ') || ' ').split('\n').flatMap((l) => wrapCodeLine(l, cols))
-  const text = lines.join('\n')
-  const height = lines.length * CODE_LINE + 2 * CODE_PAD_Y
-  if (height > PAGE_BODY - 20) {
-    // Taller than a page: a square panel that can break across pages.
-    return {
-      table: { widths: ['*'], body: [[{ text, style: 'code' }]] },
-      layout: {
-        fillColor: () => C.blockBg,
-        hLineColor: () => C.blockEdge,
-        vLineColor: () => C.blockEdge,
-        hLineWidth: () => 0.6,
-        vLineWidth: () => 0.6,
-        paddingLeft: () => CODE_PAD_X,
-        paddingRight: () => CODE_PAD_X,
-        paddingTop: () => CODE_PAD_Y,
-        paddingBottom: () => CODE_PAD_Y,
-      },
-      margin: [0, 0, 0, 9],
-    }
-  }
+  const cols = Math.max(8, Math.floor((width - 2 * CODE_PAD_X - 2) / MONO_ADVANCE))
+  const text = breakLongTokens(source.replace(/\t/g, '    '), cols) || ' '
   return {
-    stack: [
-      {
-        canvas: [
-          { type: 'rect', x: 0, y: 0, w: width, h: height, r: CODE_RADIUS, color: C.blockBg, lineColor: C.blockEdge, lineWidth: 0.6 },
-        ],
-      },
-      { text, style: 'code', margin: [CODE_PAD_X, -height + CODE_PAD_Y, CODE_PAD_X, CODE_PAD_Y] },
-    ],
-    unbreakable: true,
+    table: { widths: ['*'], body: [[{ text, style: 'code' }]] },
+    layout: {
+      fillColor: () => C.blockBg,
+      hLineColor: () => C.blockEdge,
+      vLineColor: () => C.blockEdge,
+      hLineWidth: () => 0.6,
+      vLineWidth: () => 0.6,
+      paddingLeft: () => CODE_PAD_X,
+      paddingRight: () => CODE_PAD_X,
+      paddingTop: () => CODE_PAD_Y,
+      paddingBottom: () => CODE_PAD_Y,
+    },
     margin: [0, 0, 0, 9],
   }
 }

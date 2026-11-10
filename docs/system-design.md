@@ -82,12 +82,14 @@ markdown ─ lexMarkdown() ─▶ tokens ─┬─ walk: display math, images, i
 - **Body font** (`lib/pdfFont.ts`, localStorage `md-editor:pdf-font`): Sans / Serif / Mono, picked from
   the menu beside Export PDF; `buildDocument(…, font)` sets `defaultStyle.font`, code stays Mono. Each
   export calls `pdfMake.setFonts` with only that font + Mono, so unused faces are never downloaded.
-- **Code blocks** (`codeBlock`): a rounded panel (r 5, fill `#eef0eb`, 0.6pt `#d6d9d1` edge, 10/8pt
-  padding). pdfmake tables can't round corners, so the panel is a canvas `rect` and the code is laid
-  over it with a negative top margin; that needs the height up front, so `wrapCodeLine` hard-wraps
-  long lines to the panel's column count (pdfmake then never wraps) and the height comes from the
-  line count × DejaVu Sans Mono's line height (2384/2048 em × 8.8pt × 1.25). The stack is
-  `unbreakable`; a block taller than a page falls back to a square, splittable table.
+- **Code blocks** (`codeBlock`): a one-cell table, fill `#eef0eb`, 0.6pt `#d6d9d1` edge, 10/8pt
+  padding, square corners. The table sizes itself, pdfmake wraps lines at spaces, and a long block
+  continues onto the next page with its tint. pdfmake can't break inside a word, so
+  `breakLongTokens` splits only tokens longer than a whole line (hashes, URLs) into line-sized
+  pieces — exact, since DejaVu Sans Mono is monospaced (1233/2048 em per character); DejaVu Sans
+  Mono has no zero-width space to use instead. Rounded panels were tried (a canvas sized from
+  pre-wrapped lines; a two-pass "measure then paint" in the page background) and dropped: the user
+  preferred a tint that always applies cleanly, including across page breaks.
 - **Lettered lists** (`lib/alphaList.ts`, a marked block extension): consecutive `a)`/`a.` (or `A)`/`A.`)
   lines starting at a/A and going up one letter at a time, at least two, become an ordinary ordered
   `list` token with `alpha: 'lower' | 'upper'`; the preview renders `<ol type="a|A">`, the PDF sets
