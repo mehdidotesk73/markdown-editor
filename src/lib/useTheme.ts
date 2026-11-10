@@ -1,7 +1,8 @@
 import { computed, reactive, watch } from 'vue'
 import { DEFAULT_DARK, DEFAULT_LIGHT, THEMES, themeById, type ThemeInfo, type ThemeMode } from './themes'
 
-// The app theme: one of the nine looks in lib/themes.ts, applied as data-theme
+// The app theme: one of the looks in lib/themes.ts (a stored look that no
+// longer exists falls back to the default for its mode), applied as data-theme
 // on <html> so every token in styles/vars.css switches at once. The viewer
 // keeps a chosen dark look and a chosen light look; the Dark / Light button
 // flips between them, and picking a look from its menu makes it the choice for

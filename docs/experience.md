@@ -403,7 +403,7 @@ look wrong in a shot taken <0.25 s later. Wait out the transition before judging
 ## Version History
 
 ### v0.10.0 — 2026-11-10
-- **Added:** All nine looks from the theme canvas, chosen from a menu beside Dark / Light; Dark / Light flips between the viewer's chosen dark and light look
+- **Added:** The theme canvas's looks, chosen from a menu beside Dark / Light; Dark / Light flips between the viewer's chosen dark and light look. Kept: Sage, Graphite, Midnight & Champagne, Navy & Brass (navy deepened), Porcelain, Fog; Original, Smoke & Sand and Monochrome were tried and dropped
 
 ### v0.9.0 — 2026-11-10
 - **Added:** Lettered lists (`a)` `b)` / `A.` `B.`) in the preview and the PDF

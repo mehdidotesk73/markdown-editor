@@ -13,7 +13,7 @@ A markdown editor for files on **your own computer**. The app runs entirely in y
 - **New file** (＋ on the tab bar, or Ctrl/⌘ Alt N) opens a new document that starts with the guide to Markdown Lab and the focus shadow — read it, or select all and replace it with your own text. The first Save asks where to put the file.
 - **Export PDF** downloads the document as a PDF straight away. The text in it is real (you can select and search it), pages never cut a line in half, and formulas are typeset. The first export takes a moment longer while the PDF tools and fonts load; after that they're kept for offline use too. The small arrow beside **Export PDF** picks the PDF's font — **Sans**, **Serif** or **Mono** — and remembers it. Code blocks in the PDF sit on a soft cream panel; long lines wrap inside it, and a long block carries on over the page break.
 - **Lettered lists:** lines starting `a)` `b)` `c)` (or `A.` `B.` `C.`) become a lettered list, as long as they start at *a* and go in order.
-- **Dark / Light** (top bar) switches the whole app between your dark look and your light look. The arrow beside it opens all nine looks — dark: Sage, Original, Graphite, Midnight & Champagne, Smoke & Sand, Monochrome, Navy & Brass; light: Porcelain, Fog. Picking one makes it your look for that mode, and it's remembered.
+- **Dark / Light** (top bar) switches the whole app between your dark look and your light look. The arrow beside it opens all the looks — dark: Sage, Graphite, Midnight & Champagne, Navy & Brass; light: Porcelain, Fog. Picking one makes it your look for that mode, and it's remembered.
 - **Math:** write LaTeX between dollar signs — `$x^2$` inside a sentence, or `$$ E = mc^2 $$` for a formula on its own line.
 
 ## The focus

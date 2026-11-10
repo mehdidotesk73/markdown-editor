@@ -204,7 +204,7 @@ onBeforeUnmount(() => {
 
 const { theme, mode, chosen, setTheme, toggleTheme } = useTheme()
 
-// The look menu beside Dark / Light: all nine looks, grouped by mode.
+// The look menu beside Dark / Light: every look, grouped by mode.
 const showThemeMenu = ref(false)
 const themeGroup = ref<HTMLElement>()
 const themeGroups = [
