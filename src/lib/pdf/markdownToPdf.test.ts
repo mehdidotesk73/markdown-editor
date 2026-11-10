@@ -107,10 +107,18 @@ describe('PDF layout rules', () => {
     const porcelain = pdfCodeTint('#f1eee8')
     const lum = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)).reduce((a, b) => a + b, 0) / 3
     for (const t of [navy, porcelain]) {
-      expect(lum(t.bg)).toBeGreaterThan(236) // light: a faded tint, not the dark preview colour
-      expect(lum(t.bg)).toBeLessThan(250) // but clearly off white (#fffbf4 ≈ 251 vanished on screen)
+      expect(lum(t.bg)).toBeGreaterThan(215) // light: a faded tint, not the dark preview colour
+      expect(lum(t.bg)).toBeLessThan(245) // but clearly off white (#fffbf4 ≈ 251 vanished on screen)
       expect(lum(t.edge)).toBeLessThan(lum(t.bg))
     }
+    // exactly the colours the user picked in the Code Tint Tuner
+    expect([navy, pdfCodeTint('#222326'), pdfCodeTint('#121318'), porcelain, pdfCodeTint('#edf0f3')]).toEqual([
+      { bg: '#dbe4f5', edge: '#7398d9' },
+      { bg: '#e3e4e7', edge: '#9c9fa9' },
+      { bg: '#e1e3eb', edge: '#9398b5' },
+      { bg: '#efeae0', edge: '#c1af89' },
+      { bg: '#e0e7ed', edge: '#8da4bc' },
+    ])
     // navy stays blue (b > r), porcelain stays warm (r > b)
     const ch = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16))
     expect(ch(navy.bg)[2]).toBeGreaterThan(ch(navy.bg)[0])

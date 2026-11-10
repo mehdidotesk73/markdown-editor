@@ -303,12 +303,15 @@ function hslHex(h: number, s: number, l: number): string {
 }
 
 /**
- * The PDF code-block tint for a look: the preview's code-block colour
- * (`--paper-code-bg`) kept to its hue, with a little more saturation so the
- * hue survives, and its lightness lifted to just below white — a much faded
- * version that still reads on a bright monitor (#fffbf4, ~1.5% off white, did
- * not). The edge is the same hue a few steps darker.
+ * The PDF code-block tint for a look, from the preview's code-block colour
+ * (`--paper-code-bg`): its hue, saturation ×1.3 (capped at 90%), lightness 91%
+ * for the fill and 65% for the edge (edge saturation capped at 80%). Grey looks
+ * carry little colour, so they go a little darker ("grey depth": up to 1.5% at
+ * zero saturation, none from 30% up) to still read on a bright monitor.
+ * Settings chosen by the user in the Code Tint Tuner
+ * (claude.ai/artifact/6tQDbYREFcXJXwHm7JyPUw).
  */
+export const CODE_TINT = { lightness: 0.91, boost: 1.3, floor: 0, cap: 0.9, greyDepth: 0.015, edgeLightness: 0.65, edgeCap: 0.8 }
 export function pdfCodeTint(css: string | null | undefined): CodeTint {
   const rgb = css ? parseColor(css) : null
   if (!rgb) return { bg: C.blockBg, edge: C.blockEdge }
@@ -323,8 +326,13 @@ export function pdfCodeTint(css: string | null | undefined): CodeTint {
     h = (h * 60 + 360) % 360
   }
   const s = d ? d / (1 - Math.abs(2 * l - 1)) : 0
-  const sat = Math.min(0.45, Math.max(0.08, s * 1.5))
-  return { bg: hslHex(h, sat, 0.955), edge: hslHex(h, Math.min(0.35, sat), 0.86) }
+  const k = CODE_TINT
+  const sat = Math.min(k.cap, Math.max(k.floor, s * k.boost))
+  const deepen = k.greyDepth * Math.max(0, 1 - s / 0.3)
+  return {
+    bg: hslHex(h, sat, k.lightness - deepen),
+    edge: hslHex(h, Math.min(k.edgeCap, sat), k.edgeLightness - deepen),
+  }
 }
 
 function codeBlock(source: string, width: number, tint: CodeTint = { bg: C.blockBg, edge: C.blockEdge }): Content {

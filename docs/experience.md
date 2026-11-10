@@ -408,7 +408,7 @@ look wrong in a shot taken <0.25 s later. Wait out the transition before judging
 ### v0.9.0 — 2026-11-10
 - **Added:** Lettered lists (`a)` `b)` / `A.` `B.`) in the preview and the PDF
 - **Added:** PDF font choice — Sans, Serif (new DejaVu Serif subsets) or Mono — from a menu beside Export PDF; each export downloads only its font
-- **Changed:** PDF code blocks: a tint derived from the current look's code colour (same hue, ~95.5% light), after fixed creams — `#fffbf4` was ~1.5% off white and showed as plain white with a coloured edge on a Windows monitor — a panel that wraps long lines and carries across page breaks; over-long tokens are split to fit. (A pale fill read as white; rounded corners — a pre-sized canvas, or a two-pass paint — were tried and dropped in favour of a tint that always applies cleanly.)
+- **Changed:** PDF code blocks: a tint derived from the current look's code colour by one filter the user tuned in a slider page (91% light, ×1.3 saturation, grey looks a touch darker), after fainter tries (95.5% light washed out Graphite and Midnight) and fixed creams — `#fffbf4` was ~1.5% off white and showed as plain white with a coloured edge on a Windows monitor — a panel that wraps long lines and carries across page breaks; over-long tokens are split to fit. (A pale fill read as white; rounded corners — a pre-sized canvas, or a two-pass paint — were tried and dropped in favour of a tint that always applies cleanly.)
 
 ### v0.8.0 — 2026-11-09
 - **Added:** Tab / Shift+Tab indent / outdent the selected block of lines (undoable)
