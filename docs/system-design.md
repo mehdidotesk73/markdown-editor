@@ -90,10 +90,18 @@ markdown ─ lexMarkdown() ─▶ tokens ─┬─ walk: display math, images, i
   Mono has no zero-width space to use instead. Rounded panels were tried (a canvas sized from
   pre-wrapped lines; a two-pass "measure then paint" in the page background) and dropped: the user
   preferred a tint that always applies cleanly, including across page breaks.
-- **Lettered lists** (`lib/alphaList.ts`, a marked block extension): consecutive `a)`/`a.` (or `A)`/`A.`)
-  lines starting at a/A and going up one letter at a time, at least two, become an ordinary ordered
-  `list` token with `alpha: 'lower' | 'upper'`; the preview renders `<ol type="a|A">`, the PDF sets
-  pdfmake's `type: 'lower-alpha' | 'upper-alpha'`. A lone "A. Lincoln…" line stays a paragraph.
+- **Mermaid diagrams** (`lib/diagram.ts`): `isMermaid(token)` picks ```` ```mermaid ```` code tokens. `exportPdf` renders each with `renderDiagramForPdf(source, codeTint, bodyFontUrl)`: the body font's DejaVu `.woff` is registered as a page font (`FontFace`, "ML Diagram PDF") so Mermaid measures labels with the glyphs the PDF draws; colours are white page, `#1f2328` text, the code tint for node fill/edge, `#59636e` lines. The SVG is then laid out off-screen and flattened: every element's computed fill/stroke/opacity/font/anchor is read (all first), written as attributes, classes and `<style>` removed, width/height set from the viewBox — svg-to-pdfkit ignores style sheets and `width="100%"`. `markdownToPdf` places it as `{ svg, width, font: bodyFont }` (px × 0.75, capped to the column and to 70% of the page height so it fits beside its heading); unknown font families fall back to the body font. Missing (parse error) → normal code block.
+- **Lists** (`lib/lists.ts`, a marked block extension that takes over all lists): markers `-` `*` `+`,
+  `1.` `1)`, `a.` `a)`, `A.` `A)`. One pass with a stack of open lists: a marker ≥ 2 spaces deeper than
+  the innermost list opens a child list in its last item; otherwise it joins the open list at its
+  indent (±1) if it is the same kind and delimiter (letters must be the next letter), or starts a new
+  list there (a new token at top level). Lettered lists start at a/A; a top-level one needs two items or
+  a child, so "A. Lincoln…" stays a paragraph. Indented and lazy lines join the item; blank lines don't
+  end the list if a marker or indented line follows. Items are always tight (`loose: false`; first
+  paragraph shown as text), so spacing is the same at every level. Tokens are marked's `list` with
+  `alpha?: 'lower' | 'upper'` and `delim?: '.' | ')'`; the preview renders `<ol type class="alpha-* paren">`
+  (`@counter-style` suffix `) `), the PDF sets pdfmake's `type` and `separator: ')'`; an item ending in a
+  child list gets no bottom gap of its own in the PDF, so rows stay evenly spaced.
 - **Fonts:** DejaVu subsets (Latin, Greek, Cyrillic, punctuation, arrows, math operators, shapes)
   as `.woff`, ~890 KB for six files, fetched by URL; `setUrlAccessPolicy` allows only our origin.
 - **Loading:** pdfmake (~295 KB gz) on first export; MathJax (~600 KB gz) only for docs with

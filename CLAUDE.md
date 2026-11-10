@@ -51,8 +51,17 @@ How files work (see `src/lib/fileAccess.ts`, `src/lib/useTabs.ts`):
   or the print dialog (extra step, serif fallback); see `docs/experience.md`.
 - **Math:** KaTeX via `marked-katex-extension` in standard mode (`$x$`, `$$ … $$`; "$5 and
   $10" stays text). Its `.woff2` fonts are precached by Workbox for offline use.
+- **Diagrams:** ```` ```mermaid ```` blocks are drawn with Mermaid (`lib/diagram.ts`, a lazy chunk —
+  only documents with a diagram load it). The parser emits a `.mermaid-block` placeholder with the
+  source as code (not in an attribute — DOMPurify strips attributes containing `-->`); the preview
+  draws it in the look's `--paper-*` colours (cached per look + source, so typing doesn't redraw).
+  The PDF draws the same source on white with the code tint for boxes and the body font for
+  labels (that DejaVu face is loaded into the page so Mermaid measures with it), then flattens
+  Mermaid's `<style>` sheet onto each element — the PDF's SVG renderer ignores sheets — read all
+  first, then write (stripping a parent's class early turned boxes black). `htmlLabels: false`
+  and the classic look keep it PDF-safe. A source that doesn't parse stays as code (red edge).
 - Markdown rendering: one shared parser, `src/lib/markdownParser.ts` (`marked` GFM + KaTeX +
-  lettered lists `a)`/`A.` from `lib/alphaList.ts`, no DOM), → `DOMPurify` in `src/lib/markdown.ts` for the preview.
+  lists from `lib/lists.ts` + mermaid placeholders, no DOM), → `DOMPurify` in `src/lib/markdown.ts` for the preview.
 
 **Themes:** five looks from the user's theme canvas (claude.ai/artifact/W3sk5PGenonqPMW1qq3MsH,
 "Markdown Lab Looks"), listed in `src/lib/themes.ts`, each a token block in `src/styles/vars.css`
@@ -183,6 +192,10 @@ whatever they're actually asking about.
   else to configure for hosting.
 - **`.github/workflows/ci.yml` only runs the build check on PRs** — it doesn't deploy anything. Its
   sole job is the `build` status check the branch ruleset requires (see Build & verify).
+- **Offline cache (Workbox):** only the app core is precached (page, CSS, icons, KaTeX `.woff2`,
+  the `index-*.js` entry). Every other script — pdfmake, MathJax, Mermaid's ~60 chunks — is a lazy
+  chunk, cached on first use (`lazy-chunks`, CacheFirst; hashed names never go stale). Don't widen
+  `globPatterns` back to all `.js`: Mermaid alone would add ~5 MB to every first visit.
 - **`package-lock.json` is committed and must stay that way** — CI runs
   `npm ci`, which fails outright without a lockfile in sync with
   `package.json`. Commit the lockfile whenever you change dependencies.
@@ -204,7 +217,8 @@ src/
     pdf/markdownToPdf.ts   tokens → pdfmake document (pure; *.test.ts beside it)
     pdf/math.ts            display TeX → SVG via MathJax (lazy chunk)
     pdf/inlineMath.ts      inline TeX → Unicode text
-    alphaList.ts           lettered lists a) b) / A. B. (marked extension; tested)
+    lists.ts               all lists: - 1. 1) a. a) A. A), nested by indent, always tight (tested)
+    diagram.ts             Mermaid: lazy load, preview drawing (cached), PDF SVG (flattened styles)
     pdfFont.ts             the PDF body font preference (Sans / Serif / Mono)
     indent.ts              Tab / Shift+Tab indent / outdent of selected lines (pure; tested)
     themes.ts              the looks (id, label, dark/light, colours for the menu)
@@ -245,6 +259,13 @@ package-lock.json              committed — CI runs `npm ci` and needs it
   keep components thin.
 - **Never lose text.** Every tab's draft is persisted to IndexedDB on change; closing a dirty
   tab confirms; `beforeunload` warns while anything is unsaved; background PWA updates wait.
+- **Lists** (`lib/lists.ts`) replace marked's own list reader. Markers `-` `*` `+` `1.` `1)` `a.` `a)`
+  `A.` `A)`; a marker 2+ spaces deeper than its list nests under the item above, whatever the
+  parent's marker width (plain markdown ran "2. item / ␣␣a. sub" together); a different marker kind at
+  the same level starts a new list; lettered lists start at a/A and count up one letter at a time
+  (a lone "A. Lincoln…" stays text). Items are always tight, blank lines or not, so spacing is uniform
+  at every level. The preview shows markers as typed (`@counter-style` for `)`; classes, not
+  `[type=a]`, which HTML matches case-insensitively); the PDF uses pdfmake's `type` and `separator`.
 - **Editor keys:** Tab / Shift+Tab indent / outdent every line the selection touches (no selection:
   Tab inserts two spaces, Shift+Tab outdents the line) — `lib/indent.ts`, applied through
   `execCommand` so each step is undoable.

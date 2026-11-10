@@ -26,6 +26,15 @@ export interface PdfAssets {
   decode: (s: string) => string
   /** Code-block panel colours (from the current look via pdfCodeTint); default: C.blockBg / C.blockEdge. */
   codeTint?: CodeTint
+  /** Mermaid diagrams by source, as SVG with their size in CSS px. Missing → shown as a code block. */
+  diagrams?: Map<string, { svg: string; width: number; height: number }>
+  /** Set by buildDocument: the body font, which diagram labels fall back to. */
+  bodyFont?: PdfFont
+}
+
+/** Mermaid fenced blocks are drawn as diagrams. */
+export function isMermaid(t: Token): t is Tokens.Code {
+  return t.type === 'code' && ((t as Tokens.Code).lang ?? '').trim().toLowerCase() === 'mermaid'
 }
 
 // ---- page + typography -------------------------------------------------------
@@ -192,8 +201,17 @@ function block(t: Token, a: PdfAssets, width: number): Content | null {
       return { text: tt.tokens ? inline(tt.tokens, a) : a.decode(tt.text) }
     }
 
-    case 'code':
+    case 'code': {
+      const d = isMermaid(t) ? a.diagrams?.get(t.text) : undefined
+      if (d) {
+        // CSS px → pt (×0.75), never wider than the column, nor taller than
+        // ~70% of a page, so a tall chart still fits on the page after its heading.
+        const maxH = 0.7 * (PAGE.height - PAGE.margins[1] - PAGE.margins[3])
+        const w = Math.min(width, d.width * 0.75, (maxH * d.width) / d.height)
+        return { svg: d.svg, width: w, font: a.bodyFont ?? 'Sans', alignment: 'center', margin: [0, 2, 0, 10] }
+      }
       return codeBlock((t as Tokens.Code).text, width, a.codeTint)
+    }
 
     case 'blockquote': {
       const q = t as Tokens.Blockquote
@@ -375,7 +393,9 @@ function list(l: Tokens.List, a: PdfAssets, width: number, nested = false): Cont
         margin: [0, 0, 0, 2],
       }
     }
-    return { stack, margin: [0, 0, 0, 2] }
+    // An item ending in a nested list takes no gap of its own: that list's
+    // last item already left one, so every row is spaced alike.
+    return { stack, margin: [0, 0, 0, toks[toks.length - 1]?.type === 'list' ? 0 : 2] }
   })
   const margin = nested ? [0, 2, 0, 0] : [0, 0, 0, 7]
   // A pure checklist: the boxes are the markers, so no bullet column.
@@ -384,9 +404,10 @@ function list(l: Tokens.List, a: PdfAssets, width: number, nested = false): Cont
   const node: Record<string, unknown> = { margin, markerColor: C.muted }
   if (l.ordered) {
     node.ol = items
-    // Lettered lists (alphaList.ts): a) b) c) or A. B. C.
-    const alpha = (l as Tokens.List & { alpha?: 'lower' | 'upper' }).alpha
+    // Markers as typed (lists.ts): 1. 1) a. a) A. A)
+    const { alpha, delim } = l as Tokens.List & { alpha?: 'lower' | 'upper'; delim?: '.' | ')' }
     if (alpha) node.type = alpha === 'upper' ? 'upper-alpha' : 'lower-alpha'
+    if (delim === ')') node.separator = ')'
     if (typeof l.start === 'number' && l.start !== 1) node.start = l.start
   } else {
     node.ul = items
@@ -437,6 +458,7 @@ export function buildDocument(
   codeTint?: CodeTint,
 ): Record<string, unknown> {
   a.codeTint = codeTint
+  a.bodyFont = font
   return {
     info: { title },
     pageSize: 'A4',

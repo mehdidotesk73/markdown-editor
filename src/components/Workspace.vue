@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, watch, onBeforeUnmount } from 'vue'
 import { renderMarkdown } from '../lib/markdown'
+import { hydrateDiagrams } from '../lib/diagram'
+import { useTheme } from '../lib/useTheme'
 import type { Tab } from '../lib/useTabs'
 import UiButton from './ui/UiButton.vue'
 import FocusControls from './FocusControls.vue'
@@ -89,6 +91,17 @@ const textarea = ref<HTMLTextAreaElement>()
 const preview = ref<HTMLElement>()
 
 const html = computed(() => renderMarkdown(props.tab.content))
+
+// Mermaid diagrams: the preview HTML carries placeholders; draw them after
+// each render, and again when the look changes (they take the look's colours).
+const { theme: look } = useTheme()
+watch(
+  [html, () => look.value.id, preview],
+  () => {
+    if (preview.value) void hydrateDiagrams(preview.value)
+  },
+  { flush: 'post', immediate: true },
+)
 const words = computed(() => (props.tab.content.match(/\S+/g) ?? []).length)
 
 // The focus shadow: trails the cursor and underlines its span in the preview.

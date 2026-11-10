@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { lexMarkdown } from '../markdownParser'
-import { breakLongTokens, buildDocument, pdfCodeTint, isDisplayInline, type Content, type PdfAssets, type RenderedMath } from './markdownToPdf'
+import { breakLongTokens, buildDocument, pdfCodeTint, CONTENT_WIDTH, PAGE, isDisplayInline, type Content, type PdfAssets, type RenderedMath } from './markdownToPdf'
 import { texToUnicode } from './inlineMath'
 import { texToSvg } from './math'
 
@@ -132,6 +132,20 @@ describe('PDF layout rules', () => {
     const def = buildDocument(tokens, 't', assets(), 'Sans', { bg: '#eef2f8', edge: '#c9d4e6' }) as { content: Node[] }
     expect(def.content[0].layout.fillColor()).toBe('#eef2f8')
     expect(def.content[0].layout.hLineColor()).toBe('#c9d4e6')
+  })
+
+  it('draws a mermaid block as its SVG (sized px→pt, capped to the column), else as code', () => {
+    const md = '```mermaid\nflowchart TD\nA --> B\n```'
+    const src = 'flowchart TD\nA --> B'
+    const drawn = content(md, assets({ diagrams: new Map([[src, { svg: '<svg/>', width: 200, height: 100 }]]) }))[0] as Node
+    expect(drawn.svg).toBe('<svg/>')
+    expect(drawn.width).toBe(150)
+    const wide = content(md, assets({ diagrams: new Map([[src, { svg: '<svg/>', width: 5000, height: 100 }]]) }))[0] as Node
+    expect(wide.width).toBeLessThanOrEqual(CONTENT_WIDTH)
+    const tall = content(md, assets({ diagrams: new Map([[src, { svg: '<svg/>', width: 200, height: 4000 }]]) }))[0] as Node
+    expect((tall.width * 4000) / 200).toBeLessThan(PAGE.height) // scaled to fit a page
+    const fallback = content(md)[0] as Node
+    expect(fallback.table.body[0][0].text).toBe(src)
   })
 
   it('lets long code blocks split across pages (no unbreakable)', () => {
