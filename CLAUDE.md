@@ -50,12 +50,18 @@ How files work (see `src/lib/fileAccess.ts`, `src/lib/useTabs.ts`):
 - Markdown rendering: one shared parser, `src/lib/markdownParser.ts` (`marked` GFM + KaTeX +
   lettered lists `a)`/`A.` from `lib/alphaList.ts`, no DOM), → `DOMPurify` in `src/lib/markdown.ts` for the preview.
 
-**Themes:** two complete looks, picked by the user from a canvas of nine sketches, switched by the
-top bar's **Dark / Light** button (`src/lib/useTheme.ts` sets `data-theme` on `<html>` at import
-time, before first paint; localStorage). All tokens live in `src/styles/vars.css`:
-- **Dark = Sage** (`:root`): dark green-grey surfaces, a soft sage glow behind, sage-tinted light
+**Themes:** all **nine looks** from the user's theme canvas (claude.ai/artifact/W3sk5PGenonqPMW1qq3MsH,
+"Markdown Lab Looks"), listed in `src/lib/themes.ts`, each a full token block in `src/styles/vars.css`
+keyed by `data-theme` (Sage's tokens sit on `:root`). Dark: Sage (default), Original, Graphite,
+Midnight & Champagne, Smoke & Sand, Monochrome, Navy & Brass. Light: Porcelain (default), Fog.
+The top bar's **Dark / Light** button flips between the viewer's chosen dark and chosen light look;
+the chevron beside it opens the look menu (grouped by mode, a swatch each); picking a look makes it
+the choice for its mode (`src/lib/useTheme.ts`, localStorage `md-editor:theme`; sets `data-theme` on
+`<html>` at import, before first paint). The seven newer looks' surface, paper and matte-button
+tokens were derived from the canvas palettes by script; Sage and Porcelain are hand-tuned:
+- **Sage** (`:root`): dark green-grey surfaces, a soft sage glow behind, sage-tinted light
   on the glass, deep glass for the main action and the selected tab's well.
-- **Light = Porcelain** (`:root[data-theme='light']`): warm porcelain page with a faint dot grid,
+- **Porcelain** (`:root[data-theme='porcelain']`): warm porcelain page with a faint dot grid,
   frosted white glass, warm soft shadows (`--shadow-rgb`), the main action a **solid dark ink
   pill** (`--primary-bg`), and **Fraunces** serif for the title and preview headings
   (`--font-display`; `@fontsource/fraunces`, bundled for offline).
@@ -198,7 +204,8 @@ src/
     alphaList.ts           lettered lists a) b) / A. B. (marked extension; tested)
     pdfFont.ts             the PDF body font preference (Sans / Serif / Mono)
     indent.ts              Tab / Shift+Tab indent / outdent of selected lines (pure; tested)
-    useTheme.ts            Dark (Sage) / Light (Porcelain) app theme → data-theme on <html>
+    themes.ts              the nine looks (id, label, dark/light, colours for the menu)
+    useTheme.ts            current look + chosen dark/light look → data-theme on <html>
     liquidTabs.ts          tab bar motion: how lit each tab is, the spring (pure; tested)
     focus/                 focus engine: segment, wave (attention + 60% focus), focal (lag
                            trail of the cursor's path), align (pure; tested) + useFocusShadow (underline), settings
@@ -211,7 +218,7 @@ src/
     HelpModal.vue          renders docs/concepts/*.md into the Help modal
     ui/UiButton.vue        the app's button (sizes, tones, Lucide icons left/right)
   styles/
-    vars.css               all theme tokens: Sage (:root) and Porcelain ([data-theme='light'])
+    vars.css               all theme tokens: Sage (:root) + one [data-theme] block per other look
     markdown.css           rendered-markdown styles (.md-body) for preview + Help
 .claude/skills/            finish-setup, ship-feature, add-github-pages, add-statefulness,
                            add-database, update-skills, share-pattern

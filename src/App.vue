@@ -29,6 +29,7 @@ import { exportMarkdownToPdf } from './lib/exportPdf'
 import { pdfFont, PDF_FONTS } from './lib/pdfFont'
 import type { PdfFont } from './lib/pdf/markdownToPdf'
 import { useTheme } from './lib/useTheme'
+import { THEMES } from './lib/themes'
 
 const buildId = __BUILD_ID__
 const buildTime = __BUILD_TIME__
@@ -132,6 +133,7 @@ const showFontMenu = ref(false)
 const exportGroup = ref<HTMLElement>()
 function onDocPointer(e: PointerEvent) {
   if (showFontMenu.value && exportGroup.value && !exportGroup.value.contains(e.target as Node)) showFontMenu.value = false
+  if (showThemeMenu.value && themeGroup.value && !themeGroup.value.contains(e.target as Node)) showThemeMenu.value = false
 }
 onMounted(() => document.addEventListener('pointerdown', onDocPointer))
 onBeforeUnmount(() => document.removeEventListener('pointerdown', onDocPointer))
@@ -200,7 +202,19 @@ onBeforeUnmount(() => {
   window.removeEventListener('focus', onFocus)
 })
 
-const { theme, toggleTheme } = useTheme()
+const { theme, mode, chosen, setTheme, toggleTheme } = useTheme()
+
+// The look menu beside Dark / Light: all nine looks, grouped by mode.
+const showThemeMenu = ref(false)
+const themeGroup = ref<HTMLElement>()
+const themeGroups = [
+  { mode: 'dark' as const, label: 'Dark looks', items: THEMES.filter((t) => t.mode === 'dark') },
+  { mode: 'light' as const, label: 'Light looks', items: THEMES.filter((t) => t.mode === 'light') },
+]
+function chooseTheme(id: string) {
+  setTheme(id)
+  showThemeMenu.value = false
+}
 
 const showHelp = ref(false)
 const helpDoc = ref('overview')
@@ -234,7 +248,7 @@ const helpDoc = ref('overview')
         >
           Save as…
         </UiButton>
-        <div ref="exportGroup" class="export-group" @keydown.esc="showFontMenu = false">
+        <div ref="exportGroup" class="split-group" @keydown.esc="showFontMenu = false">
           <UiButton
             size="compact"
             tone="primary"
@@ -255,14 +269,14 @@ const helpDoc = ref('overview')
             :title="`PDF font: ${pdfFont}`"
             @click="showFontMenu = !showFontMenu"
           />
-          <div v-if="showFontMenu" class="font-menu" role="menu" aria-label="PDF font">
-            <span class="font-menu-title">PDF font</span>
+          <div v-if="showFontMenu" class="pop-menu" role="menu" aria-label="PDF font">
+            <span class="pop-menu-title">PDF font</span>
             <UiButton
               v-for="f in PDF_FONTS"
               :key="f.value"
               size="compact"
               role="menuitemradio"
-              class="font-option"
+              class="pop-option"
               :active="pdfFont === f.value"
               :aria-checked="pdfFont === f.value"
               :style="{ fontFamily: f.css }"
@@ -292,15 +306,46 @@ const helpDoc = ref('overview')
             <UiButton size="tag" tone="primary" :icon-left="RotateCw" @click="onReloadLatest">Update ready — Reload</UiButton>
           </div>
         </div>
-        <UiButton
-          size="compact"
-          :title="`Theme: ${theme}. Click for ${theme === 'light' ? 'dark' : 'light'}.`"
-          :aria-label="`Switch to ${theme === 'light' ? 'dark' : 'light'} theme`"
-          :icon-left="theme === 'light' ? Sun : Moon"
-          @click="toggleTheme"
-        >
-          {{ theme === 'light' ? 'Light' : 'Dark' }}
-        </UiButton>
+        <div ref="themeGroup" class="split-group" @keydown.esc="showThemeMenu = false">
+          <UiButton
+            size="compact"
+            :title="`Look: ${theme.label}. Click for your ${mode === 'light' ? 'dark' : 'light'} look.`"
+            :aria-label="`Switch to your ${mode === 'light' ? 'dark' : 'light'} look`"
+            :icon-left="mode === 'light' ? Sun : Moon"
+            @click="toggleTheme"
+          >
+            {{ mode === 'light' ? 'Light' : 'Dark' }}
+          </UiButton>
+          <UiButton
+            size="compact"
+            :icon-left="ChevronDown"
+            :active="showThemeMenu"
+            :aria-expanded="showThemeMenu"
+            aria-haspopup="menu"
+            :aria-label="`Look: ${theme.label}. Choose another`"
+            :title="`Look: ${theme.label}`"
+            @click="showThemeMenu = !showThemeMenu"
+          />
+          <div v-if="showThemeMenu" class="pop-menu theme-menu" role="menu" aria-label="Look">
+            <template v-for="g in themeGroups" :key="g.mode">
+              <span class="pop-menu-title">{{ g.label }}</span>
+              <UiButton
+                v-for="t in g.items"
+                :key="t.id"
+                size="compact"
+                role="menuitemradio"
+                class="pop-option"
+                :active="theme.id === t.id"
+                :aria-checked="theme.id === t.id"
+                :title="chosen[t.mode] === t.id && theme.id !== t.id ? `Your ${t.mode} look` : undefined"
+                @click="chooseTheme(t.id)"
+              >
+                <span class="swatch" :style="{ background: t.bg, color: t.swatch }" aria-hidden="true">●</span>
+                {{ t.label }}
+              </UiButton>
+            </template>
+          </div>
+        </div>
         <UiButton size="compact" :icon-left="CircleHelp" title="Help" @click="showHelp = true">Help</UiButton>
       </div>
     </header>
@@ -440,21 +485,22 @@ const helpDoc = ref('overview')
   gap: 0.4rem;
 }
 
-/* Export PDF + its font menu: two buttons joined, the menu dropping below. */
-.export-group {
+/* A button + its menu (Export PDF / font, Dark-Light / look): two buttons
+   joined, the menu dropping below. */
+.split-group {
   position: relative;
   display: inline-flex;
   gap: 1px;
 }
-.export-group > :deep(.ui-btn:first-child) {
+.split-group > :deep(.ui-btn:first-child) {
   border-top-right-radius: 0;
   border-bottom-right-radius: 0;
 }
-.export-group > :deep(.ui-btn:nth-child(2)) {
+.split-group > :deep(.ui-btn:nth-child(2)) {
   border-top-left-radius: 0;
   border-bottom-left-radius: 0;
 }
-.font-menu {
+.pop-menu {
   position: absolute;
   z-index: 20;
   top: calc(100% + 4px);
@@ -468,7 +514,7 @@ const helpDoc = ref('overview')
   background: var(--bg-elev);
   box-shadow: var(--shadow);
 }
-.font-menu-title {
+.pop-menu-title {
   padding: 0 0.2rem 0.1rem;
   font-size: 0.68rem;
   font-weight: 700;
@@ -476,8 +522,22 @@ const helpDoc = ref('overview')
   text-transform: uppercase;
   color: var(--text-muted);
 }
-.font-option {
+.pop-option {
   justify-content: flex-start;
+}
+.theme-menu {
+  min-width: 13rem;
+}
+/* A small disc of each look: its page colour, ringed by its main-action colour. */
+.swatch {
+  display: inline-grid;
+  place-items: center;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  font-size: 0.55rem;
+  line-height: 1;
+  box-shadow: 0 0 0 1px var(--btn-border);
 }
 
 .topbar-end {

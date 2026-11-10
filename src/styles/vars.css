@@ -1,9 +1,10 @@
-/* Markdown Lab themes. Two complete looks, chosen by the user from a set of
-   sketches, switched by the Dark / Light button (lib/useTheme.ts sets
-   data-theme on <html>):
-     dark  = Sage      — dark green-grey, soft sage light (the default)
-     light = Porcelain — warm porcelain with a faint dot grid, frosted white
-                         glass on the tab bar, a dark ink fill for the main action
+/* Markdown Lab themes: the nine looks from the user's theme canvas, each a full
+   token set, chosen from the menu beside the Dark / Light button
+   (lib/themes.ts lists them; lib/useTheme.ts sets data-theme on <html>).
+     Sage (:root, the default dark) and Porcelain (the default light) were the
+     first two picked; Original, Graphite, Midnight & Champagne, Smoke & Sand,
+     Monochrome, Navy & Brass (dark) and Fog (light) follow the canvas palettes.
+   Dark / Light flips between the viewer's chosen dark and light look.
    Buttons (UiButton) are compact and matte: the --btn-* tokens.
    Accents have one job each — focus/links, green = saved, amber = unsaved
    (always a small ● mark, never tinted glass), red = errors. Components use
@@ -100,8 +101,8 @@
   -webkit-font-smoothing: antialiased;
 }
 
-/* Porcelain — the light theme. */
-:root[data-theme='light'] {
+/* Porcelain — light, warm, dot grid. */
+:root[data-theme='porcelain'] {
   --bg: #f2f0eb;
   --bg-elev: #faf9f6;
   --bg-elev-2: #f3f1ec;
@@ -164,6 +165,312 @@
 
   --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
 
+  color-scheme: light;
+}
+
+/* ---- The other looks from the theme canvas (one block each; generated from the
+   canvas palettes: surfaces, paper and matte-button tokens follow each look).
+   Anything a block leaves out falls back to Sage on :root. ---- */
+
+/* Original — dark. */
+:root[data-theme='original'] {
+  --bg: #0b0f18;
+  --bg-elev: #141b2a;
+  --bg-elev-2: #1b2334;
+  --bg-input: #1b2334;
+  --border: #28324a;
+  --border-strong: #3b445b;
+  --text: #e7eaf3;
+  --text-muted: #8b94ac;
+  --on-accent: #0b0f18;
+  --accent-blue: #7ea6f2;
+  --accent-amber: #fbbf24;
+  --overlay-bg: rgba(20, 27, 42, 0.94);
+  --bg-image: radial-gradient(900px 420px at 8% -12%, rgba(79, 142, 247, 0.22), transparent 62%), radial-gradient(820px 460px at 104% -8%, rgba(155, 109, 255, 0.2), transparent 58%);
+  --paper-bg: #141b2a;
+  --paper-head: #1b2334;
+  --paper-text: #d3d8e2;
+  --paper-muted: #8b94ac;
+  --paper-border: #28324a;
+  --paper-code-bg: #1b2334;
+  --paper-link: #7ea6f2;
+  --paper-quote: #4b546c;
+  --paper-selection: rgba(246, 240, 228, 0.2);
+  --shadow-underline: rgba(246, 240, 228, 0.55);
+  --liquid-white: 40 50% 93%;
+  --liquid-light: 40 50% 93%;
+  --liquid-smoke: rgba(246, 240, 228, 0.04);
+  --btn-bg: #222a3b;
+  --btn-bg-hover: #2b3343;
+  --btn-bg-press: #101521;
+  --btn-border: #323b52;
+  --btn-border-hover: #414a60;
+  --btn-text: #dee1ea;
+  --btn-primary-bg: #dbd6ce;
+  --btn-primary-hover: #e1ded7;
+  --btn-primary-press: #c2bfb8;
+  --btn-primary-text: #0b0f18;
+}
+
+/* Graphite — dark. */
+:root[data-theme='graphite'] {
+  --bg: #17181a;
+  --bg-elev: #1d1e21;
+  --bg-elev-2: #222326;
+  --bg-input: #222326;
+  --border: #2c2d31;
+  --border-strong: #3f4043;
+  --text: #ecebe8;
+  --text-muted: #8e8c88;
+  --on-accent: #17181a;
+  --accent-blue: #d4d1ca;
+  --accent-amber: #d6b26a;
+  --overlay-bg: rgba(29, 30, 33, 0.94);
+  --bg-image: linear-gradient(180deg, #1c1d20, #141517);
+  --paper-bg: #1d1e21;
+  --paper-head: #222326;
+  --paper-text: #d9d7d2;
+  --paper-muted: #85837e;
+  --paper-border: #2c2d31;
+  --paper-code-bg: #222326;
+  --paper-link: #d4d1ca;
+  --paper-quote: #4b4b4c;
+  --paper-selection: rgba(236, 232, 224, 0.2);
+  --shadow-underline: rgba(236, 232, 224, 0.55);
+  --liquid-white: 40 24% 90%;
+  --liquid-light: 40 24% 90%;
+  --liquid-smoke: rgba(236, 232, 224, 0.04);
+  --btn-bg: #292a2d;
+  --btn-bg-hover: #323336;
+  --btn-bg-press: #1a1b1e;
+  --btn-border: #36363a;
+  --btn-border-hover: #454649;
+  --btn-text: #e3e3e0;
+  --btn-primary-bg: #d3d0c9;
+  --btn-primary-hover: #dbd8d3;
+  --btn-primary-press: #bdbab4;
+  --btn-primary-text: #17181a;
+}
+
+/* Midnight & Champagne — dark. */
+:root[data-theme='midnight'] {
+  --bg: #08090c;
+  --bg-elev: #0e0f13;
+  --bg-elev-2: #121318;
+  --bg-input: #121318;
+  --border: #1e2026;
+  --border-strong: #333438;
+  --text: #ece6da;
+  --text-muted: #7d7a74;
+  --on-accent: #08090c;
+  --accent-blue: #cdbfa2;
+  --accent-amber: #d9b46c;
+  --overlay-bg: rgba(14, 15, 19, 0.94);
+  --bg-image: radial-gradient(1200px 600px at 50% -25%, rgba(214, 190, 140, 0.08), transparent 60%);
+  --paper-bg: #0e0f13;
+  --paper-head: #121318;
+  --paper-text: #d8d3c8;
+  --paper-muted: #77746e;
+  --paper-border: #1e2026;
+  --paper-code-bg: #121318;
+  --paper-link: #cdbfa2;
+  --paper-quote: #3d3d3f;
+  --paper-selection: rgba(232, 214, 178, 0.2);
+  --shadow-underline: rgba(232, 214, 178, 0.55);
+  --liquid-white: 40 54% 80%;
+  --liquid-light: 40 54% 80%;
+  --liquid-smoke: rgba(232, 214, 178, 0.04);
+  --btn-bg: #1a1a1f;
+  --btn-bg-hover: #232428;
+  --btn-bg-press: #0b0c10;
+  --btn-border: #282a2f;
+  --btn-border-hover: #393a3d;
+  --btn-text: #e3ddd2;
+  --btn-primary-bg: #cebe9f;
+  --btn-primary-hover: #d7cab0;
+  --btn-primary-press: #b6a88d;
+  --btn-primary-text: #08090c;
+  --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+}
+
+/* Smoke & Sand — dark. */
+:root[data-theme='sand'] {
+  --bg: #1e1c19;
+  --bg-elev: #211f1c;
+  --bg-elev-2: #26231f;
+  --bg-input: #26231f;
+  --border: #34302a;
+  --border-strong: #47423c;
+  --text: #efe7da;
+  --text-muted: #9a9184;
+  --on-accent: #1e1c19;
+  --accent-blue: #daceba;
+  --accent-amber: #d39a5a;
+  --overlay-bg: rgba(33, 31, 28, 0.94);
+  --bg-image: radial-gradient(rgba(255, 240, 220, 0.035) 1px, transparent 1px) 0 0 / 3px 3px, linear-gradient(180deg, #23211e, #1a1816);
+  --paper-bg: #211f1c;
+  --paper-head: #26231f;
+  --paper-text: #e3dbcd;
+  --paper-muted: #958c7f;
+  --paper-border: #34302a;
+  --paper-code-bg: #26231f;
+  --paper-link: #daceba;
+  --paper-quote: #565048;
+  --paper-selection: rgba(240, 226, 204, 0.2);
+  --shadow-underline: rgba(240, 226, 204, 0.55);
+  --liquid-white: 37 55% 87%;
+  --liquid-light: 37 55% 87%;
+  --liquid-smoke: rgba(240, 226, 204, 0.04);
+  --btn-bg: #2d2a26;
+  --btn-bg-hover: #36332e;
+  --btn-bg-press: #201e1a;
+  --btn-border: #3d3933;
+  --btn-border-hover: #4c4841;
+  --btn-text: #e7dfd2;
+  --btn-primary-bg: #d7cbb7;
+  --btn-primary-hover: #ded4c4;
+  --btn-primary-press: #c1b6a4;
+  --btn-primary-text: #1e1c19;
+  --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+}
+
+/* Monochrome — dark. */
+:root[data-theme='mono'] {
+  --bg: #0a0a0a;
+  --bg-elev: #111111;
+  --bg-elev-2: #151515;
+  --bg-input: #151515;
+  --border: #262626;
+  --border-strong: #3b3a3a;
+  --text: #f5f3ee;
+  --text-muted: #8a8a8a;
+  --on-accent: #0a0a0a;
+  --accent-blue: #dad9d5;
+  --accent-amber: #e8c37a;
+  --overlay-bg: rgba(17, 17, 17, 0.94);
+  --bg-image: none;
+  --paper-bg: #111111;
+  --paper-head: #151515;
+  --paper-text: #ecebe7;
+  --paper-muted: #8a8a8a;
+  --paper-border: #262626;
+  --paper-code-bg: #151515;
+  --paper-link: #dad9d5;
+  --paper-quote: #494949;
+  --paper-selection: rgba(245, 243, 238, 0.2);
+  --shadow-underline: rgba(245, 243, 238, 0.55);
+  --liquid-white: 43 26% 95%;
+  --liquid-light: 43 26% 95%;
+  --liquid-smoke: rgba(245, 243, 238, 0.04);
+  --btn-bg: #1d1d1d;
+  --btn-bg-hover: #272726;
+  --btn-bg-press: #0e0e0e;
+  --btn-border: #303030;
+  --btn-border-hover: #414140;
+  --btn-text: #eceae5;
+  --btn-primary-bg: #dad8d3;
+  --btn-primary-hover: #e0dfdb;
+  --btn-primary-press: #c1bfbb;
+  --btn-primary-text: #0a0a0a;
+}
+
+/* Navy & Brass — dark. */
+:root[data-theme='navy'] {
+  --bg: #0e1626;
+  --bg-elev: #121b2c;
+  --bg-elev-2: #162032;
+  --bg-input: #162032;
+  --border: #22304a;
+  --border-strong: #364258;
+  --text: #e9e4d8;
+  --text-muted: #8a92a3;
+  --on-accent: #0e1626;
+  --accent-blue: #c3ae89;
+  --accent-amber: #d6b880;
+  --overlay-bg: rgba(18, 27, 44, 0.94);
+  --bg-image: repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.018) 0 1px, transparent 1px 8px), linear-gradient(180deg, #111a2b, #0c1320);
+  --paper-bg: #121b2c;
+  --paper-head: #162032;
+  --paper-text: #dcd8cf;
+  --paper-muted: #848c9c;
+  --paper-border: #22304a;
+  --paper-code-bg: #162032;
+  --paper-link: #c3ae89;
+  --paper-quote: #445067;
+  --paper-selection: rgba(214, 184, 128, 0.2);
+  --shadow-underline: rgba(214, 184, 128, 0.55);
+  --liquid-white: 39 51% 67%;
+  --liquid-light: 39 51% 67%;
+  --liquid-smoke: rgba(214, 184, 128, 0.04);
+  --btn-bg: #1d2738;
+  --btn-bg-hover: #27303f;
+  --btn-bg-press: #101829;
+  --btn-border: #2c3951;
+  --btn-border-hover: #3c475c;
+  --btn-text: #e0dcd1;
+  --btn-primary-bg: #bea576;
+  --btn-primary-hover: #cab58f;
+  --btn-primary-press: #a9946c;
+  --btn-primary-text: #0e1626;
+  --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+}
+
+/* Fog — light, cool. */
+:root[data-theme='fog'] {
+  --bg: #e8ebef;
+  --bg-elev: #f7f8fa;
+  --bg-elev-2: #eef1f4;
+  --bg-input: #f7f8fa;
+  --border: #dde2e8;
+  --border-strong: #cacfd5;
+  --text: #22262c;
+  --text-muted: #6f7781;
+  --on-accent: #f7f8fa;
+  --accent-blue: #4f6684;
+  --accent-green: #3f8a5c;
+  --accent-amber: #c48a3f;
+  --danger: #b5483b;
+  --danger-bg: #f6e3df;
+  --shadow-rgb: 40, 50, 64;
+  --overlay-bg: rgba(247, 248, 250, 0.95);
+  --backdrop: rgba(40, 50, 64, 0.28);
+  --shadow: 0 12px 32px rgba(40, 50, 64, 0.18);
+  --bg-image: linear-gradient(180deg, #eef0f3, #e2e6ea);
+  --paper-bg: #f7f8fa;
+  --paper-head: #eef1f4;
+  --paper-text: #2a2f36;
+  --paper-muted: #7a828c;
+  --paper-border: #dde2e8;
+  --paper-code-bg: #edf0f3;
+  --paper-link: #45607f;
+  --paper-quote: #cfd6de;
+  --paper-selection: rgba(40, 50, 64, 0.16);
+  --shadow-underline: rgba(34, 38, 44, 0.4);
+  --liquid-white: 0 0% 100%;
+  --liquid-light: 0 0% 100%;
+  --liquid-smoke: rgba(255, 255, 255, 0.5);
+  --liquid-milk: rgba(255, 255, 255, 0.5);
+  --liquid-deep: 214 18% 86%;
+  --liquid-deep-a: 0.95;
+  --glass-body-a: 0.5;
+  --liquid-drop: 0.14;
+  --well-shade: 0.2;
+  --well-lip: 0.95;
+  --primary-bg: linear-gradient(180deg, #353b45, #22272e);
+  --primary-text: #f3f5f7;
+  --primary-text-shadow: none;
+  --btn-text-shadow: none;
+  --btn-bg: #fafbfc;
+  --btn-bg-hover: #eef1f4;
+  --btn-bg-press: #e3e7ec;
+  --btn-border: #d5dbe2;
+  --btn-border-hover: #c6cdd6;
+  --btn-text: #262a31;
+  --btn-primary-bg: #2b3038;
+  --btn-primary-hover: #3a404a;
+  --btn-primary-press: #1f2329;
+  --btn-primary-text: #f3f5f7;
+  --font-display: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   color-scheme: light;
 }
 
