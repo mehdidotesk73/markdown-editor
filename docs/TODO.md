@@ -16,7 +16,7 @@ theme from power-gis, Help modal now renders `docs/concepts/*.md`.
 
 Lines starting `a)` `b)` (or `A.` `B.`) now render as lettered lists in the preview and the PDF.
 The PDF's body font is chosen from a menu beside Export PDF (Sans, Serif, Mono) and remembered.
-Code blocks in the PDF sit on a grey tinted panel (long lines wrap; long blocks continue across pages).
+Code blocks in the PDF sit on a soft cream panel (long lines wrap; long blocks continue across pages).
 
 ### v0.8.0 — Block indent, Focus dropdown (2026-11-09)
 

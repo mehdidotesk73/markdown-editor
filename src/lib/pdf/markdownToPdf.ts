@@ -36,11 +36,10 @@ const C = {
   muted: '#59636e',
   border: '#d5d9e0',
   codeBg: '#f3f5f8',
-  // Code blocks: the Sage theme's off-white (its --text, #e6e9e1) at about 55% over the
-  // white page for the fill — the same sage-tinted hue, kept subtle — and the
-  // off-white itself for the edge.
-  blockBg: '#f1f3ee',
-  blockEdge: '#e6e9e1',
+  // Code blocks: a subtle warm cream, with a slightly deeper cream edge. The user
+  // picked cream over the Sage off-white, then asked for it quieter than #fff7e8.
+  blockBg: '#fffbf4',
+  blockEdge: '#f2eadb',
   link: '#1f5fd1',
   quote: '#4f8ef7',
 }
