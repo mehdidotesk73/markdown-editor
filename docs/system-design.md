@@ -101,7 +101,12 @@ markdown ─ lexMarkdown() ─▶ tokens ─┬─ walk: display math, images, i
   paragraph shown as text), so spacing is the same at every level. Tokens are marked's `list` with
   `alpha?: 'lower' | 'upper'` and `delim?: '.' | ')'`; the preview renders `<ol type class="alpha-* paren">`
   (`@counter-style` suffix `) `), the PDF sets pdfmake's `type` and `separator: ')'`; an item ending in a
-  child list gets no bottom gap of its own in the PDF, so rows stay evenly spaced.
+  child list gets no bottom gap of its own in the PDF, so rows stay evenly spaced. Todos: `[ ]`/`[x]` after any
+  marker sets `task`/`checked`. Preview: `ul > li.task` hides the bullet and places the box absolutely in
+  the marker gutter (no negative margin, which used to cancel nested indents); `ol > li.task` keeps its
+  marker with the box inline. PDF: bullet todos use the box as marker (`listType: 'none'`, or no list at
+  all for a pure checklist); numbered todos keep the number and put the box beside the first line only,
+  so nested content keeps the item's indent.
 - **Fonts:** DejaVu subsets (Latin, Greek, Cyrillic, punctuation, arrows, math operators, shapes)
   as `.woff`, ~890 KB for six files, fetched by URL; `setUrlAccessPolicy` allows only our origin.
 - **Loading:** pdfmake (~295 KB gz) on first export; MathJax (~600 KB gz) only for docs with

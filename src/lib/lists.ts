@@ -13,6 +13,8 @@ import type { MarkedExtension, Tokens } from 'marked'
 //            so "I. Introduction" or "e. coli" mid-list are text. A top-level
 //            lettered list needs two items or a nested list, so a lone
 //            "A. Lincoln wrote…" stays a sentence.
+// Tasks:     "[ ]" / "[x]" after any marker. A bullet's box replaces the bullet;
+//            a numbered or lettered item keeps its number, the box follows it.
 // Spacing:   items are always tight (no paragraph gaps), with or without blank
 //            lines between them, so every list and every level is spaced alike.
 //
@@ -92,7 +94,8 @@ const continues = (l: List, m: Marker) =>
   sameKind(l, m) && (l.kind === 'lower' || l.kind === 'upper' ? m.value === l.next : true)
 
 function newItem(l: List, m: Marker): Item {
-  const task = l.kind === 'bullet' || l.kind === 'decimal' ? /^\[[ xX]\]( |$)/.exec(m.text) : null
+  // "[ ] " / "[x] " after any marker makes a checkbox item.
+  const task = /^\[[ xX]\]( |$)/.exec(m.text)
   const text = task ? m.text.slice(3).trimStart() : m.text
   const item: Item = { task: !!task, checked: !!task && task[0][1] !== ' ', parts: [[text]] }
   l.items.push(item)
