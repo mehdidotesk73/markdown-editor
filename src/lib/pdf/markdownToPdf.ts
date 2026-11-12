@@ -383,24 +383,28 @@ function list(l: Tokens.List, a: PdfAssets, width: number, nested = false): Cont
       // Paragraph spacing inside list items is tighter.
       typeof c === 'object' && !Array.isArray(c) && c.style === 'p' ? { ...c, style: undefined, margin: [0, 0, 0, 2] } : c,
     )
-    if (item.task) {
-      return {
-        columns: [
-          { text: item.checked ? '☑' : '☐', width: 14, color: item.checked ? '#1a7f37' : C.muted },
-          { stack, width: '*' },
-        ],
-        columnGap: 2,
-        margin: [0, 0, 0, 2],
-      }
-    }
     // An item ending in a nested list takes no gap of its own: that list's
     // last item already left one, so every row is spaced alike.
-    return { stack, margin: [0, 0, 0, toks[toks.length - 1]?.type === 'list' ? 0 : 2] }
+    const gap = toks[toks.length - 1]?.type === 'list' ? 0 : 2
+    if (item.task) {
+      const box = { text: item.checked ? '☑' : '☐', width: 14, color: item.checked ? '#1a7f37' : C.muted }
+      // Numbered / lettered todo: the box goes beside the first line only, so
+      // anything nested starts at the item's own indent, as in any other item.
+      if (l.ordered) {
+        const [head, ...rest] = stack
+        return { stack: [{ columns: [box, { stack: head ? [head] : [], width: '*' }], columnGap: 2 }, ...rest], margin: [0, 0, 0, gap] }
+      }
+      return { columns: [box, { stack, width: '*' }], columnGap: 2, margin: [0, 0, 0, gap] }
+    }
+    return { stack, margin: [0, 0, 0, gap] }
   })
   const margin = nested ? [0, 2, 0, 0] : [0, 0, 0, 7]
-  // A pure checklist: the boxes are the markers, so no bullet column.
-  if (l.items.every((i) => i.task)) return { stack: items, margin }
-  for (const [i, item] of l.items.entries()) if (item.task) (items[i] as Record<string, unknown>).listType = 'none'
+  // Bullet todos: the box is the marker, so no bullet. (A pure checklist has
+  // no bullet column at all.) Numbered and lettered todos keep their number.
+  if (!l.ordered) {
+    if (l.items.every((i) => i.task)) return { stack: items, margin }
+    for (const [i, item] of l.items.entries()) if (item.task) (items[i] as Record<string, unknown>).listType = 'none'
+  }
   const node: Record<string, unknown> = { margin, markerColor: C.muted }
   if (l.ordered) {
     node.ol = items

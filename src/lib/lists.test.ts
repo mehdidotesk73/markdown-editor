@@ -125,6 +125,26 @@ describe('lists: nesting', () => {
     expect(types).toEqual(['paragraph', 'list', 'paragraph'])
   })
 
+  it('puts checkboxes on any marker, and nests todos and lists inside each other', () => {
+    const numbered = marked.parse('2. Transformer\n3. [X] Facility report:\n  - resolve type\n4. next') as string
+    expect(numbered).toContain('<li class="task"><input type="checkbox" disabled checked> Facility report:<ul>')
+    expect(numbered).toContain('<ol start="2">')
+    expect(marked.parse('a) [ ] first\nb) [x] second') as string).toContain('<li class="task"><input type="checkbox" disabled checked> second</li>')
+    const md = '- [ ] parent\n    - [x] child\n        1. step\n- [ ] other'
+    const l = lexMarkdown(md).find((t) => t.type === 'list') as MlList
+    expect(l.items.map((i) => i.task)).toEqual([true, true])
+    const child = l.items[0].tokens.find((t) => t.type === 'list') as MlList
+    expect(child.items[0].checked).toBe(true)
+    expect(child.items[0].tokens.some((t) => t.type === 'list')).toBe(true)
+  })
+
+  it('nests with the four-space Tab, as VS Code and GitHub do', () => {
+    expect(only('1. one\n    - x\n        a) y\n2. two')).toEqual({
+      m: '1.',
+      items: [['one', { m: '-', items: [['x', { m: 'a)', items: ['y'] }]] }], 'two'],
+    })
+  })
+
   it('keeps task boxes, code inside items, and horizontal rules', () => {
     const html = marked.parse('- [x] done\n- [ ] todo') as string
     expect(html).toContain('<input type="checkbox" disabled checked>')

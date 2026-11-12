@@ -115,14 +115,25 @@
 .md-body ol.alpha-upper.paren {
   list-style-type: ml-upper-paren;
 }
-.md-body li.task,
-.md-body li:has(> input[type='checkbox']) {
-  list-style: none;
-  margin-left: -1.3em;
-}
+/* Todos. A bullet's box sits where the bullet would, outside the text, so the
+   item and anything nested in it indent exactly like any other list. */
 .md-body input[type='checkbox'] {
-  margin-right: 0.4em;
   accent-color: var(--accent-green);
+}
+.md-body ul > li.task {
+  list-style: none;
+  position: relative;
+}
+.md-body ul > li.task > input[type='checkbox'] {
+  position: absolute;
+  left: -1.4em;
+  top: 0.48em;
+  margin: 0;
+}
+/* A numbered or lettered todo keeps its number; the box follows it. */
+.md-body ol > li.task > input[type='checkbox'] {
+  margin: 0 0.45em 0 0;
+  vertical-align: -0.1em;
 }
 
 .md-body blockquote {

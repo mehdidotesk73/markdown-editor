@@ -12,6 +12,12 @@ collapsible panes and a draggable divider, Save / Save as / Export PDF (html2pdf
 drafts + file handles persisted in IndexedDB, external-change pickup on focus, dark slate
 theme from power-gis, Help modal now renders `docs/concepts/*.md`.
 
+### v0.12.0 — Todos everywhere, four-space Tab (2026-11-12)
+
+`[ ]` / `[x]` works after any list marker: a numbered todo keeps its number (3. ☑ Report). Todos and
+lists nest inside each other with normal indents. Tab now indents four spaces, so lists written here
+nest the same in VS Code and on GitHub.
+
 ### v0.11.0 — Mermaid diagrams (2026-11-10)
 
 Code blocks marked `mermaid` are drawn as diagrams in the preview (in the current look's colours)

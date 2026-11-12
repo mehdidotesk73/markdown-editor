@@ -264,10 +264,13 @@ package-lock.json              committed — CI runs `npm ci` and needs it
   parent's marker width (plain markdown ran "2. item / ␣␣a. sub" together); a different marker kind at
   the same level starts a new list; lettered lists start at a/A and count up one letter at a time
   (a lone "A. Lincoln…" stays text). Items are always tight, blank lines or not, so spacing is uniform
-  at every level. The preview shows markers as typed (`@counter-style` for `)`; classes, not
+  at every level. `[ ]` / `[x]` after any marker is a todo: a bullet's box replaces the bullet (drawn
+  in the marker gutter, so nesting indents as usual); a numbered or lettered todo keeps its number
+  and the box follows it ("3. ☑ …"). The preview shows markers as typed (`@counter-style` for `)`; classes, not
   `[type=a]`, which HTML matches case-insensitively); the PDF uses pdfmake's `type` and `separator`.
 - **Editor keys:** Tab / Shift+Tab indent / outdent every line the selection touches (no selection:
-  Tab inserts two spaces, Shift+Tab outdents the line) — `lib/indent.ts`, applied through
+  Tab inserts four spaces, Shift+Tab outdents the line). Four, not two: VS Code / GitHub (CommonMark)
+  only nest a list under `1. ` with 3+ spaces, so the user's files must nest the same there — `lib/indent.ts`, applied through
   `execCommand` so each step is undoable.
 - **Rendered HTML is always sanitized** (`renderMarkdown`) before `v-html`.
 - **Desktop-first, phone-safe:** keep controls tappable and the side-by-side panes usable at phone width.

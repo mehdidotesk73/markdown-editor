@@ -402,6 +402,11 @@ look wrong in a shot taken <0.25 s later. Wait out the transition before judging
 
 ## Version History
 
+### v0.12.0 — 2026-11-12
+- **Added:** Todos on any marker — `3. [x] Report` keeps its number (3. ☑), lettered todos too; todos and lists nest inside each other with normal indents in the preview and the PDF
+- **Changed:** Tab indents four spaces (was two) so files nest the same in VS Code / GitHub, whose CommonMark readers need 3+ spaces under `1. `
+- **Fixed:** Nested lists under a todo barely indented in the preview — the todo's negative margin (to line the box up with bullets) cancelled the children's indent; the box now sits in the marker gutter instead
+
 ### v0.11.0 — 2026-11-10
 - **Added:** Mermaid diagrams (```` ```mermaid ````) in the preview (in the look's colours) and the PDF (tinted boxes, body-font labels)
 - **Changed:** Offline cache precaches only the app core; PDF, math and diagram chunks are cached on first use

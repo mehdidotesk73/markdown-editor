@@ -6,7 +6,9 @@
 // line. With no selection, Tab inserts an indent at the cursor and Shift+Tab
 // outdents the cursor's line. Pure: returns the edit to apply.
 
-export const INDENT = '  '
+// Four spaces: what VS Code, GitHub and other CommonMark readers need to nest a
+// list under "1. " (three wide) or "- ", so files written here nest the same there.
+export const INDENT = '    '
 
 export interface IndentEdit {
   /** Replace text[from, to) with `insert`, then select [selStart, selEnd). */
