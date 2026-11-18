@@ -402,6 +402,12 @@ look wrong in a shot taken <0.25 s later. Wait out the transition before judging
 
 ## Version History
 
+### v0.13.0 — 2026-11-18
+- **Added:** Each open file keeps its cursor, selection and scroll position — switching tabs (or reloading) returns to where you were, not the top
+- **Fixed:** Code blocks inside list items stay raw code — a `- …` line inside the fence started a nested list and split the block
+- **Changed:** PDF diagrams may fill a page (less room for their heading) instead of 70% of one, so tall charts print larger
+- **Fixed:** PDF headings never kept with what follows on multi-page documents — pdfmake lists the page-number footer among each page's nodes, so "nothing but the rule follows" was never true; the footer now carries an id the hook ignores
+
 ### v0.12.0 — 2026-11-12
 - **Added:** Todos on any marker — `3. [x] Report` keeps its number (3. ☑), lettered todos too; todos and lists nest inside each other with normal indents in the preview and the PDF
 - **Changed:** Tab indents four spaces (was two) so files nest the same in VS Code / GitHub, whose CommonMark readers need 3+ spaces under `1. `

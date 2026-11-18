@@ -19,6 +19,8 @@ UI structure:
 - **Workspace** (`Workspace.vue`) — markdown source (left) and rendered preview (right),
   with a draggable divider. Either pane collapses to a thin rail: editor collapsed = read
   focus, preview collapsed = edit focus. Always side by side (left/right), even on a phone.
+  Each tab remembers its cursor/selection and both panes' scroll (`lib/tabView.ts`, localStorage
+  `md-editor:views`, pruned on close), so switching tabs or reloading returns to where you were.
 - **Empty state** — Open a file / New file, shown when no tabs are open.
 - **New document:** ＋, New file and Ctrl/⌘+Alt+N all call `newDocument()` (`useTabs.ts`) — one path.
   It opens prefilled with `docs/focus-shadow-showcase.md` (imported `?raw`), counted as unchanged
@@ -59,7 +61,8 @@ How files work (see `src/lib/fileAccess.ts`, `src/lib/useTabs.ts`):
   labels (that DejaVu face is loaded into the page so Mermaid measures with it), then flattens
   Mermaid's `<style>` sheet onto each element — the PDF's SVG renderer ignores sheets — read all
   first, then write (stripping a parent's class early turned boxes black). `htmlLabels: false`
-  and the classic look keep it PDF-safe. A source that doesn't parse stays as code (red edge).
+  and the classic look keep it PDF-safe. In the PDF a diagram may fill a page less room for its heading
+  (`DIAGRAM_HEADROOM`); headings keep with what follows (the hook ignores pdfmake's footer node by id). A source that doesn't parse stays as code (red edge).
 - Markdown rendering: one shared parser, `src/lib/markdownParser.ts` (`marked` GFM + KaTeX +
   lists from `lib/lists.ts` + mermaid placeholders, no DOM), → `DOMPurify` in `src/lib/markdown.ts` for the preview.
 
@@ -220,6 +223,7 @@ src/
     lists.ts               all lists: - 1. 1) a. a) A. A), nested by indent, always tight (tested)
     diagram.ts             Mermaid: lazy load, preview drawing (cached), PDF SVG (flattened styles)
     pdfFont.ts             the PDF body font preference (Sans / Serif / Mono)
+    tabView.ts             per-tab cursor + scroll positions, restored on tab switch / reload (tested)
     indent.ts              Tab / Shift+Tab indent / outdent of selected lines (pure; tested)
     themes.ts              the looks (id, label, dark/light, colours for the menu)
     useTheme.ts            current look + chosen dark/light look → data-theme on <html>
@@ -266,7 +270,8 @@ package-lock.json              committed — CI runs `npm ci` and needs it
   (a lone "A. Lincoln…" stays text). Items are always tight, blank lines or not, so spacing is uniform
   at every level. `[ ]` / `[x]` after any marker is a todo: a bullet's box replaces the bullet (drawn
   in the marker gutter, so nesting indents as usual); a numbered or lettered todo keeps its number
-  and the box follows it ("3. ☑ …"). The preview shows markers as typed (`@counter-style` for `)`; classes, not
+  and the box follows it ("3. ☑ …"). A code fence inside an item is opaque: until it closes, every line
+  ("- …", "# …", blank) is code, never list structure. The preview shows markers as typed (`@counter-style` for `)`; classes, not
   `[type=a]`, which HTML matches case-insensitively); the PDF uses pdfmake's `type` and `separator`.
 - **Editor keys:** Tab / Shift+Tab indent / outdent every line the selection touches (no selection:
   Tab inserts four spaces, Shift+Tab outdents the line). Four, not two: VS Code / GitHub (CommonMark)

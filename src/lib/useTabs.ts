@@ -11,6 +11,7 @@ import {
   type PickedFile,
 } from './fileAccess'
 import { logDebug } from '../debug'
+import { pruneViews } from './tabView'
 // What a new document starts with: the guide to Markdown Lab and the focus shadow.
 import STARTER from '../../docs/focus-shadow-showcase.md?raw'
 
@@ -239,6 +240,7 @@ function close(t: Tab) {
   const i = state.tabs.findIndex((x) => x.id === t.id)
   if (i < 0) return
   state.tabs.splice(i, 1)
+  pruneViews(state.tabs.map((x) => x.id))
   if (state.activeId === t.id) {
     state.activeId = state.tabs[Math.min(i, state.tabs.length - 1)]?.id ?? null
   }

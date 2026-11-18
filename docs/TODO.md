@@ -12,6 +12,12 @@ collapsible panes and a draggable divider, Save / Save as / Export PDF (html2pdf
 drafts + file handles persisted in IndexedDB, external-change pickup on focus, dark slate
 theme from power-gis, Help modal now renders `docs/concepts/*.md`.
 
+### v0.13.0 — Raw code in lists, bigger PDF diagrams (2026-11-18)
+
+Each open file remembers where you were (cursor and scroll), across tab switches and reloads.
+Code blocks inside list items always show as raw code. In the PDF a tall diagram can fill a page,
+and a heading is no longer left at the bottom of a page when what follows moves to the next.
+
 ### v0.12.0 — Todos everywhere, four-space Tab (2026-11-12)
 
 `[ ]` / `[x]` works after any list marker: a numbered todo keeps its number (3. ☑ Report). Todos and
