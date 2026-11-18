@@ -106,7 +106,10 @@ markdown ─ lexMarkdown() ─▶ tokens ─┬─ walk: display math, images, i
   the marker gutter (no negative margin, which used to cancel nested indents); `ol > li.task` keeps its
   marker with the box inline. PDF: bullet todos use the box as marker (`listType: 'none'`, or no list at
   all for a pure checklist); numbered todos keep the number and put the box beside the first line only,
-  so nested content keeps the item's indent.
+  so nested content keeps the item's indent. Code fences inside items are opaque:
+  from an opening ``` / ~~~ (on an indented line or the marker line) to its closing fence, every line
+  is added to the item as code text — no marker, blank-line or heading handling — dedented by the
+  fence's own column (marked only re-indents ``` fences itself, not ~~~).
 - **Fonts:** DejaVu subsets (Latin, Greek, Cyrillic, punctuation, arrows, math operators, shapes)
   as `.woff`, ~890 KB for six files, fetched by URL; `setUrlAccessPolicy` allows only our origin.
 - **Loading:** pdfmake (~295 KB gz) on first export; MathJax (~600 KB gz) only for docs with

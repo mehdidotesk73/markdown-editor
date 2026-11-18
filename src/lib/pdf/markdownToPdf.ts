@@ -204,9 +204,10 @@ function block(t: Token, a: PdfAssets, width: number): Content | null {
     case 'code': {
       const d = isMermaid(t) ? a.diagrams?.get(t.text) : undefined
       if (d) {
-        // CSS px → pt (×0.75), never wider than the column, nor taller than
-        // ~70% of a page, so a tall chart still fits on the page after its heading.
-        const maxH = 0.7 * (PAGE.height - PAGE.margins[1] - PAGE.margins[3])
+        // CSS px → pt (×0.75), never wider than the column, nor taller than a
+        // page less room for a heading above it: a tall chart takes the rest of
+        // the page, and with its heading moves to the next page if need be.
+        const maxH = PAGE.height - PAGE.margins[1] - PAGE.margins[3] - DIAGRAM_HEADROOM
         const w = Math.min(width, d.width * 0.75, (maxH * d.width) / d.height)
         return { svg: d.svg, width: w, font: a.bodyFont ?? 'Sans', alignment: 'center', margin: [0, 2, 0, 10] }
       }
@@ -448,7 +449,10 @@ function table(tb: Tokens.Table, a: PdfAssets): Content {
   }
 }
 
-type NodeInfo = { headlineLevel?: number; canvas?: unknown }
+type NodeInfo = { headlineLevel?: number; canvas?: unknown; id?: string }
+const FOOTER_ID = 'page-footer'
+/** Room left above a page-tall diagram for its heading (an h1 and its rule) and margins. */
+const DIAGRAM_HEADROOM = 64
 
 /** The body font of the PDF (code always uses Mono). */
 export type PdfFont = 'Sans' | 'Serif' | 'Mono'
@@ -471,15 +475,17 @@ export function buildDocument(
     styles,
     defaultStyle: { font, fontSize: BASE_SIZE, lineHeight: 1.32, color: C.text },
     footer: (page: number, pages: number) =>
-      pages > 1 ? { text: `${page} / ${pages}`, alignment: 'center', fontSize: 8, color: C.muted, margin: [0, 24, 0, 0] } : null,
+      pages > 1 ? { id: FOOTER_ID, text: `${page} / ${pages}`, alignment: 'center', fontSize: 8, color: C.muted, margin: [0, 24, 0, 0] } : null,
     // Never leave a heading alone at the bottom of a page: if nothing but its
-    // own rule follows it there, move it to the next page.
+    // own rule follows it there, move it to the next page. (pdfmake lists the
+    // page-number footer among a page's nodes, so it is ignored by its id —
+    // without that, this never fired on a multi-page PDF.)
     pageBreakBefore: (
       node: NodeInfo,
       q: { getFollowingNodesOnPage: () => NodeInfo[]; getNodesOnNextPage: () => NodeInfo[] },
     ) =>
       !!node.headlineLevel &&
-      q.getFollowingNodesOnPage().filter((n) => !n.canvas).length === 0 &&
+      q.getFollowingNodesOnPage().filter((n) => !n.canvas && n.id !== FOOTER_ID).length === 0 &&
       q.getNodesOnNextPage().length > 0,
   }
 }

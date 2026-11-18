@@ -59,7 +59,8 @@ How files work (see `src/lib/fileAccess.ts`, `src/lib/useTabs.ts`):
   labels (that DejaVu face is loaded into the page so Mermaid measures with it), then flattens
   Mermaid's `<style>` sheet onto each element — the PDF's SVG renderer ignores sheets — read all
   first, then write (stripping a parent's class early turned boxes black). `htmlLabels: false`
-  and the classic look keep it PDF-safe. A source that doesn't parse stays as code (red edge).
+  and the classic look keep it PDF-safe. In the PDF a diagram may fill a page less room for its heading
+  (`DIAGRAM_HEADROOM`); headings keep with what follows (the hook ignores pdfmake's footer node by id). A source that doesn't parse stays as code (red edge).
 - Markdown rendering: one shared parser, `src/lib/markdownParser.ts` (`marked` GFM + KaTeX +
   lists from `lib/lists.ts` + mermaid placeholders, no DOM), → `DOMPurify` in `src/lib/markdown.ts` for the preview.
 
@@ -266,7 +267,8 @@ package-lock.json              committed — CI runs `npm ci` and needs it
   (a lone "A. Lincoln…" stays text). Items are always tight, blank lines or not, so spacing is uniform
   at every level. `[ ]` / `[x]` after any marker is a todo: a bullet's box replaces the bullet (drawn
   in the marker gutter, so nesting indents as usual); a numbered or lettered todo keeps its number
-  and the box follows it ("3. ☑ …"). The preview shows markers as typed (`@counter-style` for `)`; classes, not
+  and the box follows it ("3. ☑ …"). A code fence inside an item is opaque: until it closes, every line
+  ("- …", "# …", blank) is code, never list structure. The preview shows markers as typed (`@counter-style` for `)`; classes, not
   `[type=a]`, which HTML matches case-insensitively); the PDF uses pdfmake's `type` and `separator`.
 - **Editor keys:** Tab / Shift+Tab indent / outdent every line the selection touches (no selection:
   Tab inserts four spaces, Shift+Tab outdents the line). Four, not two: VS Code / GitHub (CommonMark)

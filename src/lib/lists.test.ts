@@ -154,3 +154,40 @@ describe('lists: nesting', () => {
     expect(lexMarkdown('* * *\n').map((t) => t.type)).toEqual(['hr'])
   })
 })
+
+describe('lists: code blocks inside items', () => {
+  it('keeps a fenced block raw — list markers, headings, blank lines and all', () => {
+    const md = [
+      '* Define a Review Tag object',
+      '    ```',
+      '    # [TLR] Review Tag',
+      '',
+      '    tag_id: string (PK)',
+      '',
+      '    - UNIQUE (facility_key, status=PENDING)',
+      '      1. not a list either',
+      '    ```',
+      '',
+      '    *Stage orders are hard-coded.*',
+      '* Define a Lineage object',
+    ].join('\n')
+    const l = lexMarkdown(md).find((t) => t.type === 'list') as MlList
+    expect(l.items).toHaveLength(2)
+    const first = l.items[0].tokens
+    expect(first.some((t) => t.type === 'list')).toBe(false)
+    const code = first.find((t) => t.type === 'code') as Tokens.Code
+    expect(code.text).toBe('# [TLR] Review Tag\n\ntag_id: string (PK)\n\n- UNIQUE (facility_key, status=PENDING)\n  1. not a list either')
+    const html = marked.parse(md) as string
+    expect(html).toContain('<em>Stage orders are hard-coded.</em>')
+    expect(html.match(/<pre>/g)).toHaveLength(1)
+  })
+
+  it('a fence opened on the marker line, and a ~~~ fence in a nested item', () => {
+    const md = '1. ```\n   - raw\n   ```\n2. two\n    - sub\n        ~~~\n        - raw too\n        ~~~\n3. three'
+    const l = lexMarkdown(md).find((t) => t.type === 'list') as MlList
+    expect(l.items).toHaveLength(3)
+    expect((l.items[0].tokens.find((t) => t.type === 'code') as Tokens.Code).text).toBe('- raw')
+    const sub = l.items[1].tokens.find((t) => t.type === 'list') as MlList
+    expect((sub.items[0].tokens.find((t) => t.type === 'code') as Tokens.Code).text).toBe('- raw too')
+  })
+})

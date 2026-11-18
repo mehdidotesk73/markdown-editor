@@ -36,6 +36,8 @@ interface Marker {
 }
 
 const MARKER = /^( *)([-*+]|\d{1,9}[.)]|[a-zA-Z][.)])( +)(\S.*)?$/
+// A code fence line: indent, the fence (``` or ~~~, 3+), the rest (info string).
+const FENCE = /^( *)(`{3,}|~{3,})(.*)$/
 const HR = /^ {0,3}([-*_])( *\1){2,} *$/
 // Lines that start a block of their own, so they never run on into an item lazily.
 const BLOCK_START = /^ {0,3}(#{1,6}( |$)|>|```|~~~|\||\$\$|<)/
@@ -130,8 +132,30 @@ export function scanList(src: string): { raw: string; list: List } | null {
   let used = 1
   let prevBlank = false
 
+  // An open code fence inside an item: until it closes, every line — blank,
+  // "- …", "# …", anything — is code text of the item, never list structure.
+  // The fence is moved to column 0 of the item and its lines dedented by the
+  // fence's own indent (marked only does that itself for ``` fences, not ~~~).
+  let fence: { ch: string; len: number; col: number } | null = null
+  // `col`: where the fence sits in the line — given for a fence on a marker line.
+  const openFence = (line: string, col?: number) => {
+    const f = FENCE.exec(line)
+    if (f) fence = { ch: f[2][0], len: f[2].length, col: col ?? f[1].length }
+  }
+  openFence(first.text, first.contentIndent)
+
   for (let i = 1; i < lines.length; i++) {
     const line = lines[i]
+    if (fence) {
+      const f = FENCE.exec(line)
+      const { ch, len, col } = fence as { ch: string; len: number; col: number }
+      const closes = !!f && f[2][0] === ch && f[2].length >= len && !f[3].trim()
+      if (closes) fence = null
+      addText(lastItem(stack[stack.length - 1]), closes ? line.trimStart() : line.slice(Math.min(indentOf(line), col)))
+      used = i + 1
+      prevBlank = false
+      continue
+    }
     if (!line.trim()) {
       // A blank line: the list goes on only if something list-like follows.
       let j = i + 1
@@ -154,6 +178,7 @@ export function scanList(src: string): { raw: string; list: List } | null {
         stack.push(child)
         used = i + 1
         prevBlank = false
+        openFence(m.text, m.contentIndent)
         continue
       }
       if (m.indent < top.indent + 2) {
@@ -166,6 +191,7 @@ export function scanList(src: string): { raw: string; list: List } | null {
           newItem(l, m)
           used = i + 1
           prevBlank = false
+          openFence(m.text, m.contentIndent)
           continue
         }
         if (canStart(m)) {
@@ -178,6 +204,7 @@ export function scanList(src: string): { raw: string; list: List } | null {
           stack.push(sibling)
           used = i + 1
           prevBlank = false
+          openFence(m.text, m.contentIndent)
           continue
         }
       }
@@ -199,7 +226,8 @@ export function scanList(src: string): { raw: string; list: List } | null {
     const l = stack[level]
     const item = lastItem(l)
     if (prevBlank) addText(item, '')
-    addText(item, line.slice(Math.min(ind, l.contentIndent)))
+    openFence(line)
+    addText(item, fence ? line.trimStart() : line.slice(Math.min(ind, l.contentIndent)))
     used = i + 1
     prevBlank = false
   }

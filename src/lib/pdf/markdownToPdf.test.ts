@@ -58,6 +58,8 @@ describe('PDF layout rules', () => {
     const q = (following: Node[], next: Node[]) => ({ getFollowingNodesOnPage: () => following, getNodesOnNextPage: () => next })
     expect(doc.pageBreakBefore({ headlineLevel: 2 }, q([], [{ text: 'body' }]))).toBe(true)
     expect(doc.pageBreakBefore({ headlineLevel: 2 }, q([{ canvas: [] }], [{ text: 'body' }]))).toBe(true) // only its own rule follows
+    // pdfmake lists the page-number footer among the page's nodes; it doesn't count.
+    expect(doc.pageBreakBefore({ headlineLevel: 1 }, q([{ canvas: [] }, { id: 'page-footer', text: '1 / 3' }], [{ svg: '<svg/>' }]))).toBe(true)
     expect(doc.pageBreakBefore({ headlineLevel: 2 }, q([{ text: 'body' }], []))).toBe(false)
     expect(doc.pageBreakBefore({ headlineLevel: 2 }, q([], []))).toBe(false) // last thing in the document
     expect(doc.pageBreakBefore({ text: 'p' }, q([], [{ text: 'x' }]))).toBe(false)
