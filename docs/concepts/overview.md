@@ -6,7 +6,7 @@ A markdown editor for files on **your own computer**. The app runs entirely in y
 
 ## How do I use it?
 
-- **Open** a markdown file from your computer. It opens in its own tab. Open more files to get more tabs — each tab is linked to its own file.
+- **Open** a markdown file from your computer. It opens in its own tab. Open more files to get more tabs — each tab is linked to its own file, and remembers where you were in it: switching tabs (or reloading) puts the cursor and both panes back where you left them.
 - **Write on the left, read on the right.** The preview updates as you type. Drag the line between the two panes to resize them.
 - **Focus modes:** click **⇤** on the Markdown pane to hide the editor and read the document full-width. Click **⇥** on the Preview pane to hide the preview and write full-width. Click the thin bar on the side to bring a pane back.
 - **Save** (or `Ctrl/⌘ S`) writes your changes back to the file on your computer. A tab with unsaved changes shows its name in amber, and the Save button's icon turns amber.

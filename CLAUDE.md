@@ -19,6 +19,8 @@ UI structure:
 - **Workspace** (`Workspace.vue`) — markdown source (left) and rendered preview (right),
   with a draggable divider. Either pane collapses to a thin rail: editor collapsed = read
   focus, preview collapsed = edit focus. Always side by side (left/right), even on a phone.
+  Each tab remembers its cursor/selection and both panes' scroll (`lib/tabView.ts`, localStorage
+  `md-editor:views`, pruned on close), so switching tabs or reloading returns to where you were.
 - **Empty state** — Open a file / New file, shown when no tabs are open.
 - **New document:** ＋, New file and Ctrl/⌘+Alt+N all call `newDocument()` (`useTabs.ts`) — one path.
   It opens prefilled with `docs/focus-shadow-showcase.md` (imported `?raw`), counted as unchanged
@@ -221,6 +223,7 @@ src/
     lists.ts               all lists: - 1. 1) a. a) A. A), nested by indent, always tight (tested)
     diagram.ts             Mermaid: lazy load, preview drawing (cached), PDF SVG (flattened styles)
     pdfFont.ts             the PDF body font preference (Sans / Serif / Mono)
+    tabView.ts             per-tab cursor + scroll positions, restored on tab switch / reload (tested)
     indent.ts              Tab / Shift+Tab indent / outdent of selected lines (pure; tested)
     themes.ts              the looks (id, label, dark/light, colours for the menu)
     useTheme.ts            current look + chosen dark/light look → data-theme on <html>

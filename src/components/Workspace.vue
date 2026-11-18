@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, nextTick, onBeforeUnmount } from 'vue'
 import { renderMarkdown } from '../lib/markdown'
 import { hydrateDiagrams } from '../lib/diagram'
 import { useTheme } from '../lib/useTheme'
@@ -7,6 +7,7 @@ import type { Tab } from '../lib/useTabs'
 import UiButton from './ui/UiButton.vue'
 import FocusControls from './FocusControls.vue'
 import { indentEdit } from '../lib/indent'
+import { getView, saveView, clampSelection } from '../lib/tabView'
 import { PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Plug } from '@lucide/vue'
 import { useFocusShadow } from '../lib/focus/useFocusShadow'
 
@@ -134,26 +135,63 @@ function onKeydown(e: KeyboardEvent) {
 
 function onInput(e: Event) {
   props.tab.content = (e.target as HTMLTextAreaElement).value
+  rememberSelection()
+}
+
+// ---- where each file was left (lib/tabView.ts) -------------------------------
+
+// While a tab's position is being put back, scroll events are ours: don't
+// record them, and don't let the editor's scroll drag the preview along.
+let restoring = false
+
+function rememberSelection() {
+  const ta = textarea.value
+  if (ta && !restoring) saveView(props.tab.id, { selStart: ta.selectionStart, selEnd: ta.selectionEnd })
+}
+
+function onPreviewScroll() {
+  if (preview.value && !restoring) saveView(props.tab.id, { previewTop: preview.value.scrollTop })
+}
+
+/** Put the cursor and both panes back where this tab was left (top, the first time). */
+async function restoreView() {
+  restoring = true
+  await nextTick()
+  const v = getView(props.tab.id)
+  const ta = textarea.value
+  if (ta) {
+    const [s, e] = v ? clampSelection(v, ta.value.length) : [0, 0]
+    ta.setSelectionRange(s, e) // doesn't move focus
+    ta.scrollTop = v?.editorTop ?? 0
+  }
+  if (preview.value) preview.value.scrollTop = v?.previewTop ?? 0
+  // Let the scroll events from the lines above pass before recording again.
+  requestAnimationFrame(() =>
+    requestAnimationFrame(() => {
+      if (preview.value && v) preview.value.scrollTop = v.previewTop
+      restoring = false
+    }),
+  )
 }
 
 // Keep the preview roughly level with the editor while scrolling the source.
 function syncScroll() {
   const ta = textarea.value
   const pv = preview.value
-  if (!ta || !pv || !both.value) return
+  if (!ta || restoring) return
+  saveView(props.tab.id, { editorTop: ta.scrollTop })
+  if (!pv || !both.value) return
   const max = ta.scrollHeight - ta.clientHeight
   const ratio = max > 0 ? ta.scrollTop / max : 0
   pv.scrollTop = ratio * (pv.scrollHeight - pv.clientHeight)
 }
 
-// New tab → start both panes at the top.
-watch(
-  () => props.tab.id,
-  () => {
-    if (textarea.value) textarea.value.scrollTop = 0
-    if (preview.value) preview.value.scrollTop = 0
-  },
-)
+// Switching tabs (or opening the workspace) → back to where that file was left.
+watch(() => props.tab.id, () => void restoreView(), { immediate: true })
+// A pane that was collapsed comes back as a new element: put it back in place too.
+watch([textarea, preview], ([ta, pv], [oldTa, oldPv]) => {
+  if ((ta && !oldTa) || (pv && !oldPv)) void restoreView()
+})
 
 onBeforeUnmount(endDrag)
 </script>
@@ -196,6 +234,9 @@ onBeforeUnmount(endDrag)
           placeholder="# Start writing…"
           aria-label="Markdown source"
           @input="onInput"
+          @select="rememberSelection"
+          @keyup="rememberSelection"
+          @mouseup="rememberSelection"
           @keydown="onKeydown"
           @scroll="syncScroll"
         />
@@ -232,7 +273,7 @@ onBeforeUnmount(endDrag)
           <span class="pane-meta" />
           <FocusControls :supported="shadowSupported" :count="focusFrame?.count ?? 0" />
         </header>
-        <div ref="preview" class="preview-scroll">
+        <div ref="preview" class="preview-scroll" @scroll="onPreviewScroll">
           <!-- eslint-disable-next-line vue/no-v-html — sanitized by DOMPurify in lib/markdown.ts -->
           <article class="md-body" v-html="html" />
           <p v-if="!tab.content.trim()" class="empty-preview">Nothing to preview yet.</p>

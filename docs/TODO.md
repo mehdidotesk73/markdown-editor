@@ -14,6 +14,7 @@ theme from power-gis, Help modal now renders `docs/concepts/*.md`.
 
 ### v0.13.0 — Raw code in lists, bigger PDF diagrams (2026-11-18)
 
+Each open file remembers where you were (cursor and scroll), across tab switches and reloads.
 Code blocks inside list items always show as raw code. In the PDF a tall diagram can fill a page,
 and a heading is no longer left at the bottom of a page when what follows moves to the next.
 
