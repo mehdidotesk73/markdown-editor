@@ -194,7 +194,12 @@ whatever they're actually asking about.
   an outline (`outline.ts`); expected = the micromark+GFM+math reference with our additions applied
   (`expected.ts`); the rules (Pandoc `$` rule, one-line `$$` display, lowercase `mermaid`, top-level GitHub alerts) are in `RULES.md`, results in `SCORECARD.md`, failure
   diffs in `report/` (gitignored). Baseline is the standard as GitHub renders it — don't hand-write
-  expected outputs; add a rule. A parallel structural renderer is being built to pass it.
+  expected outputs; add a rule. **Three gates run in `npm test` (so in CI):** `gate.test.ts` — the preview
+  HTML and the PDF's layout plan (pdfmake definition; every plan node carries an `ml` tag read back by
+  `pdfOutline.ts`) both match the expected outline for every case; `pdfRendered.test.ts` — all fixture cases
+  are typeset into one real PDF, read back with pdf.js (every character present and in order, nothing
+  past the margins, every link) and checked against pdfmake's placements (nested items right of their
+  parent, siblings aligned, headings on the page of what follows). No screenshots.
 - **No external data dependencies** — the app is self-contained. It can be driven end-to-end
   with Playwright against `npm run preview`: stub `window.showOpenFilePicker` /
   `showSaveFilePicker` to return OPFS handles (`navigator.storage.getDirectory()`), which are

@@ -16,6 +16,11 @@
 //   math-block: a^2 + b^2
 //   diagram mermaid
 //     | flowchart LR
+//
+// "Flat" mode writes inline content as runs of text with their marks, the way a
+// PDF holds it (no nesting): "plain «b|bold» «b,i|both» «c|code» «a=url|link»".
+// The PDF's layout plan is read back in the same form (pdfOutline.ts), so the two
+// can be compared.
 
 import { parse, type HTMLElement, type Node } from 'node-html-parser'
 
@@ -39,6 +44,73 @@ const isDisplayMath = (n: HTMLElement) =>
   cls(n).includes('katex-display') || cls(n).includes('math-display') || !!n.querySelector('.katex-display')
 
 const isInlineMath = (n: HTMLElement) => cls(n).includes('katex') || cls(n).includes('math-inline')
+
+// ---- flat inline runs ----------------------------------------------------------
+
+export interface Seg {
+  marks: string[]
+  text: string
+  /** Code, math and image text is kept as is (no whitespace collapsing). */
+  raw: boolean
+}
+
+/** Inline content as flat runs with their marks (HTML side). */
+function flatSegs(nodes: Node[], marks: string[] = []): Seg[] {
+  const out: Seg[] = []
+  const links = marks.filter((m) => m.startsWith('a='))
+  for (const n of nodes) {
+    if (n.nodeType === TEXT) {
+      out.push({ marks, text: (n as unknown as { text: string }).text, raw: false })
+      continue
+    }
+    if (!isEl(n)) continue
+    const t = tag(n)
+    if (t === 'span' && isInlineMath(n)) out.push({ marks: [...links, 'm'], text: texOf(n), raw: true })
+    else if (t === 'strong' || t === 'b') out.push(...flatSegs(n.childNodes, [...marks, 'b']))
+    else if (t === 'em' || t === 'i') out.push(...flatSegs(n.childNodes, [...marks, 'i']))
+    else if (t === 'del' || t === 's') out.push(...flatSegs(n.childNodes, [...marks, 's']))
+    else if (t === 'code') out.push({ marks: [...marks, 'c'], text: n.text, raw: true })
+    else if (t === 'br') out.push({ marks: [], text: '⏎', raw: true })
+    else if (t === 'a') out.push(...flatSegs(n.childNodes, [...marks, `a=${n.getAttribute('href') ?? ''}`]))
+    else if (t === 'img') out.push({ marks: [...links, `img=${n.getAttribute('src') ?? ''}`], text: n.getAttribute('alt') ?? '', raw: true })
+    else if (t === 'input') {
+      /* checkboxes are read by the list item */
+    } else out.push(...flatSegs(n.childNodes, marks))
+  }
+  return out
+}
+
+/** Runs → one canonical string: merge equal neighbours, collapse spaces, trim the ends. */
+export function serializeSegs(segs: Seg[]): string {
+  const key = (s: Seg) => [...new Set(s.marks)].sort().join(',')
+  const merged: Seg[] = []
+  for (const s of segs) {
+    const last = merged[merged.length - 1]
+    if (last && !last.raw && !s.raw && key(last) === key(s)) last.text += s.text
+    else merged.push({ marks: [...new Set(s.marks)].sort(), text: s.text, raw: s.raw })
+  }
+  for (const s of merged) if (!s.raw) s.text = s.text.replace(/[ \t\r\n]+/g, ' ')
+  // Spaces beside a line break are invisible.
+  merged.forEach((s, i) => {
+    if (s.raw) return
+    if (merged[i - 1]?.text === '⏎') s.text = s.text.replace(/^ +/, '')
+    if (merged[i + 1]?.text === '⏎') s.text = s.text.replace(/ +$/, '')
+  })
+  if (merged.length) merged[0].text = merged[0].text.replace(/^ +/, '')
+  if (merged.length) merged[merged.length - 1].text = merged[merged.length - 1].text.replace(/ +$/, '')
+  return merged
+    .filter((s) => s.text !== '' || s.marks.some((m) => m.startsWith('img=')))
+    .map((s) => (s.marks.length ? `«${s.marks.join(',')}|${s.text}»` : s.text))
+    .join('')
+    .replace(/ ?⏎ ?/g, '⏎')
+}
+
+let flat = false
+
+/** An element's inline content in the current mode. */
+function inlineText(nodes: Node[]): string {
+  return flat ? serializeSegs(flatSegs(nodes)) : tidy(inline(nodes))
+}
 
 /** Canonical inline form of an element's children. */
 export function inline(nodes: Node[]): string {
@@ -74,7 +146,7 @@ function tidy(s: string): string {
   return s.replace(/[ \t\r\n]+/g, ' ').replace(/ ?⏎ ?/g, '⏎').trim()
 }
 
-function codeLines(text: string, pad: string): string[] {
+export function codeLines(text: string, pad: string): string[] {
   // Trailing blank lines are invisible; renderers differ on them for unclosed fences.
   const body = text.replace(/\n[ \t\n]*$/, '')
   if (!body) return [`${pad}  (empty)`]
@@ -86,6 +158,11 @@ function blockLines(n: HTMLElement, depth: number, out: string[]) {
   const t = tag(n)
 
   // Display math, wherever a renderer wraps it (a <p>, a <div class="math-display"> …).
+  // A formula KaTeX couldn't typeset is still display math (its source, shown as an error).
+  if (t === 'div' && cls(n).includes('math-display') && !n.querySelector('.katex')) {
+    out.push(`${pad}math-block: ${tidy(n.text)}`)
+    return
+  }
   if ((t === 'p' || t === 'div' || t === 'span') && isDisplayMath(n) && !tidy(inline(n.childNodes).replace(/\$[^$]*\$/g, ''))) {
     out.push(`${pad}math-block: ${tidy(texOf(n))}`)
     return
@@ -108,10 +185,10 @@ function blockLines(n: HTMLElement, depth: number, out: string[]) {
 
   switch (t) {
     case 'h1': case 'h2': case 'h3': case 'h4': case 'h5': case 'h6':
-      out.push(`${pad}${t}: ${tidy(inline(n.childNodes))}`)
+      out.push(`${pad}${t}: ${inlineText(n.childNodes)}`)
       return
     case 'p':
-      out.push(`${pad}p: ${tidy(inline(n.childNodes))}`)
+      out.push(`${pad}p: ${inlineText(n.childNodes)}`)
       return
     case 'hr':
       out.push(`${pad}hr`)
@@ -158,7 +235,7 @@ function children(n: HTMLElement, depth: number, out: string[]) {
   const pad = '  '.repeat(depth)
   let run: Node[] = []
   const flush = () => {
-    const s = tidy(inline(run))
+    const s = inlineText(run)
     if (s) out.push(`${pad}text: ${s}`)
     run = []
   }
@@ -180,15 +257,20 @@ function table(n: HTMLElement, depth: number, out: string[]) {
   for (const r of rows) {
     const cells = r.childNodes.filter(isEl).filter((c) => tag(c) === 'th' || tag(c) === 'td')
     if (!cells.length) continue
-    out.push(`${pad}  ${tag(cells[0])}: ${cells.map((c) => tidy(inline(c.childNodes))).join(' | ')}`)
+    out.push(`${pad}  ${tag(cells[0])}: ${cells.map((c) => inlineText(c.childNodes)).join(' | ')}`)
   }
 }
 
 /** The structural outline of a rendered HTML fragment. */
-export function outline(html: string): string {
+export function outline(html: string, opts: { flat?: boolean } = {}): string {
   // Parse <pre> as markup too (the default keeps it raw, hiding its <code>).
   const root = parse(html, { comment: false, blockTextElements: { script: true, style: true } })
   const out: string[] = []
-  children(root as unknown as HTMLElement, 0, out)
+  flat = !!opts.flat
+  try {
+    children(root as unknown as HTMLElement, 0, out)
+  } finally {
+    flat = false
+  }
   return out.join('\n')
 }

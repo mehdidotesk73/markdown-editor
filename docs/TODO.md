@@ -16,8 +16,10 @@ theme from power-gis, Help modal now renders `docs/concepts/*.md`.
 
 Markdown now renders the standard way, as GitHub and VS Code show it, by a renderer built from scratch
 and checked automatically against the 328-case fixture and the GFM spec (`npm run conformance`).
-Additions: Mermaid, math, `{label}` bullets, numbered todos, GitHub alerts. Follow-ups noticed in the
-PDF: inline `\text{…}` math, a table header left at a page bottom, long diagram labels wrapping.
+Additions: Mermaid, math, `{label}` bullets, numbered todos, GitHub alerts. The PDF is checked too:
+its layout plan against the same expected structure, and the finished PDF read back (text, margins,
+links, indentation, page breaks) — fixing wide tables, stranded table headers and todo alignment.
+Follow-ups: inline `\text{…}` math in the PDF, long diagram labels wrapping.
 
 ### v0.13.0 — Raw code in lists, bigger PDF diagrams (2026-11-18)
 

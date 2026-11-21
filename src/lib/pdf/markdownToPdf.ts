@@ -5,6 +5,10 @@ import { plainText, type Block, type Inline } from '../md/ast'
 // searchable, and pages break between lines, never through them.
 //
 // Pure: everything async (math, images, diagrams) is resolved beforehand and passed in.
+//
+// Every node also carries an `ml` tag (pdfmake ignores unknown keys) naming what
+// it is — 'heading', 'p', 'code', 'list', 'item' … — so the conformance tests can
+// read the plan back as structure (tests/conformance/pdfOutline.ts).
 
 /** pdfmake's content tree, loosely typed (the library ships no types for 0.3). */
 export type Content = string | { [key: string]: unknown } | Content[]
@@ -110,13 +114,13 @@ function inline(nodes: Inline[], a: PdfAssets, marks: Record<string, unknown> = 
         out.push({ text: n.value, ...marks, font: 'Mono', fontSize: BASE_SIZE * 0.88, background: C.codeBg })
         break
       case 'math':
-        out.push({ text: a.inlineMath(n.value), ...marks, italics: true })
+        out.push({ text: a.inlineMath(n.value), ...marks, italics: true, ml: 'math', mlText: n.value })
         break
       case 'link':
         out.push(...inline(n.children, a, { ...marks, color: C.link, link: n.href }))
         break
       case 'image':
-        out.push({ text: `[image: ${plainText(n.children) || n.src}]`, ...marks, italics: true, color: C.muted })
+        out.push({ text: `[image: ${plainText(n.children) || n.src}]`, ...marks, italics: true, color: C.muted, ml: 'img', mlSrc: n.src, mlText: plainText(n.children) })
         break
       case 'html':
         out.push({ text: stripTags(n.value), ...marks })
@@ -175,15 +179,15 @@ function sidebar(stack: Content[], width: number, color: string, textColor?: str
 function block(b: Block, a: PdfAssets, width: number): Content | null {
   switch (b.type) {
     case 'heading': {
-      const head = { text: inline(b.inlines, a), style: `h${b.level}`, headlineLevel: b.level }
+      const head = { text: inline(b.inlines, a), style: `h${b.level}`, headlineLevel: b.level, ml: 'heading' }
       // h1/h2 carry a rule beneath, like the preview.
-      return b.level <= 2 ? [head, rule(width, C.border, [0, 0, 0, 8])] : head
+      return b.level <= 2 ? [head, { ...(rule(width, C.border, [0, 0, 0, 8]) as object), ml: 'rule' }] : head
     }
 
     case 'paragraph': {
       const img = soloImage(b.inlines)
       if (img) return image(img, a, width)
-      return { text: inline(b.inlines, a), style: 'p' }
+      return { text: inline(b.inlines, a), style: 'p', ml: 'p' }
     }
 
     case 'code': {
@@ -194,21 +198,22 @@ function block(b: Block, a: PdfAssets, width: number): Content | null {
         // the page, and with its heading moves to the next page if need be.
         const maxH = PAGE.height - PAGE.margins[1] - PAGE.margins[3] - DIAGRAM_HEADROOM
         const w = Math.min(width, d.width * 0.75, (maxH * d.width) / d.height)
-        return { svg: d.svg, width: w, font: a.bodyFont ?? 'Sans', alignment: 'center', margin: [0, 2, 0, 10] }
+        return { svg: d.svg, width: w, font: a.bodyFont ?? 'Sans', alignment: 'center', margin: [0, 2, 0, 10], ml: 'diagram', mlText: blockText(b) }
       }
-      return codeBlock(blockText(b), width, a.codeTint)
+      const lang = b.fenced ? b.info.split(/\s+/)[0] : ''
+      return { ...(codeBlock(blockText(b), width, a.codeTint) as object), ml: isMermaid(b) ? 'diagram' : 'code', mlLang: lang, mlText: blockText(b) }
     }
 
     case 'math':
       return displayMath(blockText(b).trim(), a, width)
 
     case 'blockquote':
-      return sidebar(blocks(b.children, a, width - 16), width, C.quote, C.muted)
+      return { ...(sidebar(blocks(b.children, a, width - 16), width, C.quote, C.muted) as object), ml: 'quote' }
 
     case 'alert': {
       const al = ALERT[b.alert] ?? ALERT.note
-      const title = { text: al.title, bold: true, color: al.color, margin: [0, 0, 0, 3] }
-      return sidebar([title, ...blocks(b.children, a, width - 16)], width, al.color)
+      const title = { text: al.title, bold: true, color: al.color, margin: [0, 0, 0, 3], ml: 'alert-title' }
+      return { ...(sidebar([title, ...blocks(b.children, a, width - 16)], width, al.color) as object), ml: 'alert', mlAlert: b.alert }
     }
 
     case 'list':
@@ -218,11 +223,11 @@ function block(b: Block, a: PdfAssets, width: number): Content | null {
       return table(b, a)
 
     case 'hr':
-      return rule(width, C.border, [0, 6, 0, 12])
+      return { ...(rule(width, C.border, [0, 6, 0, 12]) as object), ml: 'hr' }
 
     case 'html': {
       const text = stripTags(b.content).trim()
-      return text ? { text, style: 'p' } : null
+      return text ? { text, style: 'p', ml: 'html' } : null
     }
 
     default:
@@ -232,17 +237,18 @@ function block(b: Block, a: PdfAssets, width: number): Content | null {
 
 function displayMath(tex: string, a: PdfAssets, width: number): Content {
   const m = a.math.get(tex)
-  if (!m) return { text: tex, font: 'Mono', fontSize: 9, alignment: 'center', margin: [0, 2, 0, 9] }
+  if (!m) return { text: tex, font: 'Mono', fontSize: 9, alignment: 'center', margin: [0, 2, 0, 9], ml: 'math', mlText: tex }
   const scale = Math.min(1, width / m.width)
-  return { svg: m.svg, width: m.width * scale, height: m.height * scale, alignment: 'center', margin: [0, 4, 0, 10] }
+  return { svg: m.svg, width: m.width * scale, height: m.height * scale, alignment: 'center', margin: [0, 4, 0, 10], ml: 'math', mlText: tex }
 }
 
 function image(img: Extract<Inline, { type: 'image' }>, a: PdfAssets, width: number): Content {
   const data = a.images.get(img.src)
-  if (!data) return { text: `[image: ${plainText(img.children) || img.src}]`, italics: true, color: C.muted, style: 'p' }
+  const tag = { ml: 'image', mlSrc: img.src, mlText: plainText(img.children) }
+  if (!data) return { text: `[image: ${plainText(img.children) || img.src}]`, italics: true, color: C.muted, style: 'p', ...tag }
   // Never upscale; fit the column width.
   const w = Math.min(width, data.width * 0.75)
-  return { image: data.dataUrl, width: w, margin: [0, 2, 0, 9] }
+  return { image: data.dataUrl, width: w, margin: [0, 2, 0, 9], ...tag }
 }
 
 // ---- code blocks ------------------------------------------------------------
@@ -346,8 +352,14 @@ function codeBlock(source: string, width: number, tint: CodeTint = { bg: C.block
   }
 }
 
+/** pdfmake's bullet gutter at the body size: where a bullet item's text starts. */
+const BULLET_GUTTER = 13.36
+
 function list(l: Block, a: PdfAssets, width: number, nested = false): Content {
   const ld = l.list!
+  // A bullet list mixing todos / labels with plain items keeps its bullet gutter.
+  const marks = l.children.map((i) => i.checked !== null || i.label !== null)
+  const mixed = !ld.ordered && marks.some(Boolean) && !marks.every(Boolean)
   const inner = width - 18
   const items = l.children.map((item) => {
     // Tight lists: paragraphs sit close, like lines. Loose lists keep paragraph spacing.
@@ -356,6 +368,7 @@ function list(l: Block, a: PdfAssets, width: number, nested = false): Content {
       .map((x) => (x.type === 'list' ? list(x, a, inner, true) : block(x, a, inner)))
       .filter((c): c is Content => !!c)
       .map((c) => (typeof c === 'object' && !Array.isArray(c) && c.style === 'p' ? { ...c, style: undefined, margin: [0, 0, 0, pGap] } : c))
+    const tags = { ml: 'item', mlChecked: item.checked, mlLabel: item.label }
     // An item ending in a nested list takes no gap of its own: that list's
     // last item already left one, so every row is spaced alike.
     const last = item.children[item.children.length - 1]
@@ -363,31 +376,35 @@ function list(l: Block, a: PdfAssets, width: number, nested = false): Content {
     // A todo's box, or an A3 label, is drawn as its own column beside the first line.
     const lead =
       item.checked !== null
-        ? { text: item.checked ? '☑' : '☐', width: 14, color: item.checked ? '#1a7f37' : C.muted }
+        ? { text: item.checked ? '☑' : '☐', width: 14, color: item.checked ? '#1a7f37' : C.muted, ml: 'lead' }
         : item.label !== null
-          ? { text: item.label, width: 'auto', margin: [0, 0, 4, 0] }
+          ? { text: item.label, width: 'auto', margin: [0, 0, 4, 0], ml: 'lead' }
           : null
     if (lead) {
       // A numbered todo keeps its number (A4); the box goes beside the first line
       // only, so anything nested starts at the item's own indent.
       if (ld.ordered) {
         const [head, ...rest] = stack
-        return { stack: [{ columns: [lead, { stack: head ? [head] : [], width: '*' }], columnGap: 2 }, ...rest], margin: [0, 0, 0, gap] }
+        return { stack: [{ columns: [lead, { stack: head ? [head] : [], width: '*' }], columnGap: 2 }, ...rest], margin: [0, 0, 0, gap], ...tags }
       }
-      return { columns: [lead, { stack, width: '*' }], columnGap: 2, margin: [0, 0, 0, gap] }
+      // In a list that also has plain items, the box or label sits in the bullet's
+      // gutter (pulled left by its width), so every item's text lines up.
+      if (mixed) return { columns: [{ ...lead, width: BULLET_GUTTER - 2 }, { stack, width: '*' }], columnGap: 2, margin: [-BULLET_GUTTER, 0, 0, gap], ...tags }
+      return { columns: [lead, { stack, width: '*' }], columnGap: 2, margin: [0, 0, 0, gap], ...tags }
     }
-    return { stack, margin: [0, 0, 0, gap] }
+    return { stack, margin: [0, 0, 0, gap], ...tags }
   })
   const margin = nested ? [0, 2, 0, 0] : [0, 0, 0, 7]
+  const listTags = { ml: 'list', mlOrdered: ld.ordered, mlStart: ld.start, mlTight: l.tight }
   // Bullet todos and labels replace the bullet. (A list of only those needs no bullet column.)
   if (!ld.ordered) {
     const replaced = l.children.map((i) => i.checked !== null || i.label !== null)
-    if (replaced.every(Boolean)) return { stack: items, margin }
+    if (replaced.every(Boolean)) return { stack: items, margin, ...listTags }
     replaced.forEach((m, i) => {
       if (m) (items[i] as Record<string, unknown>).listType = 'none'
     })
   }
-  const node: Record<string, unknown> = { margin, markerColor: C.muted }
+  const node: Record<string, unknown> = { margin, markerColor: C.muted, ...listTags }
   if (ld.ordered) {
     node.ol = items
     // "1)" lists show their ")" as typed.
@@ -399,20 +416,52 @@ function list(l: Block, a: PdfAssets, width: number, nested = false): Content {
   return node
 }
 
+/**
+ * A table column is never narrower than its longest unbreakable word, so a long
+ * identifier or URL in a cell would push the table off the page. Give such
+ * words break points every few characters: a zero-width space, which the body
+ * fonts have — and which, for code (Mono has none), goes in a tiny run of its own.
+ */
+const LONG_WORD = 24
+function breakable(runs: Run[], bodyFont: string): Run[] {
+  const out: Run[] = []
+  for (const r of runs) {
+    if (typeof r.text !== 'string' || !new RegExp(`\\S{${LONG_WORD + 1}}`).test(r.text)) {
+      out.push(r)
+      continue
+    }
+    const pieces = r.text.split(/(\S{12})/).filter((x) => x !== '')
+    if (r.font === 'Mono') {
+      pieces.forEach((piece, i) => {
+        if (i) out.push({ ...r, text: '\u200B', font: bodyFont, background: undefined, ml: undefined })
+        out.push({ ...r, text: piece })
+      })
+    } else out.push({ ...r, text: pieces.join('\u200B') })
+  }
+  return out
+}
+
 function table(tb: Block, a: PdfAssets): Content {
   const cell = (c: Inline[], i: number, header: boolean) => ({
-    text: inline(c, a),
+    text: breakable(inline(c, a), a.bodyFont ?? 'Sans'),
     bold: header,
     alignment: tb.align[i] ?? 'left',
     fillColor: header ? C.codeBg : undefined,
   })
   const [head, ...body] = tb.rows
   const cols = head.length
+  // Columns fit their content, unless the table would be wider than the page:
+  // then the wide columns share the room left and wrap ('*').
+  const est = head.map((_, i) => Math.max(...tb.rows.map((r) => plainText(r[i] ?? []).length)) * 5.6 + 13)
+  const tooWide = est.reduce((x, y) => x + y, 0) > CONTENT_WIDTH
+  const widths = cols > 4 ? Array(cols).fill('*') : est.map((w) => (tooWide && w > CONTENT_WIDTH / cols ? '*' : 'auto'))
   return {
     table: {
       headerRows: 1,
+      // The header never sits alone at the bottom of a page: it moves with the first row.
+      keepWithHeaderRows: 1,
       dontBreakRows: true,
-      widths: cols > 4 ? Array(cols).fill('*') : Array(cols).fill('auto'),
+      widths,
       body: [head.map((c, i) => cell(c, i, true)), ...body.map((r) => r.map((c, i) => cell(c, i, false)))],
     },
     layout: {
@@ -426,6 +475,8 @@ function table(tb: Block, a: PdfAssets): Content {
       paddingBottom: () => 3,
     },
     margin: [0, 0, 0, 9],
+    ml: 'table',
+    mlAlign: tb.align,
   }
 }
 

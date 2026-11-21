@@ -158,7 +158,7 @@ export function applyAdditions(lines: string[]): string[] {
     // GFM: in a table cell, "\|" is a pipe in every inline span — math too (the
     // reference leaves it escaped inside math).
     if (/^(th|td): /.test(body) && body.includes('\\|')) {
-      out.push(line.replace(/\$[^$]*\$/g, (m) => m.replace(/\\\|/g, '|')))
+      out.push(line.replace(/\$[^$]*\$|«m\|[^»]*»/g, (m) => m.replace(/\\\|/g, '|')))
       continue
     }
     // A5. A quote opened by an alert marker → alert.
@@ -188,7 +188,7 @@ export function applyAdditions(lines: string[]): string[] {
   return out
 }
 
-/** The expected outline for a piece of markdown. */
-export function expectedOutline(md: string): string {
-  return applyAdditions(outline(referenceHtml(sourceRules(md))).split('\n')).join('\n')
+/** The expected outline for a piece of markdown (flat: inline as runs, for the PDF). */
+export function expectedOutline(md: string, opts: { flat?: boolean } = {}): string {
+  return applyAdditions(outline(referenceHtml(sourceRules(md)), opts).split('\n')).join('\n')
 }
