@@ -433,8 +433,8 @@ function breakable(runs: Run[], bodyFont: string): Run[] {
     const pieces = r.text.split(/(\S{12})/).filter((x) => x !== '')
     if (r.font === 'Mono') {
       pieces.forEach((piece, i) => {
-        if (i) out.push({ ...r, text: '\u200B', font: bodyFont, background: undefined, ml: undefined })
-        out.push({ ...r, text: piece })
+        if (i) out.push({ ...r, text: '\u200B', font: bodyFont, background: undefined, ml: 'break' })
+        out.push({ ...r, text: piece, ...(i ? { mlJoin: true } : {}) })
       })
     } else out.push({ ...r, text: pieces.join('\u200B') })
   }

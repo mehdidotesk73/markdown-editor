@@ -29,7 +29,25 @@ function segs(text: unknown): Seg[] {
   return [{ marks, text: t, raw: false }]
 }
 
-const inlineOf = (text: unknown) => serializeSegs(segs(text))
+/** Runs → segments, undoing the zero-width break points added to long words in tables. */
+function inlineSegs(text: unknown): Seg[] {
+  const out: Seg[] = []
+  const walkRuns = (t: unknown) => {
+    if (Array.isArray(t)) return t.forEach(walkRuns)
+    if (isNode(t) && Array.isArray(t.text)) return walkRuns(t.text)
+    if (isNode(t) && t.ml === 'break') return
+    for (const s of segs(t)) {
+      s.text = s.text.replace(/\u200B/g, '')
+      const last = out[out.length - 1]
+      if (isNode(t) && t.mlJoin && last) last.text += s.text
+      else out.push(s)
+    }
+  }
+  walkRuns(text)
+  return out
+}
+
+const inlineOf = (text: unknown) => serializeSegs(inlineSegs(text))
 
 /** The children of a list item, wherever the plan put them (plain, beside a box or label). */
 function itemChildren(item: N): Content[] {
