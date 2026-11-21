@@ -1,6 +1,6 @@
 # Markdown Lab
 
-*Patterns to copy, then how Markdown Lab follows your attention.*
+*Useful patterns, then how Markdown Lab follows your attention.*
 
 ## What Markdown Lab is
 
@@ -8,7 +8,7 @@ Markdown Lab is a simple editor for markdown files on your own computer. You ope
 
 Each open file gets its own tab. You can hide the writing side to read, or hide the formatted side to write, switch between a dark and a light look, and export any document as a PDF.
 
-## Patterns to copy
+## Useful patterns
 
 Ready-made shapes for organising a document. Each one is written live, so the source is on the left and the result on the right — copy whatever you need. They all use standard markdown, so they look the same in VS Code and on GitHub; the few Markdown Lab extras are marked.
 
