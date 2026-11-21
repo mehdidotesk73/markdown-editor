@@ -18,7 +18,7 @@ Test setup first: `npm run conformance` grades a renderer by structure against t
 and the GFM spec, with expected output computed from a GitHub-compatible reference plus our additions
 (`tests/conformance/RULES.md`). Today's renderer: see `tests/conformance/SCORECARD.md`. Next: a parallel
 renderer built from scratch (block containers → inlines → one tree → HTML and PDF), switched in once it
-passes. Open decisions D1–D4 in `RULES.md`.
+passes. Decisions D1–D4 settled (Pandoc `$` rule, one-line `$$` is display, `mermaid` lowercase, GitHub alerts) — see `RULES.md`.
 
 ### v0.13.0 — Raw code in lists, bigger PDF diagrams (2026-11-18)
 

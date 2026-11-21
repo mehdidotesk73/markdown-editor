@@ -183,7 +183,7 @@ whatever they're actually asking about.
 - **Rendering conformance** (`tests/conformance/`, `npm run conformance`): grades renderers by
   *structure* against the user's fixture (`fixture.md`, ~330 cases) and the GFM spec examples. Output →
   an outline (`outline.ts`); expected = the micromark+GFM+math reference with our additions applied
-  (`expected.ts`); the rules and open decisions are in `RULES.md`, results in `SCORECARD.md`, failure
+  (`expected.ts`); the rules (Pandoc `$` rule, one-line `$$` display, lowercase `mermaid`, top-level GitHub alerts) are in `RULES.md`, results in `SCORECARD.md`, failure
   diffs in `report/` (gitignored). Baseline is the standard as GitHub renders it — don't hand-write
   expected outputs; add a rule. A parallel structural renderer is being built to pass it.
 - **No external data dependencies** — the app is self-contained. It can be driven end-to-end

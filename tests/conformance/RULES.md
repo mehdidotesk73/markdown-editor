@@ -32,23 +32,20 @@ them changes how a standard document is structured.
 
 | # | Addition | Rule | Same as GitHub? |
 |---|---|---|---|
-| A1 | **Mermaid** | A fenced block whose info string is `mermaid` is drawn as a diagram. | Yes |
-| A2 | **Math** | `$…$` is inline math, `$$…$$` is display math, and a ```` ```math ```` block is display math. | Yes |
+| A1 | **Mermaid** | A fenced block whose info string is exactly `mermaid` (lowercase, GitHub's documented syntax) is drawn as a diagram. ```` ```Mermaid ```` stays code. | Yes |
+| A2 | **Math** | `$…$` inline, `$$…$$` display, ```` ```math ```` display. A single `$` follows **Pandoc's rule**: it opens math only when followed by a non-space, and closes only when preceded by a non-space and not followed by a digit. So "The price is $5 and the other is $10" stays text, while `$a$-$b$` is two formulas. A paragraph that is only `$$ x $$` on one line is display math. | Yes (GitHub documents the syntax, not the edge rules; these are the common ones) |
 | A3 | **Bullet labels** | A bullet item that starts with `{label}` shows that label as its marker: `- {1.1} Goals`. Elsewhere it reads as `• {1.1} Goals`. | Our own |
-| A4 | **Numbered todos keep the number** | `3. [x] Done` shows as "3. ☑ Done". This is display only; the structure is standard. | Display choice |
+| A4 | **Numbered todos keep the number** | `3. [x] Done` shows as "3. ☑ Done". Display only; the structure is standard. | Display choice |
+| A5 | **Alerts** | A **top-level** quote whose first line is exactly `> [!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]` or `[!CAUTION]` (any case) is a coloured callout. Text on the marker line, an unknown type, or a quote nested in a list or quote stays a plain quote. | Yes (GitHub's documented syntax) |
 
-## 3. Decisions still open
+## 3. Decisions
 
-These cases have more than one reasonable answer. Until they are decided, the expected output
-follows the reference.
+All decided on 2026-11-21:
 
-- **D1. When does `$` start math?** The reference treats "The price is $5 and the other price
-  is $10" as math (MATH-004). The rule Pandoc uses would keep it as text: `$` opens math only if
-  the next character isn't a space, and `$` closes it only if the character before isn't a space
-  and the character after isn't a digit. That rule also gives the expected result for
-  `$a$-$b$` (MATH-013).
-- **D2. One-line `$$ x $$`.** The reference renders this as inline math (MATH-003). It could
-  instead be display math when it stands alone on its line.
-- **D3. ```` ```Mermaid ```` with a capital M** (MMD-028): diagram or plain code?
-- **D4. GitHub alerts.** `> [!NOTE]` is a plain quote in the standard; GitHub draws a coloured
-  callout. Add it as an A5, or keep the standard?
+- **D1:** Pandoc's `$` rule (A2).
+- **D2:** a one-line `$$ x $$` on its own is display math (A2).
+- **D3:** match GitHub, so `mermaid` lowercase only (A1).
+- **D4:** alerts are added (A5).
+
+GitHub's own renderer couldn't be queried from the build environment, so A1 and A5 follow GitHub's
+documentation. If GitHub turns out to differ on a case, change the rule here and in `expected.ts`.

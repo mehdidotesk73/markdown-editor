@@ -89,6 +89,16 @@ function blockLines(n: HTMLElement, depth: number, out: string[]) {
     out.push(`${pad}math-block: ${tidy(texOf(n))}`)
     return
   }
+  // GitHub-style alerts: <div class="markdown-alert markdown-alert-note"> with a title paragraph.
+  const alert = t === 'div' ? cls(n).find((c) => c.startsWith('markdown-alert-')) : undefined
+  if (alert) {
+    out.push(`${pad}alert ${alert.slice('markdown-alert-'.length)}`)
+    const body = n.childNodes.filter((c) => !(isEl(c) && cls(c).includes('markdown-alert-title')))
+    const wrap = parse('<div></div>').firstChild as HTMLElement
+    for (const c of body) wrap.appendChild(c)
+    children(wrap, depth + 1, out)
+    return
+  }
   // Diagrams: our placeholder, or a plain ```mermaid code block.
   if (t === 'div' && cls(n).includes('mermaid-block')) {
     out.push(`${pad}diagram mermaid`, ...codeLines(n.querySelector('code')?.text ?? '', pad))

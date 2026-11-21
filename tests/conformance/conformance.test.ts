@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { fixtureCases, specExamples } from './cases'
 import { outline } from './outline'
-import { applyAdditions, expectedOutline } from './expected'
+import { applyAdditions, expectedOutline, sourceRules } from './expected'
 
 const dir = join(__dirname)
 
@@ -41,5 +41,17 @@ describe('conformance harness', () => {
     // Labels only on bullets, and only at the start.
     expect(applyAdditions(['ol', '  li', '    text: {1} x'])).toEqual(['ol', '  li', '    text: {1} x'])
     expect(expectedOutline('- see {1.1} here\n')).toBe('ul\n  li\n    text: see {1.1} here')
+  })
+
+  it('decided rules: Pandoc dollars, one-line $$, alerts', () => {
+    expect(expectedOutline('The price is $5 and the other price is $10.\n')).toBe('p: The price is $5 and the other price is $10.')
+    expect(expectedOutline('then $a$-$b$.\n')).toBe('p: then $a$-$b$.')
+    expect(expectedOutline('$$ x^2 $$\n')).toBe('math-block: x^2')
+    expect(expectedOutline('`$5 and $10`\n')).toBe('p: `$5 and $10`') // code untouched
+    expect(expectedOutline('> [!Warning]\n> Careful.\n')).toBe('alert warning\n  p: Careful.')
+    expect(expectedOutline('> [!NOTE] same line\n')).toBe('quote\n  p: [!NOTE] same line')
+    expect(expectedOutline('> [!FOOBAR]\n> x\n')).toBe('quote\n  p: [!FOOBAR] x')
+    expect(expectedOutline('- a\n\n  > [!TIP]\n  > t\n')).toContain('quote')
+    expect(sourceRules('```\n$5 and $10\n```\n')).toBe('```\n$5 and $10\n```\n')
   })
 })

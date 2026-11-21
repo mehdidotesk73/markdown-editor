@@ -15,7 +15,7 @@ the 2019 spec text predates current CommonMark (a few emphasis edge cases) or Gi
 ## Renderer: `current`
 
 - **GFM spec examples:** 551 / 606 pass (raw-HTML sections excluded)
-- **Fixture cases:** 244 / 328 pass
+- **Fixture cases:** 240 / 328 pass
 
 | Fixture section | Pass | Failing cases |
 |---|---|---|
@@ -23,13 +23,13 @@ the 2019 spec text predates current CommonMark (a few emphasis edge cases) or Gi
 | 2. Paragraphs and line breaks | 8 / 8 | — |
 | 3. Thematic breaks | 5 / 5 | — |
 | 4. Blockquotes | 11 / 11 | — |
-| 5. Alerts (EXT: GFM alerts) | 6 / 7 | ALERT-006 |
+| 5. Alerts (EXT: GFM alerts) | 1 / 7 | ALERT-001, ALERT-002, ALERT-003, ALERT-005, ALERT-006, ALERT-007 |
 | 6. Emphasis and inline formatting | 9 / 11 | EMP-004, EMP-009 |
 | 7. Inline code | 7 / 7 | — |
 | 8. Links | 12 / 12 | — |
 | 9. Images | 7 / 7 | — |
 | 10. Escapes and entities | 5 / 7 | ESC-003, ESC-005 |
-| 11. Math (EXT: LaTeX) | 8 / 15 | MATH-003, MATH-004, MATH-010, MATH-011, MATH-012, MATH-013, MATH-014 |
+| 11. Math (EXT: LaTeX) | 10 / 15 | MATH-010, MATH-011, MATH-012, MATH-013, MATH-014 |
 | 12. Unordered lists | 5 / 10 | UL-001, UL-002, UL-004, UL-007, UL-010 |
 | 13. Ordered lists | 10 / 12 | OL-004, OL-012 |
 | 14. Alphanumeric lists (EXT) | 6 / 14 | ALPHA-001, ALPHA-002, ALPHA-005, ALPHA-007, ALPHA-008, ALPHA-009, ALPHA-010, ALPHA-014 |
@@ -41,7 +41,7 @@ the 2019 spec text predates current CommonMark (a few emphasis edge cases) or Gi
 | 20. Indented code blocks | 6 / 7 | INDCODE-006 |
 | 21. Code blocks inside containers | 2 / 18 | CIC-001, CIC-002, CIC-005, CIC-006, CIC-007, CIC-008, CIC-009, CIC-010, CIC-011, CIC-012, CIC-013, CIC-014, CIC-015, CIC-016, CIC-017, CIC-018 |
 | 22. Tables | 22 / 23 | TBL-017 |
-| 23. Mermaid diagrams | 34 / 39 | MMD-026, MMD-028, MMD-030, MMD-031, MMD-032 |
+| 23. Mermaid diagrams | 33 / 39 | MMD-026, MMD-028, MMD-030, MMD-031, MMD-032, MMD-034 |
 | 24. Cross-component combinations | 6 / 14 | COMBO-001, COMBO-002, COMBO-003, COMBO-004, COMBO-005, COMBO-006, COMBO-007, COMBO-010 |
 | 25. Edge cases and robustness | 18 / 20 | EDGE-010, EDGE-011 |
 | 26. Realistic design document (end-to-end sample) | 0 / 1 | DOC-001 |
