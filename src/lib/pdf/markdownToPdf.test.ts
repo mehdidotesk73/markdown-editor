@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { lexMarkdown } from '../markdownParser'
-import { breakLongTokens, buildDocument, pdfCodeTint, CONTENT_WIDTH, PAGE, isDisplayInline, type Content, type PdfAssets, type RenderedMath } from './markdownToPdf'
+import { parse } from '../md'
+import { breakLongTokens, buildDocument, pdfCodeTint, CONTENT_WIDTH, PAGE, type Content, type PdfAssets, type RenderedMath } from './markdownToPdf'
 import { texToUnicode } from './inlineMath'
 import { texToSvg } from './math'
 
@@ -14,13 +14,12 @@ function assets(over: Partial<PdfAssets> = {}): PdfAssets {
     math: new Map(),
     images: new Map(),
     inlineMath: (tex) => `«${tex}»`,
-    decode: (s) => s.replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>'),
     ...over,
   }
 }
 
 function content(md: string, a: PdfAssets = assets()): Content[] {
-  return (buildDocument(lexMarkdown(md), 'Doc', a) as Node).content as Content[]
+  return (buildDocument(parse(md), 'Doc', a) as Node).content as Content[]
 }
 
 /** Flatten nested arrays so tests can find nodes regardless of grouping. */
@@ -38,7 +37,7 @@ function textOf(runs: unknown): string {
 
 describe('PDF layout rules', () => {
   it('sets title, A4 and the body fonts', () => {
-    const doc = buildDocument(lexMarkdown('Hi'), 'My notes', assets()) as Node
+    const doc = buildDocument(parse('Hi'), 'My notes', assets()) as Node
     expect(doc.info.title).toBe('My notes')
     expect(doc.pageSize).toBe('A4')
     expect(doc.defaultStyle.font).toBe('Sans')
@@ -54,7 +53,7 @@ describe('PDF layout rules', () => {
   })
 
   it('keeps a heading off the bottom of a page only when content follows on the next', () => {
-    const doc = buildDocument(lexMarkdown('# A'), 'x', assets()) as Node
+    const doc = buildDocument(parse('# A'), 'x', assets()) as Node
     const q = (following: Node[], next: Node[]) => ({ getFollowingNodesOnPage: () => following, getNodesOnNextPage: () => next })
     expect(doc.pageBreakBefore({ headlineLevel: 2 }, q([], [{ text: 'body' }]))).toBe(true)
     expect(doc.pageBreakBefore({ headlineLevel: 2 }, q([{ canvas: [] }], [{ text: 'body' }]))).toBe(true) // only its own rule follows
@@ -130,8 +129,7 @@ describe('PDF layout rules', () => {
   })
 
   it('uses the tint it is given for the panel', () => {
-    const tokens = lexMarkdown('```\nx\n```')
-    const def = buildDocument(tokens, 't', assets(), 'Sans', { bg: '#eef2f8', edge: '#c9d4e6' }) as { content: Node[] }
+    const def = buildDocument(parse('```\nx\n```'), 't', assets(), 'Sans', { bg: '#eef2f8', edge: '#c9d4e6' }) as { content: Node[] }
     expect(def.content[0].layout.fillColor()).toBe('#eef2f8')
     expect(def.content[0].layout.hLineColor()).toBe('#c9d4e6')
   })
@@ -191,11 +189,24 @@ describe('PDF layout rules', () => {
 })
 
 describe('Math handling', () => {
-  it('one-line $$…$$ becomes a typeset block, splitting the paragraph around it', () => {
-    const tokens = lexMarkdown('Before $$ E=mc^2 $$ after')
-    expect((tokens[0] as Node).tokens.some(isDisplayInline)).toBe(true)
-    const parts = flat(content('Before $$ E=mc^2 $$ after', assets({ math: new Map([['E=mc^2', FAKE_SVG]]) })))
-    expect(parts.map((p) => (p.svg ? 'SVG' : textOf(p).trim()))).toEqual(['Before', 'SVG', 'after'])
+  it('a line that is only $$…$$ is a typeset block (D2); mid-sentence it stays inline', () => {
+    const [m] = content('$$ E=mc^2 $$', assets({ math: new Map([['E=mc^2', FAKE_SVG]]) })) as Node[]
+    expect(m.svg).toBe('<svg/>')
+    const [p] = content('Before $$ E=mc^2 $$ after') as Node[]
+    expect(textOf(p)).toBe('Before «E=mc^2» after')
+  })
+
+  it('draws alerts with their title, and bullet labels as markers', () => {
+    const [al] = content('> [!WARNING]\n> Careful.') as Node[]
+    expect(textOf(al.table.body[0][0].stack)).toBe('WarningCareful.')
+    const [ul] = content('- {1.1} Goals\n- {1.2} Scope') as Node[]
+    expect(ul.stack.map((i: Node) => i.columns[0].text)).toEqual(['1.1', '1.2'])
+  })
+
+  it('keeps the number on a numbered todo, and ")" as typed', () => {
+    const [ol] = content('1) [x] done\n2) [ ] open') as Node[]
+    expect(ol.separator).toBe(')')
+    expect(ol.ol[0].stack[0].columns[0].text).toBe('☑')
   })
 
   it('multi-line $$ blocks become typeset blocks', () => {

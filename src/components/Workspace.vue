@@ -2,12 +2,15 @@
 import { ref, computed, watch, nextTick, onBeforeUnmount } from 'vue'
 import { renderMarkdown } from '../lib/markdown'
 import { hydrateDiagrams } from '../lib/diagram'
+import { hydrateCode } from '../lib/highlight'
 import { useTheme } from '../lib/useTheme'
 import type { Tab } from '../lib/useTabs'
 import UiButton from './ui/UiButton.vue'
 import FocusControls from './FocusControls.vue'
 import { indentEdit } from '../lib/indent'
 import { getView, saveView, clampSelection } from '../lib/tabView'
+import { edgeOf, editorLineAt, previewTopOf, scrollFor, segmentAtLine, wordFractionAt, wordMiddleAt } from '../lib/scrollSync'
+import { editorMetrics, editorWordBoxes, previewAnchors, previewWordBoxes } from '../lib/scrollSyncDom'
 import { PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Plug } from '@lucide/vue'
 import { useFocusShadow } from '../lib/focus/useFocusShadow'
 
@@ -95,11 +98,14 @@ const html = computed(() => renderMarkdown(props.tab.content))
 
 // Mermaid diagrams: the preview HTML carries placeholders; draw them after
 // each render, and again when the look changes (they take the look's colours).
+// Code blocks with a language get coloured once their grammar has loaded.
 const { theme: look } = useTheme()
 watch(
   [html, () => look.value.id, preview],
   () => {
-    if (preview.value) void hydrateDiagrams(preview.value)
+    if (!preview.value) return
+    void hydrateDiagrams(preview.value)
+    void hydrateCode(preview.value)
   },
   { flush: 'post', immediate: true },
 )
@@ -150,7 +156,8 @@ function rememberSelection() {
 }
 
 function onPreviewScroll() {
-  if (preview.value && !restoring) saveView(props.tab.id, { previewTop: preview.value.scrollTop })
+  if (!preview.value || restoring) return
+  saveView(props.tab.id, { previewTop: preview.value.scrollTop })
 }
 
 /** Put the cursor and both panes back where this tab was left (top, the first time). */
@@ -174,17 +181,45 @@ async function restoreView() {
   )
 }
 
-// Keep the preview roughly level with the editor while scrolling the source.
-function syncScroll() {
+// ---- keeping the preview level with the editor (lib/scrollSync.ts) ----------
+//
+// The editor leads; the preview follows it but can be scrolled freely on its
+// own (the user's choice) — the next scroll or edit in the editor brings it
+// back. Both map onto source lines: the editor by measuring where each line
+// starts (wrapped lines are taller), the preview by the data-line each rendered
+// block carries. Within a block they match by word: the word at the editor's
+// middle is, say, 70% of the way through its block's words; the preview is
+// centred on the word 70% through the same block.
+
+function syncPreview() {
   const ta = textarea.value
   const pv = preview.value
+  if (!ta || !pv || !both.value || restoring) return
+  const ed = editorMetrics(ta)
+  const anchors = previewAnchors(pv, ed.tops.length)
+  const y = ta.scrollTop + ta.clientHeight / 2
+  const line = editorLineAt(ed.tops, y, ed.height)
+  const i = segmentAtLine(anchors, line)
+  let target = previewTopOf(anchors, line) // no words to go by: spread the lines over the block
+  const block = anchors[i]
+  if (block.el) {
+    const end = anchors[i + 1]?.line ?? ed.tops.length
+    const p = wordFractionAt(editorWordBoxes(ta, ed, block.line, end), y)
+    const at = p === null ? null : wordMiddleAt(previewWordBoxes(pv, block.el as HTMLElement), p)
+    if (at !== null) target = at
+  }
+  pv.scrollTop = scrollFor(target, pv.clientHeight, pv.scrollHeight, edgeOf(ta.scrollTop, ta.clientHeight, ta.scrollHeight))
+}
+
+function syncScroll() {
+  const ta = textarea.value
   if (!ta || restoring) return
   saveView(props.tab.id, { editorTop: ta.scrollTop })
-  if (!pv || !both.value) return
-  const max = ta.scrollHeight - ta.clientHeight
-  const ratio = max > 0 ? ta.scrollTop / max : 0
-  pv.scrollTop = ratio * (pv.scrollHeight - pv.clientHeight)
+  syncPreview()
 }
+
+// The preview's height changes as you type (and when a diagram is drawn): keep it level.
+watch(html, () => requestAnimationFrame(syncPreview), { flush: 'post' })
 
 // Switching tabs (or opening the workspace) → back to where that file was left.
 watch(() => props.tab.id, () => void restoreView(), { immediate: true })
@@ -273,7 +308,12 @@ onBeforeUnmount(endDrag)
           <span class="pane-meta" />
           <FocusControls :supported="shadowSupported" :count="focusFrame?.count ?? 0" />
         </header>
-        <div ref="preview" class="preview-scroll" @scroll="onPreviewScroll">
+        <div
+          ref="preview"
+          class="preview-scroll"
+          tabindex="-1"
+          @scroll="onPreviewScroll"
+        >
           <!-- eslint-disable-next-line vue/no-v-html — sanitized by DOMPurify in lib/markdown.ts -->
           <article class="md-body" v-html="html" />
           <p v-if="!tab.content.trim()" class="empty-preview">Nothing to preview yet.</p>
@@ -407,6 +447,9 @@ onBeforeUnmount(endDrag)
   background: var(--paper-selection);
 }
 
+.preview-scroll:focus {
+  outline: none; /* focusable only so arrow keys / Page Down scroll it */
+}
 .preview-scroll {
   flex: 1;
   overflow: auto;

@@ -402,6 +402,17 @@ look wrong in a shot taken <0.25 s later. Wait out the transition before judging
 
 ## Version History
 
+### v0.14.0 — 2026-11-21
+- **Changed:** New renderer written from scratch (`lib/md`) on the CommonMark algorithm: one tree for preview and PDF. Matches the standard as GitHub renders it — standard nesting, loose/tight lists, no lettered lists — plus Mermaid, math (Pandoc `$` rule, one-line `$$`), `{label}` bullets, numbered todos, GitHub alerts (`tests/conformance/RULES.md`)
+- **Added:** Conformance harness — the user's 328-case fixture + 606 GFM spec examples graded by structure against a calibrated reference (micromark); the gate runs in CI. Old renderer: 552/606, 242/328; new: 606/606, 328/328
+- **Removed:** `marked`, `marked-katex-extension`, the custom list add-on (2-space nesting, always-tight lists, `a.`/`A)` lists) — case-by-case fixes that kept colliding; the user chose the standard
+- **Added:** PDF checks without screenshots — the layout plan graded like the HTML, and the finished PDF read back with pdf.js (text, positions, links). They found and fixed: long table cells running off the page (auto widths + unbreakable words → wide columns wrap, long words get zero-width break points; Mono has none, so code gets them as tiny body-font runs), a table header left alone at a page bottom (`keepWithHeaderRows`), and todo text misaligned with plain siblings in a mixed list (box now sits in the bullet gutter)
+- **Gotchas:** pdfmake draws a table's header row after its body; it reports a node's position once, so a heading moved by the keep-with-next rule must be re-placed by hand; it hands the layout hook only `id` (not custom keys)
+- **Added:** "Useful patterns" at the top of the new-document starter, before the Focus guide
+- **Fixed:** Editor and preview scroll out of step — synced by scroll percentage, so a tall diagram or table on one side threw the other off. Now synced by content: blocks carry `data-line`, and within a block by word — the word k of N at one pane's middle puts the other pane's middle on word k/N of the same block (the user's idea; the two sides wrap differently, so word position beats height). Checked: the middle rows share words in every probe. The editor leads; the preview can be scrolled freely (the user preferred that to two-way sync)
+- **Added:** Syntax colours for code blocks in the preview, by Shiki (VS Code's grammars; the user chose it over highlight.js for exact tokens). Lazy: the Shiki core and each grammar load only when a block names that language — plain code until then. Colours are `--code-token-*` tokens per look (Shiki's css-variables theme), so a look change needs no redraw; coloured HTML is cached per language + code, so typing doesn't flash. The PDF keeps code plain. Python and TypeScript examples added to the starter's Code pattern
+- **Lesson:** grading needs an oracle. Comparing outlines (structure) against a spec-calibrated reference made hundreds of cases checkable without eyes; the only judgement calls left were four written rules (D1–D4)
+
 ### v0.13.0 — 2026-11-18
 - **Added:** Each open file keeps its cursor, selection and scroll position — switching tabs (or reloading) returns to where you were, not the top
 - **Fixed:** Code blocks inside list items stay raw code — a `- …` line inside the fence started a nested list and split the block

@@ -33,7 +33,7 @@ This is a Vue 3 + TypeScript + Vite single-page app (SPA) that works as a progre
 │  │  lib/                             │  │
 │  │  ├─ useTabs (store + IndexedDB)   │  │
 │  │  ├─ fileAccess (FS Access API)    │  │
-│  │  ├─ markdown (marked+DOMPurify)   │  │
+│  │  ├─ markdown (lib/md+DOMPurify)   │  │
 │  │  └─ exportPdf → pdf/ (pdfmake)    │  │
 │  └───────────────────────────────────┘  │
 │  ┌───────────────────────────────────┐  │
@@ -56,8 +56,8 @@ This is a Vue 3 + TypeScript + Vite single-page app (SPA) that works as a progre
   disk text.
 - **Save:** linked → `createWritable()`; unlinked → `showSaveFilePicker` (links the tab); no API →
   download.
-- **Math:** `marked-katex-extension` (standard mode) runs inside the shared `marked` instance in
-  `lib/markdownParser.ts`; KaTeX's HTML+MathML output passes DOMPurify unchanged in the preview.
+- **Math:** parsed by `lib/md` (`$` by Pandoc's rule, `$$` blocks, one-line `$$`, ```` ```math ````) and
+  typeset with KaTeX in `md/html.ts`; KaTeX's HTML+MathML output passes DOMPurify unchanged.
 
 ## §1c — PDF export (direct download, real text)
 
@@ -90,26 +90,22 @@ markdown ─ lexMarkdown() ─▶ tokens ─┬─ walk: display math, images, i
   Mono has no zero-width space to use instead. Rounded panels were tried (a canvas sized from
   pre-wrapped lines; a two-pass "measure then paint" in the page background) and dropped: the user
   preferred a tint that always applies cleanly, including across page breaks.
+- **Code colours (preview only)** (`lib/highlight.ts`): `hydrateCode(root)` runs after each preview render (beside `hydrateDiagrams`). For each `pre > code.language-x` outside a Mermaid block it loads, once each, the Shiki core (`shiki/core` + the JavaScript regex engine — no WASM — + the `shiki/langs` loader table) and the grammar for `x`; unknown names stay plain. `codeToTokens` with a `createCssVariablesTheme` theme gives spans coloured `var(--code-token-*)` / `var(--code-foreground)`, defined per look in `vars.css`. Results are cached by language + code. Splitting code into spans leaves its text nodes' words intact for scroll sync and focus, except that tokens split at punctuation (`o.paid` → three nodes).
 - **Mermaid diagrams** (`lib/diagram.ts`): `isMermaid(token)` picks ```` ```mermaid ```` code tokens. `exportPdf` renders each with `renderDiagramForPdf(source, codeTint, bodyFontUrl)`: the body font's DejaVu `.woff` is registered as a page font (`FontFace`, "ML Diagram PDF") so Mermaid measures labels with the glyphs the PDF draws; colours are white page, `#1f2328` text, the code tint for node fill/edge, `#59636e` lines. The SVG is then laid out off-screen and flattened: every element's computed fill/stroke/opacity/font/anchor is read (all first), written as attributes, classes and `<style>` removed, width/height set from the viewBox — svg-to-pdfkit ignores style sheets and `width="100%"`. `markdownToPdf` places it as `{ svg, width, font: bodyFont }` (px × 0.75, capped to the column and to 70% of the page height so it fits beside its heading); unknown font families fall back to the body font. Missing (parse error) → normal code block.
-- **Lists** (`lib/lists.ts`, a marked block extension that takes over all lists): markers `-` `*` `+`,
-  `1.` `1)`, `a.` `a)`, `A.` `A)`. One pass with a stack of open lists: a marker ≥ 2 spaces deeper than
-  the innermost list opens a child list in its last item; otherwise it joins the open list at its
-  indent (±1) if it is the same kind and delimiter (letters must be the next letter), or starts a new
-  list there (a new token at top level). Lettered lists start at a/A; a top-level one needs two items or
-  a child, so "A. Lincoln…" stays a paragraph. Indented and lazy lines join the item; blank lines don't
-  end the list if a marker or indented line follows. Items are always tight (`loose: false`; first
-  paragraph shown as text), so spacing is the same at every level. Tokens are marked's `list` with
-  `alpha?: 'lower' | 'upper'` and `delim?: '.' | ')'`; the preview renders `<ol type class="alpha-* paren">`
-  (`@counter-style` suffix `) `), the PDF sets pdfmake's `type` and `separator: ')'`; an item ending in a
-  child list gets no bottom gap of its own in the PDF, so rows stay evenly spaced. Todos: `[ ]`/`[x]` after any
-  marker sets `task`/`checked`. Preview: `ul > li.task` hides the bullet and places the box absolutely in
-  the marker gutter (no negative margin, which used to cancel nested indents); `ol > li.task` keeps its
-  marker with the box inline. PDF: bullet todos use the box as marker (`listType: 'none'`, or no list at
-  all for a pure checklist); numbered todos keep the number and put the box beside the first line only,
-  so nested content keeps the item's indent. Code fences inside items are opaque:
-  from an opening ``` / ~~~ (on an indented line or the marker line) to its closing fence, every line
-  is added to the item as code text — no marker, blank-line or heading handling — dedented by the
-  fence's own column (marked only re-indents ``` fences itself, not ~~~).
+- **The renderer** (`lib/md`). `blocks.ts` follows the CommonMark reference algorithm: per line, (1)
+  match the open containers (`continues()`: quote needs `>`, an item needs its content indent, a fence
+  stays open until its closing fence, a paragraph until a blank line), (2) try block starts in order
+  (quote, ATX heading, fence, `$$`, HTML block, GFM table, setext, rule, list item, indented code),
+  (3) add the rest of the line to the innermost block (or lazily to an open paragraph). Columns track
+  tabs (4-stops, partial tabs). Lists are loose when any item, or a direct child of an item, is followed
+  by a blank line (source-line positions). After the document: task markers and `{label}`s on items,
+  top-level `> [!TYPE]` quotes → alerts, then `inlines.ts` on every paragraph, heading and table cell
+  (reference definitions are known by then). Inline: code spans; the delimiter stack for `*`/`_`
+  (rule of three, openers-bottom) and `~` (equal runs); brackets for links/images (inline, full,
+  collapsed, shortcut references; no links in links); `<…>` autolinks and inline HTML; entities via the
+  `entities` table; GFM bare URLs/emails on the finished text (not through escapes, not inside links);
+  math. `html.ts` writes reference-style HTML; `pdf/markdownToPdf.ts` maps the same tree to pdfmake.
+  Verified by `tests/conformance` (see CLAUDE.md, Build & verify).
 - **Fonts:** DejaVu subsets (Latin, Greek, Cyrillic, punctuation, arrows, math operators, shapes)
   as `.woff`, ~890 KB for six files, fetched by URL; `setUrlAccessPolicy` allows only our origin.
 - **Loading:** pdfmake (~295 KB gz) on first export; MathJax (~600 KB gz) only for docs with

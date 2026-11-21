@@ -78,42 +78,51 @@
 .md-body li + li {
   margin-top: 0.2em;
 }
-/* Nested lists and an item's later paragraphs sit one item-gap below, at every level. */
+/* Nested lists and blocks inside an item sit one item-gap below, at every level. */
 .md-body li > ul,
 .md-body li > ol,
-.md-body li > p,
 .md-body li > pre,
-.md-body li > blockquote {
+.md-body li > blockquote,
+.md-body li > table,
+.md-body li > .math-display,
+.md-body li > .mermaid-block {
   margin: 0.2em 0 0;
 }
-/* Markers as typed: a. / A. / a) / A) / 1) (lists.ts). Classes, not [type=…]:
-   HTML matches the type attribute case-insensitively, so a and A would collide. */
+/* Loose lists (a blank line between items, as the standard defines them): each item
+   is paragraphs, spaced like paragraphs. Tight lists have no <p>, so stay compact. */
+.md-body li > p {
+  margin: 0;
+}
+.md-body li > p + p,
+.md-body li > * + p {
+  margin-top: 0.6em;
+}
+.md-body li:has(> p) + li {
+  margin-top: 0.6em;
+}
+/* "1)" lists show "1)" as typed (class from lib/md/html.ts). */
 @counter-style ml-decimal-paren {
   system: extends decimal;
   suffix: ') ';
 }
-@counter-style ml-lower-paren {
-  system: extends lower-alpha;
-  suffix: ') ';
-}
-@counter-style ml-upper-paren {
-  system: extends upper-alpha;
-  suffix: ') ';
-}
-.md-body ol.alpha-lower {
-  list-style-type: lower-alpha;
-}
-.md-body ol.alpha-upper {
-  list-style-type: upper-alpha;
-}
 .md-body ol.paren {
   list-style-type: ml-decimal-paren;
 }
-.md-body ol.alpha-lower.paren {
-  list-style-type: ml-lower-paren;
+/* A3: "- {1.1} Goals" — the label is the item's marker, hung in the margin like a number. */
+.md-body ul:has(> li[data-label]) {
+  padding-left: 2.6em;
 }
-.md-body ol.alpha-upper.paren {
-  list-style-type: ml-upper-paren;
+.md-body li[data-label] {
+  list-style: none;
+  position: relative;
+}
+.md-body li[data-label]::before {
+  content: attr(data-label);
+  position: absolute;
+  right: 100%;
+  margin-right: 0.5em;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 /* Todos. A bullet's box sits where the bullet would, outside the text, so the
    item and anything nested in it indent exactly like any other list. */
@@ -124,16 +133,48 @@
   list-style: none;
   position: relative;
 }
-.md-body ul > li.task > input[type='checkbox'] {
+.md-body ul > li.task > input[type='checkbox'],
+.md-body ul > li.task > p:first-child > input[type='checkbox'] {
   position: absolute;
   left: -1.4em;
   top: 0.48em;
   margin: 0;
 }
-/* A numbered or lettered todo keeps its number; the box follows it. */
-.md-body ol > li.task > input[type='checkbox'] {
+/* A numbered todo keeps its number; the box follows it (A4). */
+.md-body ol > li.task > input[type='checkbox'],
+.md-body ol > li.task > p:first-child > input[type='checkbox'] {
   margin: 0 0.45em 0 0;
   vertical-align: -0.1em;
+}
+
+/* A5: GitHub-style alerts — a quote with a coloured edge and a title. */
+.md-body .markdown-alert {
+  margin: 0 0 1em;
+  padding: 0.35em 1em;
+  border-left: 0.25em solid var(--alert-color);
+}
+.md-body .markdown-alert > :last-child {
+  margin-bottom: 0;
+}
+.md-body .markdown-alert-title {
+  margin: 0 0 0.3em;
+  font-weight: 650;
+  color: var(--alert-color);
+}
+.md-body .markdown-alert-note {
+  --alert-color: var(--alert-note);
+}
+.md-body .markdown-alert-tip {
+  --alert-color: var(--alert-tip);
+}
+.md-body .markdown-alert-important {
+  --alert-color: var(--alert-important);
+}
+.md-body .markdown-alert-warning {
+  --alert-color: var(--alert-warning);
+}
+.md-body .markdown-alert-caution {
+  --alert-color: var(--alert-caution);
 }
 
 .md-body blockquote {

@@ -14,6 +14,24 @@
    black on white; lib/pdf). */
 
 :root {
+  /* GitHub-style alerts in the preview (A5): one muted hue per type, for dark looks;
+     light looks override below. Document content, not chrome, so not the accents. */
+  --alert-note: #85a9d6;
+  --alert-tip: #8fc7a2;
+  --alert-important: #b29ad8;
+  --alert-warning: #d6b06a;
+  --alert-caution: #e58a7e;
+  /* Code highlighting (Shiki's css-variables theme; lib/highlight.ts). Muted, one hue per job. */
+  --code-foreground: var(--paper-text);
+  --code-token-keyword: #c79bd6;
+  --code-token-constant: #e0a87a;
+  --code-token-function: #8cb4e6;
+  --code-token-parameter: #d8c79a;
+  --code-token-string: #a5cf95;
+  --code-token-string-expression: #a5cf95;
+  --code-token-punctuation: color-mix(in srgb, var(--paper-text) 62%, transparent);
+  --code-token-comment: color-mix(in srgb, var(--paper-text) 48%, transparent);
+  --code-token-link: #8cb4e6;
   /* surfaces */
   --bg: #141815;
   --bg-elev: #181c19;
@@ -106,6 +124,18 @@
 
 /* Porcelain — light, warm, dot grid. */
 :root[data-theme='porcelain'] {
+  --alert-note: #3b679f;
+  --alert-tip: #3f8a5c;
+  --alert-important: #7556a3;
+  --alert-warning: #9c6a1d;
+  --alert-caution: #b5483b;
+  --code-token-keyword: #8a3f9e;
+  --code-token-constant: #a85a1c;
+  --code-token-function: #2f5f9e;
+  --code-token-parameter: #7a6320;
+  --code-token-string: #3d7a2f;
+  --code-token-string-expression: #3d7a2f;
+  --code-token-link: #2f5f9e;
   --bg: #f2f0eb;
   --bg-elev: #faf9f6;
   --bg-elev-2: #f3f1ec;
@@ -296,6 +326,18 @@
 
 /* Fog — light, cool. */
 :root[data-theme='fog'] {
+  --alert-note: #3b679f;
+  --alert-tip: #3f8a5c;
+  --alert-important: #7556a3;
+  --alert-warning: #9c6a1d;
+  --alert-caution: #b5483b;
+  --code-token-keyword: #8a3f9e;
+  --code-token-constant: #a85a1c;
+  --code-token-function: #2f5f9e;
+  --code-token-parameter: #7a6320;
+  --code-token-string: #3d7a2f;
+  --code-token-string-expression: #3d7a2f;
+  --code-token-link: #2f5f9e;
   --bg: #e8ebef;
   --bg-elev: #f7f8fa;
   --bg-elev-2: #eef1f4;

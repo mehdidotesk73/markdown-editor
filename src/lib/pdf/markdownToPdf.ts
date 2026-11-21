@@ -1,10 +1,14 @@
-import type { Token, Tokens } from 'marked'
+import { plainText, type Block, type Inline } from '../md/ast'
 
-// Markdown tokens (from the same `marked` instance the preview uses) → a
-// pdfmake document. pdfmake lays out real text, so the PDF is selectable and
+// The document tree (lib/md — the same tree the preview renders) → a pdfmake
+// document. pdfmake lays out real text, so the PDF is selectable and
 // searchable, and pages break between lines, never through them.
 //
-// Pure: everything async (math, images) is resolved beforehand and passed in.
+// Pure: everything async (math, images, diagrams) is resolved beforehand and passed in.
+//
+// Every node also carries an `ml` tag (pdfmake ignores unknown keys) naming what
+// it is — 'heading', 'p', 'code', 'list', 'item' … — so the conformance tests can
+// read the plan back as structure (tests/conformance/pdfOutline.ts).
 
 /** pdfmake's content tree, loosely typed (the library ships no types for 0.3). */
 export type Content = string | { [key: string]: unknown } | Content[]
@@ -22,8 +26,6 @@ export interface PdfAssets {
   images: Map<string, { dataUrl: string; width: number; height: number }>
   /** Inline math → Unicode text (e.g. "x^2" → "x²"). */
   inlineMath: (tex: string) => string
-  /** Decode HTML entities in token text ("&amp;" → "&"). */
-  decode: (s: string) => string
   /** Code-block panel colours (from the current look via pdfCodeTint); default: C.blockBg / C.blockEdge. */
   codeTint?: CodeTint
   /** Mermaid diagrams by source, as SVG with their size in CSS px. Missing → shown as a code block. */
@@ -32,9 +34,14 @@ export interface PdfAssets {
   bodyFont?: PdfFont
 }
 
-/** Mermaid fenced blocks are drawn as diagrams. */
-export function isMermaid(t: Token): t is Tokens.Code {
-  return t.type === 'code' && ((t as Tokens.Code).lang ?? '').trim().toLowerCase() === 'mermaid'
+/** A1: a ```mermaid block (exactly) is drawn as a diagram. */
+export function isMermaid(b: Block): boolean {
+  return b.type === 'code' && b.fenced && b.info.split(/\s+/)[0] === 'mermaid'
+}
+
+/** The source of a code or math block, without its final newline. */
+export function blockText(b: Block): string {
+  return b.content.replace(/\n$/, '')
 }
 
 // ---- page + typography -------------------------------------------------------
@@ -55,6 +62,15 @@ const C = {
   quote: '#4f8ef7',
 }
 
+/** A5: alert colours on the white page (GitHub's light palette, slightly muted). */
+const ALERT: Record<string, { title: string; color: string }> = {
+  note: { title: 'Note', color: '#3b679f' },
+  tip: { title: 'Tip', color: '#3f8a5c' },
+  important: { title: 'Important', color: '#7556a3' },
+  warning: { title: 'Warning', color: '#9c6a1d' },
+  caution: { title: 'Caution', color: '#b5483b' },
+}
+
 export const BASE_SIZE = 10.5
 
 export const styles = {
@@ -72,58 +88,43 @@ export const styles = {
 
 type Run = { [key: string]: unknown; text: string | Run[] }
 
-function inline(tokens: Token[] | undefined, a: PdfAssets, marks: Record<string, unknown> = {}): Run[] {
+function inline(nodes: Inline[], a: PdfAssets, marks: Record<string, unknown> = {}): Run[] {
   const out: Run[] = []
-  for (const t of tokens ?? []) {
-    switch (t.type) {
-      case 'text': {
-        const tt = t as Tokens.Text
-        if (tt.tokens?.length) out.push(...inline(tt.tokens, a, marks))
-        else out.push({ text: a.decode(tt.text), ...marks })
+  for (const n of nodes) {
+    switch (n.type) {
+      case 'text':
+        out.push({ text: n.value, ...marks })
         break
-      }
-      case 'escape':
-        out.push({ text: a.decode((t as Tokens.Escape).text), ...marks })
+      case 'softbreak':
+        out.push({ text: ' ', ...marks })
         break
-      case 'strong':
-        out.push(...inline((t as Tokens.Strong).tokens, a, { ...marks, bold: true }))
-        break
-      case 'em':
-        out.push(...inline((t as Tokens.Em).tokens, a, { ...marks, italics: true }))
-        break
-      case 'del':
-        out.push(...inline((t as Tokens.Del).tokens, a, { ...marks, decoration: 'lineThrough' }))
-        break
-      case 'codespan':
-        out.push({
-          text: a.decode((t as Tokens.Codespan).text),
-          ...marks,
-          font: 'Mono',
-          fontSize: BASE_SIZE * 0.88,
-          background: C.codeBg,
-        })
-        break
-      case 'link': {
-        const l = t as Tokens.Link
-        out.push(...inline(l.tokens, a, { ...marks, color: C.link, link: l.href }))
-        break
-      }
-      case 'image': {
-        const img = t as Tokens.Image
-        out.push({ text: `[image: ${img.text || img.href}]`, ...marks, italics: true, color: C.muted })
-        break
-      }
-      case 'br':
+      case 'hardbreak':
         out.push({ text: '\n', ...marks })
         break
+      case 'strong':
+        out.push(...inline(n.children, a, { ...marks, bold: true }))
+        break
+      case 'emph':
+        out.push(...inline(n.children, a, { ...marks, italics: true }))
+        break
+      case 'del':
+        out.push(...inline(n.children, a, { ...marks, decoration: 'lineThrough' }))
+        break
+      case 'code':
+        out.push({ text: n.value, ...marks, font: 'Mono', fontSize: BASE_SIZE * 0.88, background: C.codeBg })
+        break
+      case 'math':
+        out.push({ text: a.inlineMath(n.value), ...marks, italics: true, ml: 'math', mlText: n.value })
+        break
+      case 'link':
+        out.push(...inline(n.children, a, { ...marks, color: C.link, link: n.href }))
+        break
+      case 'image':
+        out.push({ text: `[image: ${plainText(n.children) || n.src}]`, ...marks, italics: true, color: C.muted, ml: 'img', mlSrc: n.src, mlText: plainText(n.children) })
+        break
       case 'html':
-        out.push({ text: a.decode(stripTags((t as Tokens.HTML).text)), ...marks })
+        out.push({ text: stripTags(n.value), ...marks })
         break
-      case 'inlineKatex':
-        out.push({ text: a.inlineMath((t as unknown as { text: string }).text), ...marks, italics: true })
-        break
-      default:
-        if ('text' in t && typeof t.text === 'string') out.push({ text: a.decode(t.text), ...marks })
     }
   }
   return out
@@ -134,9 +135,9 @@ function stripTags(html: string): string {
 }
 
 /** A paragraph that is only an image renders as a block image. */
-function soloImage(tokens: Token[] | undefined): Tokens.Image | null {
-  const real = (tokens ?? []).filter((t) => !(t.type === 'text' && !(t as Tokens.Text).text.trim()))
-  return real.length === 1 && real[0].type === 'image' ? (real[0] as Tokens.Image) : null
+function soloImage(nodes: Inline[]): Extract<Inline, { type: 'image' }> | null {
+  const real = nodes.filter((n) => !(n.type === 'text' && !n.value.trim()) && n.type !== 'softbreak')
+  return real.length === 1 && real[0].type === 'image' ? real[0] : null
 }
 
 // ---- blocks ------------------------------------------------------------------
@@ -148,129 +149,106 @@ function rule(width: number, color = C.border, margin = [0, 2, 0, 8]): Content {
   }
 }
 
-function blocks(tokens: Token[], a: PdfAssets, width: number): Content[] {
+function blocks(list: Block[], a: PdfAssets, width: number): Content[] {
   const out: Content[] = []
-  for (const t of tokens) {
-    const b = block(t, a, width)
-    if (b) out.push(b)
+  for (const b of list) {
+    const c = block(b, a, width)
+    if (c) out.push(c)
   }
   return out
 }
 
-function block(t: Token, a: PdfAssets, width: number): Content | null {
-  switch (t.type) {
-    case 'space':
-      return null
+/** A quote-like panel: a coloured bar on the left. */
+function sidebar(stack: Content[], width: number, color: string, textColor?: string): Content {
+  void width
+  return {
+    table: { widths: ['*'], body: [[{ stack, ...(textColor ? { color: textColor } : {}) }]] },
+    layout: {
+      hLineWidth: () => 0,
+      vLineWidth: (i: number) => (i === 0 ? 2.5 : 0),
+      vLineColor: () => color,
+      paddingLeft: () => 10,
+      paddingRight: () => 0,
+      paddingTop: () => 2,
+      paddingBottom: () => 0,
+    },
+    margin: [0, 0, 0, 8],
+  }
+}
 
+function block(b: Block, a: PdfAssets, width: number): Content | null {
+  switch (b.type) {
     case 'heading': {
-      const h = t as Tokens.Heading
-      const head = { text: inline(h.tokens, a), style: `h${h.depth}`, headlineLevel: h.depth }
+      const head = { text: inline(b.inlines, a), style: `h${b.level}`, headlineLevel: b.level, ml: 'heading' }
       // h1/h2 carry a rule beneath, like the preview.
-      return h.depth <= 2 ? [head, rule(width, C.border, [0, 0, 0, 8])] : head
+      return b.level <= 2 ? [head, { ...(rule(width, C.border, [0, 0, 0, 8]) as object), ml: 'rule' }] : head
     }
 
     case 'paragraph': {
-      const p = t as Tokens.Paragraph
-      const img = soloImage(p.tokens)
+      const img = soloImage(b.inlines)
       if (img) return image(img, a, width)
-      // `$$ … $$` written inside a line comes through as an inline token in
-      // display mode: split the paragraph around it and typeset it as a block.
-      if (p.tokens.some(isDisplayInline)) {
-        const parts: Content[] = []
-        let run: Token[] = []
-        const flush = () => {
-          if (run.some((x) => !(x.type === 'text' && !(x as Tokens.Text).text.trim())))
-            parts.push({ text: inline(run, a), style: 'p' })
-          run = []
-        }
-        for (const x of p.tokens) {
-          if (isDisplayInline(x)) {
-            flush()
-            parts.push(displayMath((x as unknown as { text: string }).text, a, width))
-          } else run.push(x)
-        }
-        flush()
-        return parts
-      }
-      return { text: inline(p.tokens, a), style: 'p' }
-    }
-
-    case 'text': {
-      // Block-level text inside tight list items.
-      const tt = t as Tokens.Text
-      return { text: tt.tokens ? inline(tt.tokens, a) : a.decode(tt.text) }
+      return { text: inline(b.inlines, a), style: 'p', ml: 'p' }
     }
 
     case 'code': {
-      const d = isMermaid(t) ? a.diagrams?.get(t.text) : undefined
+      const d = isMermaid(b) ? a.diagrams?.get(blockText(b)) : undefined
       if (d) {
         // CSS px → pt (×0.75), never wider than the column, nor taller than a
         // page less room for a heading above it: a tall chart takes the rest of
         // the page, and with its heading moves to the next page if need be.
         const maxH = PAGE.height - PAGE.margins[1] - PAGE.margins[3] - DIAGRAM_HEADROOM
         const w = Math.min(width, d.width * 0.75, (maxH * d.width) / d.height)
-        return { svg: d.svg, width: w, font: a.bodyFont ?? 'Sans', alignment: 'center', margin: [0, 2, 0, 10] }
+        return { svg: d.svg, width: w, font: a.bodyFont ?? 'Sans', alignment: 'center', margin: [0, 2, 0, 10], ml: 'diagram', mlText: blockText(b) }
       }
-      return codeBlock((t as Tokens.Code).text, width, a.codeTint)
+      const lang = b.fenced ? b.info.split(/\s+/)[0] : ''
+      return { ...(codeBlock(blockText(b), width, a.codeTint) as object), ml: isMermaid(b) ? 'diagram' : 'code', mlLang: lang, mlText: blockText(b) }
     }
 
-    case 'blockquote': {
-      const q = t as Tokens.Blockquote
-      return {
-        table: { widths: ['*'], body: [[{ stack: blocks(q.tokens, a, width - 16), color: C.muted }]] },
-        layout: {
-          hLineWidth: () => 0,
-          vLineWidth: (i: number) => (i === 0 ? 2.5 : 0),
-          vLineColor: () => C.quote,
-          paddingLeft: () => 10,
-          paddingRight: () => 0,
-          paddingTop: () => 2,
-          paddingBottom: () => 0,
-        },
-        margin: [0, 0, 0, 8],
-      }
+    case 'math':
+      return displayMath(blockText(b).trim(), a, width)
+
+    case 'blockquote':
+      return { ...(sidebar(blocks(b.children, a, width - 16), width, C.quote, C.muted) as object), ml: 'quote' }
+
+    case 'alert': {
+      const al = ALERT[b.alert] ?? ALERT.note
+      const title = { text: al.title, bold: true, color: al.color, margin: [0, 0, 0, 3], ml: 'alert-title' }
+      return { ...(sidebar([title, ...blocks(b.children, a, width - 16)], width, al.color) as object), ml: 'alert', mlAlert: b.alert }
     }
 
     case 'list':
-      return list(t as Tokens.List, a, width)
+      return list(b, a, width)
 
     case 'table':
-      return table(t as Tokens.Table, a)
+      return table(b, a)
 
     case 'hr':
-      return rule(width, C.border, [0, 6, 0, 12])
+      return { ...(rule(width, C.border, [0, 6, 0, 12]) as object), ml: 'hr' }
 
     case 'html': {
-      const text = a.decode(stripTags((t as Tokens.HTML).text)).trim()
-      return text ? { text, style: 'p' } : null
+      const text = stripTags(b.content).trim()
+      return text ? { text, style: 'p', ml: 'html' } : null
     }
 
-    case 'blockKatex':
-      return displayMath((t as unknown as { text: string }).text, a, width)
-
     default:
-      return 'text' in t && typeof t.text === 'string' && t.text.trim() ? { text: a.decode(t.text), style: 'p' } : null
+      return null
   }
-}
-
-/** True for `$$ … $$` that marked-katex-extension tokenized inline. */
-export function isDisplayInline(t: Token): boolean {
-  return t.type === 'inlineKatex' && !!(t as unknown as { displayMode?: boolean }).displayMode
 }
 
 function displayMath(tex: string, a: PdfAssets, width: number): Content {
   const m = a.math.get(tex)
-  if (!m) return { text: tex, font: 'Mono', fontSize: 9, alignment: 'center', margin: [0, 2, 0, 9] }
+  if (!m) return { text: tex, font: 'Mono', fontSize: 9, alignment: 'center', margin: [0, 2, 0, 9], ml: 'math', mlText: tex }
   const scale = Math.min(1, width / m.width)
-  return { svg: m.svg, width: m.width * scale, height: m.height * scale, alignment: 'center', margin: [0, 4, 0, 10] }
+  return { svg: m.svg, width: m.width * scale, height: m.height * scale, alignment: 'center', margin: [0, 4, 0, 10], ml: 'math', mlText: tex }
 }
 
-function image(img: Tokens.Image, a: PdfAssets, width: number): Content {
-  const data = a.images.get(img.href)
-  if (!data) return { text: `[image: ${img.text || img.href}]`, italics: true, color: C.muted, style: 'p' }
+function image(img: Extract<Inline, { type: 'image' }>, a: PdfAssets, width: number): Content {
+  const data = a.images.get(img.src)
+  const tag = { ml: 'image', mlSrc: img.src, mlText: plainText(img.children) }
+  if (!data) return { text: `[image: ${plainText(img.children) || img.src}]`, italics: true, color: C.muted, style: 'p', ...tag }
   // Never upscale; fit the column width.
   const w = Math.min(width, data.width * 0.75)
-  return { image: data.dataUrl, width: w, margin: [0, 2, 0, 9] }
+  return { image: data.dataUrl, width: w, margin: [0, 2, 0, 9], ...tag }
 }
 
 // ---- code blocks ------------------------------------------------------------
@@ -374,66 +352,117 @@ function codeBlock(source: string, width: number, tint: CodeTint = { bg: C.block
   }
 }
 
-function list(l: Tokens.List, a: PdfAssets, width: number, nested = false): Content {
+/** pdfmake's bullet gutter at the body size: where a bullet item's text starts. */
+const BULLET_GUTTER = 13.36
+
+function list(l: Block, a: PdfAssets, width: number, nested = false): Content {
+  const ld = l.list!
+  // A bullet list mixing todos / labels with plain items keeps its bullet gutter.
+  const marks = l.children.map((i) => i.checked !== null || i.label !== null)
+  const mixed = !ld.ordered && marks.some(Boolean) && !marks.every(Boolean)
   const inner = width - 18
-  const items = l.items.map((item) => {
-    // Tight items hold 'text' blocks; loose ones hold paragraphs. Drop the
-    // checkbox token marked emits for task items; we draw our own marker.
-    const toks = item.tokens.filter((x) => x.type !== 'checkbox')
-    const stack = toks.map((x) => (x.type === 'list' ? list(x as Tokens.List, a, inner, true) : block(x, a, inner))).filter((c): c is Content => !!c).map((c) =>
-      // Paragraph spacing inside list items is tighter.
-      typeof c === 'object' && !Array.isArray(c) && c.style === 'p' ? { ...c, style: undefined, margin: [0, 0, 0, 2] } : c,
-    )
+  const items = l.children.map((item) => {
+    // Tight lists: paragraphs sit close, like lines. Loose lists keep paragraph spacing.
+    const pGap = l.tight ? 2 : 5
+    const stack = item.children
+      .map((x) => (x.type === 'list' ? list(x, a, inner, true) : block(x, a, inner)))
+      .filter((c): c is Content => !!c)
+      .map((c) => (typeof c === 'object' && !Array.isArray(c) && c.style === 'p' ? { ...c, style: undefined, margin: [0, 0, 0, pGap] } : c))
+    const tags = { ml: 'item', mlChecked: item.checked, mlLabel: item.label }
     // An item ending in a nested list takes no gap of its own: that list's
     // last item already left one, so every row is spaced alike.
-    const gap = toks[toks.length - 1]?.type === 'list' ? 0 : 2
-    if (item.task) {
-      const box = { text: item.checked ? '☑' : '☐', width: 14, color: item.checked ? '#1a7f37' : C.muted }
-      // Numbered / lettered todo: the box goes beside the first line only, so
-      // anything nested starts at the item's own indent, as in any other item.
-      if (l.ordered) {
+    const last = item.children[item.children.length - 1]
+    const gap = last?.type === 'list' ? 0 : l.tight ? 2 : 4
+    // A todo's box, or an A3 label, is drawn as its own column beside the first line.
+    const lead =
+      item.checked !== null
+        ? { text: item.checked ? '☑' : '☐', width: 14, color: item.checked ? '#1a7f37' : C.muted, ml: 'lead' }
+        : item.label !== null
+          ? { text: item.label, width: 'auto', margin: [0, 0, 4, 0], ml: 'lead' }
+          : null
+    if (lead) {
+      // A numbered todo keeps its number (A4); the box goes beside the first line
+      // only, so anything nested starts at the item's own indent.
+      if (ld.ordered) {
         const [head, ...rest] = stack
-        return { stack: [{ columns: [box, { stack: head ? [head] : [], width: '*' }], columnGap: 2 }, ...rest], margin: [0, 0, 0, gap] }
+        return { stack: [{ columns: [lead, { stack: head ? [head] : [], width: '*' }], columnGap: 2 }, ...rest], margin: [0, 0, 0, gap], ...tags }
       }
-      return { columns: [box, { stack, width: '*' }], columnGap: 2, margin: [0, 0, 0, gap] }
+      // In a list that also has plain items, the box or label sits in the bullet's
+      // gutter (pulled left by its width), so every item's text lines up.
+      if (mixed) return { columns: [{ ...lead, width: BULLET_GUTTER - 2 }, { stack, width: '*' }], columnGap: 2, margin: [-BULLET_GUTTER, 0, 0, gap], ...tags }
+      return { columns: [lead, { stack, width: '*' }], columnGap: 2, margin: [0, 0, 0, gap], ...tags }
     }
-    return { stack, margin: [0, 0, 0, gap] }
+    return { stack, margin: [0, 0, 0, gap], ...tags }
   })
   const margin = nested ? [0, 2, 0, 0] : [0, 0, 0, 7]
-  // Bullet todos: the box is the marker, so no bullet. (A pure checklist has
-  // no bullet column at all.) Numbered and lettered todos keep their number.
-  if (!l.ordered) {
-    if (l.items.every((i) => i.task)) return { stack: items, margin }
-    for (const [i, item] of l.items.entries()) if (item.task) (items[i] as Record<string, unknown>).listType = 'none'
+  const listTags = { ml: 'list', mlOrdered: ld.ordered, mlStart: ld.start, mlTight: l.tight }
+  // Bullet todos and labels replace the bullet. (A list of only those needs no bullet column.)
+  if (!ld.ordered) {
+    const replaced = l.children.map((i) => i.checked !== null || i.label !== null)
+    if (replaced.every(Boolean)) return { stack: items, margin, ...listTags }
+    replaced.forEach((m, i) => {
+      if (m) (items[i] as Record<string, unknown>).listType = 'none'
+    })
   }
-  const node: Record<string, unknown> = { margin, markerColor: C.muted }
-  if (l.ordered) {
+  const node: Record<string, unknown> = { margin, markerColor: C.muted, ...listTags }
+  if (ld.ordered) {
     node.ol = items
-    // Markers as typed (lists.ts): 1. 1) a. a) A. A)
-    const { alpha, delim } = l as Tokens.List & { alpha?: 'lower' | 'upper'; delim?: '.' | ')' }
-    if (alpha) node.type = alpha === 'upper' ? 'upper-alpha' : 'lower-alpha'
-    if (delim === ')') node.separator = ')'
-    if (typeof l.start === 'number' && l.start !== 1) node.start = l.start
+    // "1)" lists show their ")" as typed.
+    if (ld.marker === ')') node.separator = ')'
+    if (ld.start !== 1) node.start = ld.start
   } else {
     node.ul = items
   }
   return node
 }
 
-function table(tb: Tokens.Table, a: PdfAssets): Content {
-  const cell = (c: Tokens.TableCell, i: number, header: boolean) => ({
-    text: inline(c.tokens, a),
+/**
+ * A table column is never narrower than its longest unbreakable word, so a long
+ * identifier or URL in a cell would push the table off the page. Give such
+ * words break points every few characters: a zero-width space, which the body
+ * fonts have — and which, for code (Mono has none), goes in a tiny run of its own.
+ */
+const LONG_WORD = 24
+function breakable(runs: Run[], bodyFont: string): Run[] {
+  const out: Run[] = []
+  for (const r of runs) {
+    if (typeof r.text !== 'string' || !new RegExp(`\\S{${LONG_WORD + 1}}`).test(r.text)) {
+      out.push(r)
+      continue
+    }
+    const pieces = r.text.split(/(\S{12})/).filter((x) => x !== '')
+    if (r.font === 'Mono') {
+      pieces.forEach((piece, i) => {
+        if (i) out.push({ ...r, text: '\u200B', font: bodyFont, background: undefined, ml: 'break' })
+        out.push({ ...r, text: piece, ...(i ? { mlJoin: true } : {}) })
+      })
+    } else out.push({ ...r, text: pieces.join('\u200B') })
+  }
+  return out
+}
+
+function table(tb: Block, a: PdfAssets): Content {
+  const cell = (c: Inline[], i: number, header: boolean) => ({
+    text: breakable(inline(c, a), a.bodyFont ?? 'Sans'),
     bold: header,
     alignment: tb.align[i] ?? 'left',
     fillColor: header ? C.codeBg : undefined,
   })
-  const cols = tb.header.length
+  const [head, ...body] = tb.rows
+  const cols = head.length
+  // Columns fit their content, unless the table would be wider than the page:
+  // then the wide columns share the room left and wrap ('*').
+  const est = head.map((_, i) => Math.max(...tb.rows.map((r) => plainText(r[i] ?? []).length)) * 5.6 + 13)
+  const tooWide = est.reduce((x, y) => x + y, 0) > CONTENT_WIDTH
+  const widths = cols > 4 ? Array(cols).fill('*') : est.map((w) => (tooWide && w > CONTENT_WIDTH / cols ? '*' : 'auto'))
   return {
     table: {
       headerRows: 1,
+      // The header never sits alone at the bottom of a page: it moves with the first row.
+      keepWithHeaderRows: 1,
       dontBreakRows: true,
-      widths: cols > 4 ? Array(cols).fill('*') : Array(cols).fill('auto'),
-      body: [tb.header.map((c, i) => cell(c, i, true)), ...tb.rows.map((r) => r.map((c, i) => cell(c, i, false)))],
+      widths,
+      body: [head.map((c, i) => cell(c, i, true)), ...body.map((r) => r.map((c, i) => cell(c, i, false)))],
     },
     layout: {
       hLineColor: () => C.border,
@@ -446,6 +475,8 @@ function table(tb: Tokens.Table, a: PdfAssets): Content {
       paddingBottom: () => 3,
     },
     margin: [0, 0, 0, 9],
+    ml: 'table',
+    mlAlign: tb.align,
   }
 }
 
@@ -459,7 +490,7 @@ export type PdfFont = 'Sans' | 'Serif' | 'Mono'
 
 /** Build the full pdfmake document definition. */
 export function buildDocument(
-  tokens: Token[],
+  doc: Block,
   title: string,
   a: PdfAssets,
   font: PdfFont = 'Sans',
@@ -471,7 +502,7 @@ export function buildDocument(
     info: { title },
     pageSize: 'A4',
     pageMargins: [...PAGE.margins],
-    content: blocks(tokens, a, CONTENT_WIDTH),
+    content: blocks(doc.children, a, CONTENT_WIDTH),
     styles,
     defaultStyle: { font, fontSize: BASE_SIZE, lineHeight: 1.32, color: C.text },
     footer: (page: number, pages: number) =>

@@ -1,6 +1,6 @@
-import type { Token, Tokens } from 'marked'
-import { lexMarkdown } from './markdownParser'
-import { buildDocument, isDisplayInline, isMermaid, pdfCodeTint, BASE_SIZE, type PdfAssets, type PdfFont, type RenderedMath } from './pdf/markdownToPdf'
+import { parse } from './md'
+import type { Block, Inline } from './md/ast'
+import { blockText, buildDocument, isMermaid, pdfCodeTint, BASE_SIZE, type PdfAssets, type PdfFont, type RenderedMath } from './pdf/markdownToPdf'
 import { downloadBlob } from './fileAccess'
 
 /** "notes.md" → "notes.pdf" */
@@ -50,18 +50,18 @@ function loadPdfMake() {
 
 // ---- collect what needs async work ------------------------------------------
 
-function walk(tokens: Token[], visit: (t: Token) => void) {
-  for (const t of tokens) {
-    visit(t)
-    const anyT = t as any
-    if (Array.isArray(anyT.tokens)) walk(anyT.tokens, visit)
-    if (t.type === 'list') for (const item of (t as Tokens.List).items) walk(item.tokens, visit)
-    if (t.type === 'table') {
-      const tb = t as Tokens.Table
-      for (const c of tb.header) walk(c.tokens, visit)
-      for (const r of tb.rows) for (const c of r) walk(c.tokens, visit)
+/** Every block of the tree, and every inline run in it. */
+function walk(b: Block, onBlock: (b: Block) => void, onInline: (n: Inline) => void) {
+  onBlock(b)
+  const inlines = (ns: Inline[]) => {
+    for (const n of ns) {
+      onInline(n)
+      if ('children' in n) inlines(n.children)
     }
   }
+  inlines(b.inlines)
+  for (const row of b.rows) for (const cell of row) inlines(cell)
+  for (const c of b.children) walk(c, onBlock, onInline)
 }
 
 async function loadImage(url: string): Promise<{ dataUrl: string; width: number; height: number } | null> {
@@ -81,31 +81,29 @@ async function loadImage(url: string): Promise<{ dataUrl: string; width: number;
   }
 }
 
-const textarea = document.createElement('textarea')
-function decode(s: string): string {
-  if (!s.includes('&')) return s
-  textarea.innerHTML = s
-  return textarea.value
-}
-
 /**
  * Build a real-text PDF of the markdown and download it straight away.
  * Heavy pieces load on first use only: pdfmake (~1 MB) on the first export,
  * MathJax (~1.5 MB) only when a document has display math.
  */
 export async function exportMarkdownToPdf(markdown: string, fileName: string, font: PdfFont = 'Sans'): Promise<void> {
-  const tokens = lexMarkdown(markdown)
+  const doc = parse(markdown)
 
   const display = new Set<string>()
   const imageUrls = new Set<string>()
   const mermaid = new Set<string>()
   let hasInlineMath = false
-  walk(tokens, (t) => {
-    if (isMermaid(t)) mermaid.add(t.text)
-    if (t.type === 'blockKatex' || isDisplayInline(t)) display.add((t as any).text)
-    else if (t.type === 'inlineKatex') hasInlineMath = true
-    if (t.type === 'image') imageUrls.add((t as Tokens.Image).href)
-  })
+  walk(
+    doc,
+    (b) => {
+      if (isMermaid(b)) mermaid.add(blockText(b))
+      if (b.type === 'math') display.add(blockText(b).trim())
+    },
+    (n) => {
+      if (n.type === 'math') hasInlineMath = true
+      if (n.type === 'image') imageUrls.add(n.src)
+    },
+  )
 
   const [pdfMake, texToSvg, inlineMath, images] = await Promise.all([
     loadPdfMake(),
@@ -139,10 +137,9 @@ export async function exportMarkdownToPdf(markdown: string, fileName: string, fo
     math,
     images: new Map(images.filter((e): e is [string, NonNullable<(typeof e)[1]>] => !!e[1])),
     inlineMath,
-    decode,
   }
   const name = pdfName(fileName)
-  const def = buildDocument(tokens, name.replace(/\.pdf$/, ''), assets, font, codeTint)
+  const def = buildDocument(doc, name.replace(/\.pdf$/, ''), assets, font, codeTint)
   // Register only the fonts this export uses, so the others are never downloaded.
   pdfMake.setFonts({ [font]: FONTS[font], Mono: FONTS.Mono })
   const blob: Blob = await pdfMake.createPdf(def).getBlob()
