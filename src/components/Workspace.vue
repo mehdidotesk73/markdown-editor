@@ -8,7 +8,7 @@ import UiButton from './ui/UiButton.vue'
 import FocusControls from './FocusControls.vue'
 import { indentEdit } from '../lib/indent'
 import { getView, saveView, clampSelection } from '../lib/tabView'
-import { edgeOf, editorLineAt, editorTopOf, previewLineAt, previewTopOf, scrollFor, segmentAtLine, segmentAtTop, wordFractionAt, wordMiddleAt } from '../lib/scrollSync'
+import { edgeOf, editorLineAt, previewTopOf, scrollFor, segmentAtLine, wordFractionAt, wordMiddleAt } from '../lib/scrollSync'
 import { editorMetrics, editorWordBoxes, previewAnchors, previewWordBoxes } from '../lib/scrollSyncDom'
 import { PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Plug } from '@lucide/vue'
 import { useFocusShadow } from '../lib/focus/useFocusShadow'
@@ -154,7 +154,6 @@ function rememberSelection() {
 function onPreviewScroll() {
   if (!preview.value || restoring) return
   saveView(props.tab.id, { previewTop: preview.value.scrollTop })
-  if (active === 'preview') syncFrom('preview')
 }
 
 /** Put the cursor and both panes back where this tab was left (top, the first time). */
@@ -178,69 +177,45 @@ async function restoreView() {
   )
 }
 
-// ---- keeping the panes level (lib/scrollSync.ts) ----------------------------
+// ---- keeping the preview level with the editor (lib/scrollSync.ts) ----------
 //
-// Both panes map onto source lines: the editor by measuring where each line
+// The editor leads; the preview follows it but can be scrolled freely on its
+// own (the user's choice) — the next scroll or edit in the editor brings it
+// back. Both map onto source lines: the editor by measuring where each line
 // starts (wrapped lines are taller), the preview by the data-line each rendered
-// block carries. Within a block they match by word: the word at the middle of
-// the pane you scroll is, say, 70% of the way through its block's words; the
-// other pane is centred on the word 70% through the same block. Only the pane
-// you last touched drives, so the two never push each other back and forth.
+// block carries. Within a block they match by word: the word at the editor's
+// middle is, say, 70% of the way through its block's words; the preview is
+// centred on the word 70% through the same block.
 
-let active: 'editor' | 'preview' = 'editor'
-const touch = (pane: 'editor' | 'preview') => () => {
-  active = pane
-}
-const touchEditor = touch('editor')
-const touchPreview = touch('preview')
-
-function syncFrom(source: 'editor' | 'preview') {
+function syncPreview() {
   const ta = textarea.value
   const pv = preview.value
   if (!ta || !pv || !both.value || restoring) return
   const ed = editorMetrics(ta)
   const anchors = previewAnchors(pv, ed.tops.length)
-  if (source === 'editor') {
-    // The word at the editor's middle → the same fraction of its block's words in the preview.
-    const y = ta.scrollTop + ta.clientHeight / 2
-    const line = editorLineAt(ed.tops, y, ed.height)
-    const i = segmentAtLine(anchors, line)
-    let target = previewTopOf(anchors, line) // no words to go by: spread the lines over the block
-    const block = anchors[i]
-    if (block.el) {
-      const end = anchors[i + 1]?.line ?? ed.tops.length
-      const p = wordFractionAt(editorWordBoxes(ta, ed, block.line, end), y)
-      const at = p === null ? null : wordMiddleAt(previewWordBoxes(pv, block.el as HTMLElement), p)
-      if (at !== null) target = at
-    }
-    pv.scrollTop = scrollFor(target, pv.clientHeight, pv.scrollHeight, edgeOf(ta.scrollTop, ta.clientHeight, ta.scrollHeight))
-  } else {
-    // The word at the preview's middle → the same fraction of its block's words in the editor.
-    const y = pv.scrollTop + pv.clientHeight / 2
-    const i = segmentAtTop(anchors, y)
-    let target = editorTopOf(ed.tops, previewLineAt(anchors, y), ed.height)
-    const block = anchors[i]
-    if (block.el) {
-      const end = anchors[i + 1]?.line ?? ed.tops.length
-      const p = wordFractionAt(previewWordBoxes(pv, block.el as HTMLElement), y)
-      const at = p === null ? null : wordMiddleAt(editorWordBoxes(ta, ed, block.line, end), p)
-      if (at !== null) target = at
-    }
-    ta.scrollTop = scrollFor(target, ta.clientHeight, ta.scrollHeight, edgeOf(pv.scrollTop, pv.clientHeight, pv.scrollHeight))
+  const y = ta.scrollTop + ta.clientHeight / 2
+  const line = editorLineAt(ed.tops, y, ed.height)
+  const i = segmentAtLine(anchors, line)
+  let target = previewTopOf(anchors, line) // no words to go by: spread the lines over the block
+  const block = anchors[i]
+  if (block.el) {
+    const end = anchors[i + 1]?.line ?? ed.tops.length
+    const p = wordFractionAt(editorWordBoxes(ta, ed, block.line, end), y)
+    const at = p === null ? null : wordMiddleAt(previewWordBoxes(pv, block.el as HTMLElement), p)
+    if (at !== null) target = at
   }
+  pv.scrollTop = scrollFor(target, pv.clientHeight, pv.scrollHeight, edgeOf(ta.scrollTop, ta.clientHeight, ta.scrollHeight))
 }
 
 function syncScroll() {
   const ta = textarea.value
   if (!ta || restoring) return
   saveView(props.tab.id, { editorTop: ta.scrollTop })
-  if (active === 'editor') syncFrom('editor')
+  syncPreview()
 }
 
 // The preview's height changes as you type (and when a diagram is drawn): keep it level.
-watch(html, () => {
-  if (active === 'editor') requestAnimationFrame(() => syncFrom('editor'))
-}, { flush: 'post' })
+watch(html, () => requestAnimationFrame(syncPreview), { flush: 'post' })
 
 // Switching tabs (or opening the workspace) → back to where that file was left.
 watch(() => props.tab.id, () => void restoreView(), { immediate: true })
@@ -295,10 +270,6 @@ onBeforeUnmount(endDrag)
           @mouseup="rememberSelection"
           @keydown="onKeydown"
           @scroll="syncScroll"
-          @wheel.passive="touchEditor"
-          @pointerdown="touchEditor"
-          @keydown.capture="touchEditor"
-          @touchstart.passive="touchEditor"
         />
       </div>
       <button v-else class="rail" title="Show editor" aria-label="Show editor" @click="toggleEditor">
@@ -338,10 +309,6 @@ onBeforeUnmount(endDrag)
           class="preview-scroll"
           tabindex="-1"
           @scroll="onPreviewScroll"
-          @wheel.passive="touchPreview"
-          @pointerdown="touchPreview"
-          @keydown="touchPreview"
-          @touchstart.passive="touchPreview"
         >
           <!-- eslint-disable-next-line vue/no-v-html — sanitized by DOMPurify in lib/markdown.ts -->
           <article class="md-body" v-html="html" />

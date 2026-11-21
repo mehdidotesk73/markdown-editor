@@ -21,8 +21,9 @@ UI structure:
   focus, preview collapsed = edit focus. Always side by side (left/right), even on a phone.
   **Scroll sync is by content, not percentage** (`lib/scrollSync.ts`, tested): every preview block carries
   `data-line` (its source line); the editor's line tops are measured in an invisible copy (wrapped lines
-  count). The pane you last touched (wheel/pointer/keys) drives. **Within a block the match is by word**
-  (the user's idea): the word at the driving pane's middle is k of N in its block → the other pane centres on
+  count). **The editor leads; the preview follows but can be scrolled freely** (the user's choice — it was
+  two-way briefly); the next editor scroll or edit brings it back. **Within a block the match is by word**
+  (the user's idea): the word at the editor's middle is k of N in its block → the preview centres on
   the word at k/N of the same block's rendered words (`scrollSyncDom.ts` measures word boxes: a mirror of
   the textarea with word spans; Ranges over the preview's text, skipping nested blocks and KaTeX MathML).
   Wordless blocks (diagram, formula, image) spread their lines over their height; top/bottom pin together.
