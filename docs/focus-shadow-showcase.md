@@ -108,6 +108,59 @@ erDiagram
     ORDER ||--|{ ORDER_LINE : contains
 ```
 
+### Tables as UML-style blocks
+
+The same tables, one code block each, written like UML classes: the name, a rule, then one line per column — `+` marks the key, braces hold the rules. Code blocks keep every space, so the columns stay lined up.
+
+```uml
+customer
+─────────────────────────────────
++ id        : integer   {PK}
+  name      : text      {not null}
+  email     : text      {unique}
+```
+
+```uml
+order
+─────────────────────────────────
++ id          : integer    {PK}
+  customer_id : integer    {FK → customer.id}
+  placed_at   : timestamp  {not null}
+```
+
+```uml
+order_line
+─────────────────────────────────
++ order_id : integer  {PK, FK → order.id}
++ line_no  : integer  {PK}
+  sku      : text     {not null}
+  qty      : integer  {> 0}
+```
+
+Mermaid draws the same idea as real UML boxes, with the links between them:
+
+```mermaid
+classDiagram
+    class customer {
+        +integer id
+        text name
+        text email
+    }
+    class order {
+        +integer id
+        integer customer_id
+        timestamp placed_at
+    }
+    class order_line {
+        +integer order_id
+        +integer line_no
+        text sku
+        integer qty
+    }
+    customer "1" --> "*" order : places
+    order "1" --> "*" order_line : contains
+```
+
 ### A flowchart
 
 ```mermaid

@@ -33,7 +33,8 @@ UI structure:
 - **New document:** ＋, New file and Ctrl/⌘+Alt+N all call `newDocument()` (`useTabs.ts`) — one path.
   It opens prefilled with `docs/focus-shadow-showcase.md` (imported `?raw`), counted as unchanged
   until edited: first **Useful patterns** (to-dos, nested workflows, database tables + schema + ER
-  diagram, flowchart, math, code, tables, callouts, a decision record — standard syntax, extras marked),
+  diagram, tables as UML-style code blocks + a Mermaid classDiagram, flowchart, math, code, tables,
+  callouts, a decision record — standard syntax, extras marked),
   then the Focus guide.
 
 How files work (see `src/lib/fileAccess.ts`, `src/lib/useTabs.ts`):
