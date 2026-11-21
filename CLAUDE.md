@@ -24,7 +24,9 @@ UI structure:
 - **Empty state** — Open a file / New file, shown when no tabs are open.
 - **New document:** ＋, New file and Ctrl/⌘+Alt+N all call `newDocument()` (`useTabs.ts`) — one path.
   It opens prefilled with `docs/focus-shadow-showcase.md` (imported `?raw`), counted as unchanged
-  until edited.
+  until edited: first **Patterns to copy** (to-dos, nested workflows, database tables + schema + ER
+  diagram, flowchart, math, code, tables, callouts, a decision record — standard syntax, extras marked),
+  then the Focus guide.
 
 How files work (see `src/lib/fileAccess.ts`, `src/lib/useTabs.ts`):
 

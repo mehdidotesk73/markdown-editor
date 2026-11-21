@@ -1,6 +1,6 @@
-# Focus
+# Markdown Lab
 
-*How Markdown Lab follows your attention, and how we built it.*
+*Patterns to copy, then how Markdown Lab follows your attention.*
 
 ## What Markdown Lab is
 
@@ -8,11 +8,182 @@ Markdown Lab is a simple editor for markdown files on your own computer. You ope
 
 Each open file gets its own tab. You can hide the writing side to read, or hide the formatted side to write, switch between a dark and a light look, and export any document as a PDF.
 
-## What this document is
+## Patterns to copy
 
-This document is about one feature of the editor: the **focus**. As you move through your text, a field of attention follows your cursor, and the formatted side underlines the stretch of text that holds most of it. It is a quiet record of what you are reading or writing, and the groundwork for future features that look at your text alongside you.
+Ready-made shapes for organising a document. Each one is written live, so the source is on the left and the result on the right — copy whatever you need. They all use standard markdown, so they look the same in VS Code and on GitHub; the few Markdown Lab extras are marked.
 
-The document does two things at once.
+**Nesting:** press **Tab** to indent a line (four spaces) and **Shift+Tab** to bring it back. A line nests under an item when it starts where the item's text starts — Tab always gets you there.
+
+### Headings and emphasis
+
+Start a line with `#` for a title, `##` for a section, `###` for a subsection — down to six levels.
+
+Write **bold** with two stars, *italic* with one, ~~struck through~~ with two tildes, and `code` between backticks. A [link](https://commonmark.org) is the text in brackets and the address in parentheses. A line with only `---` draws a rule.
+
+---
+
+### A to-do list
+
+- [x] Write the outline
+- [x] Collect the numbers
+- [ ] Draft the summary
+    - [ ] Check the figures with finance
+    - [ ] Add the chart
+- [ ] Send for review
+
+Numbered steps can be to-dos too, and keep their number:
+
+1. [x] Book the room
+2. [ ] Send the invitation
+3. [ ] Print the agenda
+
+### A workflow as nested steps
+
+1. **Prepare**
+    - Pull the latest data
+    - Check it for gaps
+2. **Process**
+    1. Clean the records
+    2. Join the two sources
+        - match on customer id
+        - keep unmatched rows for review
+    3. Compute the totals
+3. **Publish**
+    - Export the report as a PDF
+    - Share the link
+
+### An outline with numbered labels (Markdown Lab extra)
+
+Start a bullet with a label in braces and it becomes the marker. Elsewhere it reads as a plain bullet that starts with the label.
+
+- {1} Context
+    - {1.1} Goals
+    - {1.2} Non-goals
+- {2} Design
+    - {2.1} Data model
+    - {2.2} Rollout
+
+### Describing database tables
+
+A table gives the overview:
+
+| Table | Holds | Key |
+|---|---|---|
+| `customer` | One row per customer | `id` |
+| `order` | One row per order | `id` |
+| `order_line` | One row per product in an order | `order_id`, `line_no` |
+
+A nested list gives each table's columns:
+
+- **`customer`**
+    - `id` — integer, primary key
+    - `name` — text, required
+    - `email` — text, unique
+- **`order`**
+    - `id` — integer, primary key
+    - `customer_id` — integer, references `customer.id`
+    - `placed_at` — timestamp
+
+And the exact schema goes in a code block:
+
+```sql
+CREATE TABLE customer (
+    id    INTEGER PRIMARY KEY,
+    name  TEXT NOT NULL,
+    email TEXT UNIQUE
+);
+
+CREATE TABLE "order" (
+    id          INTEGER PRIMARY KEY,
+    customer_id INTEGER NOT NULL REFERENCES customer (id),
+    placed_at   TIMESTAMP NOT NULL
+);
+```
+
+A diagram shows how they relate:
+
+```mermaid
+erDiagram
+    CUSTOMER ||--o{ ORDER : places
+    ORDER ||--|{ ORDER_LINE : contains
+```
+
+### A flowchart
+
+```mermaid
+flowchart TD
+    A[Request arrives] --> B{Valid?}
+    B -->|Yes| C[Process it]
+    B -->|No| D[Reject with a reason]
+    C --> E[Send the result]
+```
+
+Write `flowchart LR` instead of `TD` to run it left to right.
+
+### Math
+
+Inline, between single dollar signs: the area of a circle is $A = \pi r^2$. Prices are safe — "$5 and $10" stays as text.
+
+On its own line, between double dollar signs:
+
+$$
+\sum_{i=1}^{n} i = \frac{n(n+1)}{2}
+$$
+
+### Code
+
+Wrap code in three backticks, and name the language after the first three:
+
+```python
+def total(orders):
+    return sum(o.amount for o in orders)
+```
+
+Write `inline code` between single backticks.
+
+### Tables
+
+Colons in the line under the header align a column: left, centre or right.
+
+| Item | Qty | Price |
+|:---|:---:|---:|
+| Notebook | 2 | 3.50 |
+| Pen | 10 | 0.80 |
+| **Total** | | **15.00** |
+
+### Callouts
+
+A quote whose first line is `[!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]` or `[!CAUTION]` becomes a coloured callout, as on GitHub:
+
+> [!TIP]
+> Keep one idea per section; the focus and the reader both thank you.
+
+> [!WARNING]
+> Changing the order format breaks older exports.
+
+An ordinary quote:
+
+> Plain quotes are for words that someone else said.
+
+### A decision record
+
+A small skeleton for writing down a decision:
+
+> **Decision:** store totals as integer cents.
+>
+> - **Why:** sums stay exact; no rounding drift.
+> - **Instead of:** decimal columns, which our reporting tool rounds.
+> - **Follow-up:** convert the two old reports by Friday.
+
+# Focus
+
+*How Markdown Lab follows your attention, and how we built it.*
+
+## What this part is
+
+This part is about one feature of the editor: the **focus**. As you move through your text, a field of attention follows your cursor, and the formatted side underlines the stretch of text that holds most of it. It is a quiet record of what you are reading or writing, and the groundwork for future features that look at your text alongside you.
+
+It does two things at once.
 
 **It explains how the focus works.** We start with the idea, then build it up piece by piece:
 

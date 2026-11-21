@@ -408,6 +408,7 @@ look wrong in a shot taken <0.25 s later. Wait out the transition before judging
 - **Removed:** `marked`, `marked-katex-extension`, the custom list add-on (2-space nesting, always-tight lists, `a.`/`A)` lists) — case-by-case fixes that kept colliding; the user chose the standard
 - **Added:** PDF checks without screenshots — the layout plan graded like the HTML, and the finished PDF read back with pdf.js (text, positions, links). They found and fixed: long table cells running off the page (auto widths + unbreakable words → wide columns wrap, long words get zero-width break points; Mono has none, so code gets them as tiny body-font runs), a table header left alone at a page bottom (`keepWithHeaderRows`), and todo text misaligned with plain siblings in a mixed list (box now sits in the bullet gutter)
 - **Gotchas:** pdfmake draws a table's header row after its body; it reports a node's position once, so a heading moved by the keep-with-next rule must be re-placed by hand; it hands the layout hook only `id` (not custom keys)
+- **Added:** "Patterns to copy" at the top of the new-document starter, before the Focus guide
 - **Lesson:** grading needs an oracle. Comparing outlines (structure) against a spec-calibrated reference made hundreds of cases checkable without eyes; the only judgement calls left were four written rules (D1–D4)
 
 ### v0.13.0 — 2026-11-18
