@@ -65,6 +65,10 @@ How files work (see `src/lib/fileAccess.ts`, `src/lib/useTabs.ts`):
 - **Math:** `$x$` inline (a single `$` follows Pandoc's rule, so "$5 and $10" stays text), `$$ … $$` blocks,
   a line that is only `$$ x $$`, and ```` ```math ```` — parsed by `lib/md`, typeset by KaTeX. Its `.woff2`
   fonts are precached by Workbox for offline use.
+- **Code colours:** fenced code with a language is coloured in the preview by **Shiki** (`lib/highlight.ts`,
+  `hydrateCode`): the core and each grammar are lazy chunks loaded only when a block names that language;
+  the block stays plain until its grammar arrives. Shiki's css-variables theme → colours are `--code-token-*`
+  tokens in `vars.css` (muted on `:root`, darker in Porcelain / Fog). Cached per language + code. PDF code stays plain.
 - **Diagrams:** ```` ```mermaid ```` blocks are drawn with Mermaid (`lib/diagram.ts`, a lazy chunk —
   only documents with a diagram load it). The parser emits a `.mermaid-block` placeholder with the
   source as code (not in an attribute — DOMPurify strips attributes containing `-->`); the preview
@@ -251,6 +255,7 @@ src/
     pdf/markdownToPdf.ts   tokens → pdfmake document (pure; *.test.ts beside it)
     pdf/math.ts            display TeX → SVG via MathJax (lazy chunk)
     pdf/inlineMath.ts      inline TeX → Unicode text
+    highlight.ts           code colours: Shiki, lazy core + per-language grammar, cached
     diagram.ts             Mermaid: lazy load, preview drawing (cached), PDF SVG (flattened styles)
     pdfFont.ts             the PDF body font preference (Sans / Serif / Mono)
     scrollSync.ts          editor ⇄ preview scroll: lines → blocks → word fraction, synced at the middles (pure; tested)

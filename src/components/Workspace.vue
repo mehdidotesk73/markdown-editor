@@ -2,6 +2,7 @@
 import { ref, computed, watch, nextTick, onBeforeUnmount } from 'vue'
 import { renderMarkdown } from '../lib/markdown'
 import { hydrateDiagrams } from '../lib/diagram'
+import { hydrateCode } from '../lib/highlight'
 import { useTheme } from '../lib/useTheme'
 import type { Tab } from '../lib/useTabs'
 import UiButton from './ui/UiButton.vue'
@@ -97,11 +98,14 @@ const html = computed(() => renderMarkdown(props.tab.content))
 
 // Mermaid diagrams: the preview HTML carries placeholders; draw them after
 // each render, and again when the look changes (they take the look's colours).
+// Code blocks with a language get coloured once their grammar has loaded.
 const { theme: look } = useTheme()
 watch(
   [html, () => look.value.id, preview],
   () => {
-    if (preview.value) void hydrateDiagrams(preview.value)
+    if (!preview.value) return
+    void hydrateDiagrams(preview.value)
+    void hydrateCode(preview.value)
   },
   { flush: 'post', immediate: true },
 )

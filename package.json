@@ -21,6 +21,7 @@
     "mathjax-full": "^3.2.2",
     "mermaid": "^12.3.0",
     "pdfmake": "^0.3.13",
+    "shiki": "^4.6.0",
     "unicodeit": "^0.7.5",
     "vue": "^3.4.0"
   },

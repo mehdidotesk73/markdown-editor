@@ -185,11 +185,42 @@ $$
 
 ### Code
 
-Wrap code in three backticks, and name the language after the first three:
+Wrap code in three backticks, and name the language after the first three — the preview colours it (Python, TypeScript, JSON, SQL, Bash and hundreds more):
 
 ```python
-def total(orders):
-    return sum(o.amount for o in orders)
+from dataclasses import dataclass
+
+
+@dataclass
+class Order:
+    item: str
+    amount: float
+    paid: bool = False
+
+
+def total(orders: list[Order], paid_only: bool = True) -> float:
+    """Sum the orders, by default only the paid ones."""
+    return sum(o.amount for o in orders if o.paid or not paid_only)
+
+
+print(f"Total: {total([Order('pen', 0.8, True)]):.2f}")
+```
+
+```typescript
+interface Order {
+  item: string
+  amount: number
+  paid?: boolean
+}
+
+// Sum the orders, by default only the paid ones.
+export function total(orders: Order[], paidOnly = true): number {
+  return orders
+    .filter((o) => o.paid || !paidOnly)
+    .reduce((sum, o) => sum + o.amount, 0)
+}
+
+console.log(`Total: ${total([{ item: 'pen', amount: 0.8, paid: true }]).toFixed(2)}`)
 ```
 
 Write `inline code` between single backticks.
