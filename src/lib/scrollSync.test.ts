@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { cleanAnchors, editorLineAt, editorTopOf, previewLineAt, previewTopOf, scrollFor, edgeOf } from './scrollSync'
+import { cleanAnchors, editorLineAt, editorTopOf, previewLineAt, previewTopOf, scrollFor, edgeOf, segmentAtLine, segmentAtTop, wordFractionAt, wordMiddleAt, isWord } from './scrollSync'
 
 describe('scroll sync by content', () => {
   // Editor: 10 lines of 20px, but line 3 wraps to 3 rows (60px).
@@ -59,5 +59,33 @@ describe('scroll sync by content', () => {
     expect(edgeOf(0, 400, 2000)).toBe('top')
     expect(edgeOf(1600, 400, 2000)).toBe('bottom')
     expect(edgeOf(700, 400, 2000)).toBe('middle')
+  })
+
+  it('matches by word within a block: the 70th of 100 words → 70% of the rendered words', () => {
+    // Editor: 100 words, 10 per row of 20px (one long source line, wrapped).
+    const ed = Array.from({ length: 100 }, (_, i) => ({ top: Math.floor(i / 10) * 20, bottom: Math.floor(i / 10) * 20 + 20 }))
+    const p = wordFractionAt(ed, 145)! // row 7 → its first word, the 71st
+    expect(p).toBeCloseTo(70.5 / 100)
+    // Preview: the same block wraps 8 words per row of 30px (120 words after rendering).
+    const pv = Array.from({ length: 120 }, (_, i) => ({ top: 1000 + Math.floor(i / 8) * 30, bottom: 1000 + Math.floor(i / 8) * 30 + 30 }))
+    expect(wordMiddleAt(pv, p)).toBe(1000 + Math.floor(84 / 8) * 30 + 15) // word 84 of 120 → its row's middle
+    expect(wordFractionAt([], 10)).toBeNull()
+    expect(wordMiddleAt([], 0.5)).toBeNull()
+  })
+
+  it('finds the block holding a line or a height; keeps the innermost block per line', () => {
+    const anchors = cleanAnchors(
+      [
+        { line: 2, top: 50, depth: 1, el: 'li' },
+        { line: 2, top: 50, depth: 2, el: 'p' },
+        { line: 6, top: 200, el: 'pre' },
+      ],
+      9,
+      300,
+    )
+    expect(anchors.map((a) => a.el ?? '·')).toEqual(['·', 'p', 'pre', '·'])
+    expect(segmentAtLine(anchors, 4.5)).toBe(1)
+    expect(segmentAtTop(anchors, 250)).toBe(2)
+    expect(['**', '-', '|', 'word', '42', 'é'].map(isWord)).toEqual([false, false, false, true, true, true])
   })
 })

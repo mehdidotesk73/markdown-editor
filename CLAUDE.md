@@ -21,8 +21,11 @@ UI structure:
   focus, preview collapsed = edit focus. Always side by side (left/right), even on a phone.
   **Scroll sync is by content, not percentage** (`lib/scrollSync.ts`, tested): every preview block carries
   `data-line` (its source line); the editor's line tops are measured in an invisible copy (wrapped lines
-  count). The pane you last touched (wheel/pointer/keys) drives: the source line at its vertical middle is
-  put at the other's middle, interpolating between blocks; at the very top/bottom both pin together.
+  count). The pane you last touched (wheel/pointer/keys) drives. **Within a block the match is by word**
+  (the user's idea): the word at the driving pane's middle is k of N in its block → the other pane centres on
+  the word at k/N of the same block's rendered words (`scrollSyncDom.ts` measures word boxes: a mirror of
+  the textarea with word spans; Ranges over the preview's text, skipping nested blocks and KaTeX MathML).
+  Wordless blocks (diagram, formula, image) spread their lines over their height; top/bottom pin together.
   Each tab remembers its cursor/selection and both panes' scroll (`lib/tabView.ts`, localStorage
   `md-editor:views`, pruned on close), so switching tabs or reloading returns to where you were.
 - **Empty state** — Open a file / New file, shown when no tabs are open.
@@ -248,7 +251,8 @@ src/
     pdf/inlineMath.ts      inline TeX → Unicode text
     diagram.ts             Mermaid: lazy load, preview drawing (cached), PDF SVG (flattened styles)
     pdfFont.ts             the PDF body font preference (Sans / Serif / Mono)
-    scrollSync.ts          editor ⇄ preview scroll mapped through source lines, synced at the middles (tested)
+    scrollSync.ts          editor ⇄ preview scroll: lines → blocks → word fraction, synced at the middles (pure; tested)
+    scrollSyncDom.ts       its measuring: editor line/word boxes (mirror), preview blocks and words (Ranges)
     tabView.ts             per-tab cursor + scroll positions, restored on tab switch / reload (tested)
     indent.ts              Tab / Shift+Tab indent / outdent of selected lines (pure; tested)
     themes.ts              the looks (id, label, dark/light, colours for the menu)

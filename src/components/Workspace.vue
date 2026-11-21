@@ -8,7 +8,8 @@ import UiButton from './ui/UiButton.vue'
 import FocusControls from './FocusControls.vue'
 import { indentEdit } from '../lib/indent'
 import { getView, saveView, clampSelection } from '../lib/tabView'
-import { cleanAnchors, edgeOf, editorLineAt, editorTopOf, previewLineAt, previewTopOf, scrollFor, type Anchor } from '../lib/scrollSync'
+import { edgeOf, editorLineAt, editorTopOf, previewLineAt, previewTopOf, scrollFor, segmentAtLine, segmentAtTop, wordFractionAt, wordMiddleAt } from '../lib/scrollSync'
+import { editorMetrics, editorWordBoxes, previewAnchors, previewWordBoxes } from '../lib/scrollSyncDom'
 import { PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Plug } from '@lucide/vue'
 import { useFocusShadow } from '../lib/focus/useFocusShadow'
 
@@ -181,9 +182,10 @@ async function restoreView() {
 //
 // Both panes map onto source lines: the editor by measuring where each line
 // starts (wrapped lines are taller), the preview by the data-line each rendered
-// block carries. Whichever pane you're scrolling puts the line at its middle at
-// the other's middle. Only the pane you last touched drives, so the two never
-// push each other back and forth.
+// block carries. Within a block they match by word: the word at the middle of
+// the pane you scroll is, say, 70% of the way through its block's words; the
+// other pane is centred on the word 70% through the same block. Only the pane
+// you last touched drives, so the two never push each other back and forth.
 
 let active: 'editor' | 'preview' = 'editor'
 const touch = (pane: 'editor' | 'preview') => () => {
@@ -192,55 +194,39 @@ const touch = (pane: 'editor' | 'preview') => () => {
 const touchEditor = touch('editor')
 const touchPreview = touch('preview')
 
-let measured: { text: string; width: number; tops: number[]; height: number } | null = null
-
-/** Where each source line starts in the editor, measured in an invisible copy of it. */
-function editorLines(ta: HTMLTextAreaElement) {
-  if (measured && measured.text === ta.value && measured.width === ta.clientWidth) return measured
-  const cs = getComputedStyle(ta)
-  const copy = document.createElement('div')
-  for (const prop of ['fontFamily', 'fontSize', 'fontWeight', 'lineHeight', 'letterSpacing', 'tabSize', 'paddingTop', 'paddingLeft', 'paddingRight'] as const)
-    copy.style[prop] = cs[prop]
-  copy.style.cssText += `;position:absolute;left:-99999px;top:0;visibility:hidden;box-sizing:border-box;width:${ta.clientWidth}px;white-space:pre-wrap;overflow-wrap:break-word`
-  const lines = ta.value.split('\n')
-  for (const line of lines) {
-    const row = document.createElement('div')
-    row.textContent = line || '\u200b'
-    copy.appendChild(row)
-  }
-  document.body.appendChild(copy)
-  const rows = Array.from(copy.children) as HTMLElement[]
-  const tops = rows.map((r) => r.offsetTop)
-  const last = rows[rows.length - 1]
-  const height = last ? last.offsetTop + last.offsetHeight : 0
-  copy.remove()
-  measured = { text: ta.value, width: ta.clientWidth, tops, height }
-  return measured
-}
-
-/** Each rendered block's source line and top, in the preview's content. */
-function previewAnchors(pv: HTMLElement, lineCount: number): Anchor[] {
-  const base = pv.getBoundingClientRect().top - pv.scrollTop
-  const raw: Anchor[] = []
-  for (const el of Array.from(pv.querySelectorAll<HTMLElement>('[data-line]')))
-    raw.push({ line: Number(el.dataset.line), top: el.getBoundingClientRect().top - base })
-  const body = pv.querySelector<HTMLElement>('.md-body')
-  const end = body ? body.getBoundingClientRect().bottom - base : pv.scrollHeight
-  return cleanAnchors(raw, lineCount, end)
-}
-
 function syncFrom(source: 'editor' | 'preview') {
   const ta = textarea.value
   const pv = preview.value
   if (!ta || !pv || !both.value || restoring) return
-  const ed = editorLines(ta)
+  const ed = editorMetrics(ta)
   const anchors = previewAnchors(pv, ed.tops.length)
   if (source === 'editor') {
-    const line = editorLineAt(ed.tops, ta.scrollTop + ta.clientHeight / 2, ed.height)
-    pv.scrollTop = scrollFor(previewTopOf(anchors, line), pv.clientHeight, pv.scrollHeight, edgeOf(ta.scrollTop, ta.clientHeight, ta.scrollHeight))
+    // The word at the editor's middle → the same fraction of its block's words in the preview.
+    const y = ta.scrollTop + ta.clientHeight / 2
+    const line = editorLineAt(ed.tops, y, ed.height)
+    const i = segmentAtLine(anchors, line)
+    let target = previewTopOf(anchors, line) // no words to go by: spread the lines over the block
+    const block = anchors[i]
+    if (block.el) {
+      const end = anchors[i + 1]?.line ?? ed.tops.length
+      const p = wordFractionAt(editorWordBoxes(ta, ed, block.line, end), y)
+      const at = p === null ? null : wordMiddleAt(previewWordBoxes(pv, block.el as HTMLElement), p)
+      if (at !== null) target = at
+    }
+    pv.scrollTop = scrollFor(target, pv.clientHeight, pv.scrollHeight, edgeOf(ta.scrollTop, ta.clientHeight, ta.scrollHeight))
   } else {
-    const line = previewLineAt(anchors, pv.scrollTop + pv.clientHeight / 2)
-    ta.scrollTop = scrollFor(editorTopOf(ed.tops, line, ed.height), ta.clientHeight, ta.scrollHeight, edgeOf(pv.scrollTop, pv.clientHeight, pv.scrollHeight))
+    // The word at the preview's middle → the same fraction of its block's words in the editor.
+    const y = pv.scrollTop + pv.clientHeight / 2
+    const i = segmentAtTop(anchors, y)
+    let target = editorTopOf(ed.tops, previewLineAt(anchors, y), ed.height)
+    const block = anchors[i]
+    if (block.el) {
+      const end = anchors[i + 1]?.line ?? ed.tops.length
+      const p = wordFractionAt(previewWordBoxes(pv, block.el as HTMLElement), y)
+      const at = p === null ? null : wordMiddleAt(editorWordBoxes(ta, ed, block.line, end), p)
+      if (at !== null) target = at
+    }
+    ta.scrollTop = scrollFor(target, ta.clientHeight, ta.scrollHeight, edgeOf(pv.scrollTop, pv.clientHeight, pv.scrollHeight))
   }
 }
 

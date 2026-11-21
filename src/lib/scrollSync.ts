@@ -5,19 +5,37 @@
 //   editor:  each source line's top, measured in the editor (wrapped lines are
 //            taller), gives  y ⇄ line.
 //   preview: each rendered block carries the line it starts on (data-line); its
-//            top gives an anchor. Between two anchors, lines are spread evenly
-//            over the space between them, so a tall diagram or table takes up
-//            its source lines' share of the scroll.
+//            top gives an anchor.
 //
-// So the line at the middle of the editor lands at the middle of the preview,
-// and the other way round. Pure: the component measures, this maps.
+// Within a block the match is by WORD: the word at the editor's middle is, say,
+// the 70th of the block's 100 words; the preview is centred on the word 70% of
+// the way through the same block's rendered words — wherever wrapping put it.
+// (The two sides wrap differently, so word position beats height.) Blocks with
+// no words (a diagram, a formula, an image) fall back to spreading their source
+// lines evenly over their height.
+//
+// So what is at the middle of one pane is at the middle of the other, both
+// ways. Pure: the component measures (scrollSyncDom.ts), this maps.
 
 export interface Anchor {
   /** Source line (0-based) a block starts on. */
   line: number
   /** The block's top, in px from the top of the preview's content. */
   top: number
+  /** How deeply nested the block is: of blocks on one line, the innermost is kept. */
+  depth?: number
+  /** The rendered element (opaque here). */
+  el?: unknown
 }
+
+/** A word's vertical extent, in px from the top of its pane's content. */
+export interface Box {
+  top: number
+  bottom: number
+}
+
+/** A token counts as a word if it has a letter or a digit (not "-", "|", "**"…). */
+export const isWord = (t: string) => /[\p{L}\p{N}]/u.test(t)
 
 /** Largest i with xs[i] <= v (xs ascending); -1 if v is before them all. */
 function floorIndex(xs: number[], v: number): number {
@@ -41,9 +59,12 @@ function floorIndex(xs: number[], v: number): number {
  */
 export function cleanAnchors(raw: Anchor[], lineCount: number, contentHeight: number): Anchor[] {
   const out: Anchor[] = [{ line: 0, top: 0 }]
-  for (const a of [...raw].sort((x, y) => x.line - y.line || x.top - y.top)) {
+  for (const a of [...raw].sort((x, y) => x.line - y.line || (y.depth ?? 0) - (x.depth ?? 0) || x.top - y.top)) {
     const last = out[out.length - 1]
-    if (a.line === last.line) continue
+    if (a.line === last.line) {
+      if (last.el === undefined && a.top <= Math.max(last.top, 1)) out[out.length - 1] = a // a block on the first line
+      continue
+    }
     if (a.top < last.top) continue
     out.push(a)
   }
@@ -109,4 +130,33 @@ export function edgeOf(scrollTop: number, viewport: number, scrollHeight: number
   if (scrollTop <= 1) return 'top'
   if (scrollTop >= scrollHeight - viewport - 1) return 'bottom'
   return 'middle'
+}
+
+/** The anchor whose block holds a (fractional) source line. */
+export function segmentAtLine(anchors: Anchor[], line: number): number {
+  return Math.max(0, floorIndex(anchors.map((a) => a.line), line))
+}
+
+/** The anchor whose block holds a height in the preview. */
+export function segmentAtTop(anchors: Anchor[], y: number): number {
+  return Math.max(0, floorIndex(anchors.map((a) => a.top), y))
+}
+
+/**
+ * Where a height falls among a block's words, as a fraction 0…1: the word under
+ * it (the first word whose box reaches below it), counted to its middle.
+ * Null when the block has no words.
+ */
+export function wordFractionAt(words: Box[], y: number): number | null {
+  if (!words.length) return null
+  let k = words.findIndex((w) => w.bottom > y)
+  if (k < 0) k = words.length - 1
+  return (k + 0.5) / words.length
+}
+
+/** The middle height of the word at a fraction of a block's words; null if it has none. */
+export function wordMiddleAt(words: Box[], fraction: number): number | null {
+  if (!words.length) return null
+  const w = words[Math.min(words.length - 1, Math.max(0, Math.floor(fraction * words.length)))]
+  return (w.top + w.bottom) / 2
 }
