@@ -14,6 +14,13 @@
    black on white; lib/pdf). */
 
 :root {
+  /* GitHub-style alerts in the preview (A5): one muted hue per type, for dark looks;
+     light looks override below. Document content, not chrome, so not the accents. */
+  --alert-note: #85a9d6;
+  --alert-tip: #8fc7a2;
+  --alert-important: #b29ad8;
+  --alert-warning: #d6b06a;
+  --alert-caution: #e58a7e;
   /* surfaces */
   --bg: #141815;
   --bg-elev: #181c19;
@@ -106,6 +113,11 @@
 
 /* Porcelain — light, warm, dot grid. */
 :root[data-theme='porcelain'] {
+  --alert-note: #3b679f;
+  --alert-tip: #3f8a5c;
+  --alert-important: #7556a3;
+  --alert-warning: #9c6a1d;
+  --alert-caution: #b5483b;
   --bg: #f2f0eb;
   --bg-elev: #faf9f6;
   --bg-elev-2: #f3f1ec;
@@ -296,6 +308,11 @@
 
 /* Fog — light, cool. */
 :root[data-theme='fog'] {
+  --alert-note: #3b679f;
+  --alert-tip: #3f8a5c;
+  --alert-important: #7556a3;
+  --alert-warning: #9c6a1d;
+  --alert-caution: #b5483b;
   --bg: #e8ebef;
   --bg-elev: #f7f8fa;
   --bg-elev-2: #eef1f4;

@@ -1,11 +1,11 @@
 // The renderers under test: each turns markdown into the HTML the preview shows
 // (before sanitising — sanitising removes, it doesn't restructure).
-// The new structural renderer joins this list beside the current one.
+//
+// "app" is the structural renderer (src/lib/md) the preview and PDF use. The
+// marked-based renderer it replaced scored 552 / 606 spec and 242 / 328 fixture.
 
-import { marked } from '../../src/lib/markdownParser'
 import { toHtml } from '../../src/lib/md'
 
 export const RENDERERS: Record<string, (md: string) => string> = {
-  current: (md) => marked.parse(md) as string,
-  next: toHtml,
+  app: toHtml,
 }

@@ -4,6 +4,7 @@
 import katex from 'katex'
 import type { Block, Inline } from './ast'
 import { escapeHtml } from './common'
+import { plainText } from './ast'
 
 const ALERT_TITLES: Record<string, string> = {
   note: 'Note',
@@ -15,27 +16,6 @@ const ALERT_TITLES: Record<string, string> = {
 
 function mathHtml(tex: string, displayMode: boolean): string {
   return katex.renderToString(tex, { displayMode, throwOnError: false, output: 'htmlAndMathml' })
-}
-
-/** Plain text of inlines (image alt text). */
-export function plainText(nodes: Inline[]): string {
-  return nodes
-    .map((n) => {
-      switch (n.type) {
-        case 'text':
-        case 'code':
-        case 'math':
-          return n.value
-        case 'softbreak':
-        case 'hardbreak':
-          return '\n'
-        case 'html':
-          return ''
-        default:
-          return plainText(n.children)
-      }
-    })
-    .join('')
 }
 
 export function inlineHtml(nodes: Inline[]): string {
@@ -117,8 +97,10 @@ function blockHtml(b: Block, tight = false): string {
       const ld = b.list!
       const tag = ld.ordered ? 'ol' : 'ul'
       const start = ld.ordered && ld.start !== 1 ? ` start="${ld.start}"` : ''
+      // "1)" lists keep their ")" on screen (display only; the standard doesn't say).
+      const cls = ld.ordered && ld.marker === ')' ? ' class="paren"' : ''
       const items = b.children.map((item) => itemHtml(item, b.tight)).join('')
-      return `<${tag}${start}>\n${items}</${tag}>\n`
+      return `<${tag}${start}${cls}>\n${items}</${tag}>\n`
     }
     case 'table': {
       const cell = (tag: string, c: Inline[], i: number) => {
@@ -141,14 +123,12 @@ function itemHtml(item: Block, tight: boolean): string {
   if (item.label !== null) attrs.push(`data-label="${escapeHtml(item.label)}"`)
   const box = item.checked === null ? '' : `<input type="checkbox" disabled=""${item.checked ? ' checked=""' : ''} /> `
   let inner = blocksHtml(item.children, tight)
-  if (box) {
-    // The box goes inside the first paragraph (or first, in a tight item).
-    inner = inner.startsWith('<p>') ? `<p>${box}${inner.slice(3)}` : box + inner
-  }
-  if (!tight && inner && !inner.startsWith('<')) inner = inner
-  const open = attrs.length ? `<li ${attrs.join(' ')}>` : '<li>'
-  const nl = inner.startsWith('<') && !inner.startsWith('<input') && !inner.startsWith('<code') && !inner.startsWith('<em') && !inner.startsWith('<strong') && !inner.startsWith('<a ') && !inner.startsWith('<span') && !inner.startsWith('<del') && !inner.startsWith('<img') ? '\n' : ''
-  return `${open}${nl}${inner}</li>\n`
+  // The box goes at the start of the first paragraph (bare text in a tight item).
+  if (box) inner = inner.startsWith('<p>') ? `<p>${box}${inner.slice(3)}` : box + inner
+  // A block-level first child starts on its own line, as the reference renderer writes it.
+  const first = item.children[0]
+  const nl = first && !(tight && first.type === 'paragraph') ? '\n' : ''
+  return `<li${attrs.length ? ' ' + attrs.join(' ') : ''}>${nl}${inner}</li>\n`
 }
 
 export function renderHtml(doc: Block): string {

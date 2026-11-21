@@ -12,13 +12,12 @@ collapsible panes and a draggable divider, Save / Save as / Export PDF (html2pdf
 drafts + file handles persisted in IndexedDB, external-change pickup on focus, dark slate
 theme from power-gis, Help modal now renders `docs/concepts/*.md`.
 
-### In progress — standard-conformant renderer
+### v0.14.0 — Standard renderer (2026-11-21)
 
-Test setup first: `npm run conformance` grades a renderer by structure against the user's fixture
-and the GFM spec, with expected output computed from a GitHub-compatible reference plus our additions
-(`tests/conformance/RULES.md`). Today's renderer: see `tests/conformance/SCORECARD.md`. Next: a parallel
-renderer built from scratch (block containers → inlines → one tree → HTML and PDF), switched in once it
-passes. Decisions D1–D4 settled (Pandoc `$` rule, one-line `$$` is display, `mermaid` lowercase, GitHub alerts) — see `RULES.md`.
+Markdown now renders the standard way, as GitHub and VS Code show it, by a renderer built from scratch
+and checked automatically against the 328-case fixture and the GFM spec (`npm run conformance`).
+Additions: Mermaid, math, `{label}` bullets, numbered todos, GitHub alerts. Follow-ups noticed in the
+PDF: inline `\text{…}` math, a table header left at a page bottom, long diagram labels wrapping.
 
 ### v0.13.0 — Raw code in lists, bigger PDF diagrams (2026-11-18)
 

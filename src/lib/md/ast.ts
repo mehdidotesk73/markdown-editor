@@ -104,3 +104,24 @@ export interface LinkRef {
   href: string
   title: string
 }
+
+/** Plain text of inlines (image alt text). */
+export function plainText(nodes: Inline[]): string {
+  return nodes
+    .map((n) => {
+      switch (n.type) {
+        case 'text':
+        case 'code':
+        case 'math':
+          return n.value
+        case 'softbreak':
+        case 'hardbreak':
+          return '\n'
+        case 'html':
+          return ''
+        default:
+          return plainText(n.children)
+      }
+    })
+    .join('')
+}

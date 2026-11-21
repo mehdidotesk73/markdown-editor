@@ -36,7 +36,7 @@ How files work (see `src/lib/fileAccess.ts`, `src/lib/useTabs.ts`):
 - **Safari / Firefox / phones:** no File System Access API. Open uses a file input; Save
   downloads a copy. Drafts still persist in IndexedDB.
 - **PDF export** downloads a real-text PDF built in the page with **pdfmake** — no print
-  dialog. `src/lib/pdf/markdownToPdf.ts` turns the same `marked` tokens the preview uses into a
+  dialog. `src/lib/pdf/markdownToPdf.ts` turns the same document tree the preview renders (`lib/md`) into a
   pdfmake document (pure, unit-tested); `src/lib/exportPdf.ts` lazy-loads pdfmake, inlines
   images, renders display math and downloads. Body font is the user's pick (Sans / Serif / Mono, menu
   beside Export PDF, `lib/pdfFont.ts`); code is always Mono. Fonts: DejaVu Sans / Serif / Sans Mono, subset to `.woff`
@@ -51,8 +51,9 @@ How files work (see `src/lib/fileAccess.ts`, `src/lib/useTabs.ts`):
   across page breaks too, over rounded panels that need sizing up front).
   The user rejected both earlier approaches — don't go back to html2pdf (sliced screenshots)
   or the print dialog (extra step, serif fallback); see `docs/experience.md`.
-- **Math:** KaTeX via `marked-katex-extension` in standard mode (`$x$`, `$$ … $$`; "$5 and
-  $10" stays text). Its `.woff2` fonts are precached by Workbox for offline use.
+- **Math:** `$x$` inline (a single `$` follows Pandoc's rule, so "$5 and $10" stays text), `$$ … $$` blocks,
+  a line that is only `$$ x $$`, and ```` ```math ```` — parsed by `lib/md`, typeset by KaTeX. Its `.woff2`
+  fonts are precached by Workbox for offline use.
 - **Diagrams:** ```` ```mermaid ```` blocks are drawn with Mermaid (`lib/diagram.ts`, a lazy chunk —
   only documents with a diagram load it). The parser emits a `.mermaid-block` placeholder with the
   source as code (not in an attribute — DOMPurify strips attributes containing `-->`); the preview
@@ -63,8 +64,16 @@ How files work (see `src/lib/fileAccess.ts`, `src/lib/useTabs.ts`):
   first, then write (stripping a parent's class early turned boxes black). `htmlLabels: false`
   and the classic look keep it PDF-safe. In the PDF a diagram may fill a page less room for its heading
   (`DIAGRAM_HEADROOM`); headings keep with what follows (the hook ignores pdfmake's footer node by id). A source that doesn't parse stays as code (red edge).
-- Markdown rendering: one shared parser, `src/lib/markdownParser.ts` (`marked` GFM + KaTeX +
-  lists from `lib/lists.ts` + mermaid placeholders, no DOM), → `DOMPurify` in `src/lib/markdown.ts` for the preview.
+- **Markdown rendering: one structural renderer, `src/lib/md/`** (written from scratch, DOM-free): the
+  CommonMark block algorithm (`blocks.ts`: each line matched against the stack of open containers, then
+  block starts, then text), then inlines (`inlines.ts`: code spans, emphasis delimiter stack, link
+  brackets, autolinks, GFM strikethrough + autolink literals, math) into one tree (`ast.ts`) that both the
+  preview (`html.ts` → `DOMPurify` in `src/lib/markdown.ts`) and the PDF render. **It matches the standard
+  as GitHub renders it** (CommonMark + GFM) plus our additions — Mermaid, math, `- {1.1}` bullet labels,
+  numbered todos keep their number, GitHub alerts — exactly as listed in `tests/conformance/RULES.md`. Every
+  rendering change is checked by the conformance gate (all fixture cases + GFM spec examples); fix the
+  renderer structurally, never case by case. It replaced `marked` + a custom list add-on (2-space nesting,
+  always-tight lists, `a.` lettered lists — all dropped by the user in favour of the standard).
 
 **Themes:** five looks from the user's theme canvas (claude.ai/artifact/W3sk5PGenonqPMW1qq3MsH,
 "Markdown Lab Looks"), listed in `src/lib/themes.ts`, each a token block in `src/styles/vars.css`
@@ -174,7 +183,7 @@ whatever they're actually asking about.
   PR is noise they have to interpret.
 - **Unit tests:** `npm test` (Vitest 3, node environment), `*.test.ts` beside the code. Today they
   cover the PDF converter's layout rules and math handling. Keep tested logic DOM-free (that's why
-  the parser lives in `markdownParser.ts`, apart from DOMPurify and the KaTeX CSS). Add tests when
+  the parser lives in `lib/md`, apart from DOMPurify and the KaTeX CSS). Add tests when
   a change adds logic later features will sit on (`ship-feature` step 4).
 - **If tests exist, they run inside the `build` job** — one `npm test` line in
   `.github/workflows/ci.yml`, never a separate job. The ruleset requires a check named `build`; a
@@ -220,13 +229,12 @@ src/
   lib/
     fileAccess.ts          File System Access API + fallbacks (file input / download)
     useTabs.ts             tab store: open/new/save/close, IndexedDB persistence, disk refresh
-    markdownParser.ts      the shared marked instance (GFM + KaTeX), DOM-free
+    md/                    the structural renderer: blocks, inlines, ast, html (DOM-free)
     markdown.ts            preview HTML: parser + DOMPurify
     exportPdf.ts           PDF export: lazy pdfmake, images, math → download
     pdf/markdownToPdf.ts   tokens → pdfmake document (pure; *.test.ts beside it)
     pdf/math.ts            display TeX → SVG via MathJax (lazy chunk)
     pdf/inlineMath.ts      inline TeX → Unicode text
-    lists.ts               all lists: - 1. 1) a. a) A. A), nested by indent, always tight (tested)
     diagram.ts             Mermaid: lazy load, preview drawing (cached), PDF SVG (flattened styles)
     pdfFont.ts             the PDF body font preference (Sans / Serif / Mono)
     tabView.ts             per-tab cursor + scroll positions, restored on tab switch / reload (tested)
@@ -269,16 +277,11 @@ package-lock.json              committed — CI runs `npm ci` and needs it
   keep components thin.
 - **Never lose text.** Every tab's draft is persisted to IndexedDB on change; closing a dirty
   tab confirms; `beforeunload` warns while anything is unsaved; background PWA updates wait.
-- **Lists** (`lib/lists.ts`) replace marked's own list reader. Markers `-` `*` `+` `1.` `1)` `a.` `a)`
-  `A.` `A)`; a marker 2+ spaces deeper than its list nests under the item above, whatever the
-  parent's marker width (plain markdown ran "2. item / ␣␣a. sub" together); a different marker kind at
-  the same level starts a new list; lettered lists start at a/A and count up one letter at a time
-  (a lone "A. Lincoln…" stays text). Items are always tight, blank lines or not, so spacing is uniform
-  at every level. `[ ]` / `[x]` after any marker is a todo: a bullet's box replaces the bullet (drawn
-  in the marker gutter, so nesting indents as usual); a numbered or lettered todo keeps its number
-  and the box follows it ("3. ☑ …"). A code fence inside an item is opaque: until it closes, every line
-  ("- …", "# …", blank) is code, never list structure. The preview shows markers as typed (`@counter-style` for `)`; classes, not
-  `[type=a]`, which HTML matches case-insensitively); the PDF uses pdfmake's `type` and `separator`.
+- **Lists are standard.** Markers `-` `*` `+` `1.` `1)` only (no letters); a child nests when indented to
+  its parent's text column (2 under `- `, 3 under `1. `; Tab's 4 works for both); a blank line between
+  items makes the list loose (paragraph spacing). Display touches only: `1)` shows ")" (`ol.paren`), a
+  numbered todo keeps its number with the box after it ("3. ☑"), a bullet todo's box sits in the marker
+  gutter, and `- {label} text` hangs the label as the marker (`li[data-label]`).
 - **Editor keys:** Tab / Shift+Tab indent / outdent every line the selection touches (no selection:
   Tab inserts four spaces, Shift+Tab outdents the line). Four, not two: VS Code / GitHub (CommonMark)
   only nest a list under `1. ` with 3+ spaces, so the user's files must nest the same there — `lib/indent.ts`, applied through

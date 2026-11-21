@@ -402,6 +402,12 @@ look wrong in a shot taken <0.25 s later. Wait out the transition before judging
 
 ## Version History
 
+### v0.14.0 — 2026-11-21
+- **Changed:** New renderer written from scratch (`lib/md`) on the CommonMark algorithm: one tree for preview and PDF. Matches the standard as GitHub renders it — standard nesting, loose/tight lists, no lettered lists — plus Mermaid, math (Pandoc `$` rule, one-line `$$`), `{label}` bullets, numbered todos, GitHub alerts (`tests/conformance/RULES.md`)
+- **Added:** Conformance harness — the user's 328-case fixture + 606 GFM spec examples graded by structure against a calibrated reference (micromark); the gate runs in CI. Old renderer: 552/606, 242/328; new: 606/606, 328/328
+- **Removed:** `marked`, `marked-katex-extension`, the custom list add-on (2-space nesting, always-tight lists, `a.`/`A)` lists) — case-by-case fixes that kept colliding; the user chose the standard
+- **Lesson:** grading needs an oracle. Comparing outlines (structure) against a spec-calibrated reference made hundreds of cases checkable without eyes; the only judgement calls left were four written rules (D1–D4)
+
 ### v0.13.0 — 2026-11-18
 - **Added:** Each open file keeps its cursor, selection and scroll position — switching tabs (or reloading) returns to where you were, not the top
 - **Fixed:** Code blocks inside list items stay raw code — a `- …` line inside the fence started a nested list and split the block
