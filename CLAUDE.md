@@ -19,6 +19,10 @@ UI structure:
 - **Workspace** (`Workspace.vue`) — markdown source (left) and rendered preview (right),
   with a draggable divider. Either pane collapses to a thin rail: editor collapsed = read
   focus, preview collapsed = edit focus. Always side by side (left/right), even on a phone.
+  **Scroll sync is by content, not percentage** (`lib/scrollSync.ts`, tested): every preview block carries
+  `data-line` (its source line); the editor's line tops are measured in an invisible copy (wrapped lines
+  count). The pane you last touched (wheel/pointer/keys) drives: the source line at its vertical middle is
+  put at the other's middle, interpolating between blocks; at the very top/bottom both pin together.
   Each tab remembers its cursor/selection and both panes' scroll (`lib/tabView.ts`, localStorage
   `md-editor:views`, pruned on close), so switching tabs or reloading returns to where you were.
 - **Empty state** — Open a file / New file, shown when no tabs are open.
@@ -244,6 +248,7 @@ src/
     pdf/inlineMath.ts      inline TeX → Unicode text
     diagram.ts             Mermaid: lazy load, preview drawing (cached), PDF SVG (flattened styles)
     pdfFont.ts             the PDF body font preference (Sans / Serif / Mono)
+    scrollSync.ts          editor ⇄ preview scroll mapped through source lines, synced at the middles (tested)
     tabView.ts             per-tab cursor + scroll positions, restored on tab switch / reload (tested)
     indent.ts              Tab / Shift+Tab indent / outdent of selected lines (pure; tested)
     themes.ts              the looks (id, label, dark/light, colours for the menu)

@@ -8,6 +8,7 @@ import UiButton from './ui/UiButton.vue'
 import FocusControls from './FocusControls.vue'
 import { indentEdit } from '../lib/indent'
 import { getView, saveView, clampSelection } from '../lib/tabView'
+import { cleanAnchors, edgeOf, editorLineAt, editorTopOf, previewLineAt, previewTopOf, scrollFor, type Anchor } from '../lib/scrollSync'
 import { PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Plug } from '@lucide/vue'
 import { useFocusShadow } from '../lib/focus/useFocusShadow'
 
@@ -150,7 +151,9 @@ function rememberSelection() {
 }
 
 function onPreviewScroll() {
-  if (preview.value && !restoring) saveView(props.tab.id, { previewTop: preview.value.scrollTop })
+  if (!preview.value || restoring) return
+  saveView(props.tab.id, { previewTop: preview.value.scrollTop })
+  if (active === 'preview') syncFrom('preview')
 }
 
 /** Put the cursor and both panes back where this tab was left (top, the first time). */
@@ -174,17 +177,84 @@ async function restoreView() {
   )
 }
 
-// Keep the preview roughly level with the editor while scrolling the source.
-function syncScroll() {
+// ---- keeping the panes level (lib/scrollSync.ts) ----------------------------
+//
+// Both panes map onto source lines: the editor by measuring where each line
+// starts (wrapped lines are taller), the preview by the data-line each rendered
+// block carries. Whichever pane you're scrolling puts the line at its middle at
+// the other's middle. Only the pane you last touched drives, so the two never
+// push each other back and forth.
+
+let active: 'editor' | 'preview' = 'editor'
+const touch = (pane: 'editor' | 'preview') => () => {
+  active = pane
+}
+const touchEditor = touch('editor')
+const touchPreview = touch('preview')
+
+let measured: { text: string; width: number; tops: number[]; height: number } | null = null
+
+/** Where each source line starts in the editor, measured in an invisible copy of it. */
+function editorLines(ta: HTMLTextAreaElement) {
+  if (measured && measured.text === ta.value && measured.width === ta.clientWidth) return measured
+  const cs = getComputedStyle(ta)
+  const copy = document.createElement('div')
+  for (const prop of ['fontFamily', 'fontSize', 'fontWeight', 'lineHeight', 'letterSpacing', 'tabSize', 'paddingTop', 'paddingLeft', 'paddingRight'] as const)
+    copy.style[prop] = cs[prop]
+  copy.style.cssText += `;position:absolute;left:-99999px;top:0;visibility:hidden;box-sizing:border-box;width:${ta.clientWidth}px;white-space:pre-wrap;overflow-wrap:break-word`
+  const lines = ta.value.split('\n')
+  for (const line of lines) {
+    const row = document.createElement('div')
+    row.textContent = line || '\u200b'
+    copy.appendChild(row)
+  }
+  document.body.appendChild(copy)
+  const rows = Array.from(copy.children) as HTMLElement[]
+  const tops = rows.map((r) => r.offsetTop)
+  const last = rows[rows.length - 1]
+  const height = last ? last.offsetTop + last.offsetHeight : 0
+  copy.remove()
+  measured = { text: ta.value, width: ta.clientWidth, tops, height }
+  return measured
+}
+
+/** Each rendered block's source line and top, in the preview's content. */
+function previewAnchors(pv: HTMLElement, lineCount: number): Anchor[] {
+  const base = pv.getBoundingClientRect().top - pv.scrollTop
+  const raw: Anchor[] = []
+  for (const el of Array.from(pv.querySelectorAll<HTMLElement>('[data-line]')))
+    raw.push({ line: Number(el.dataset.line), top: el.getBoundingClientRect().top - base })
+  const body = pv.querySelector<HTMLElement>('.md-body')
+  const end = body ? body.getBoundingClientRect().bottom - base : pv.scrollHeight
+  return cleanAnchors(raw, lineCount, end)
+}
+
+function syncFrom(source: 'editor' | 'preview') {
   const ta = textarea.value
   const pv = preview.value
+  if (!ta || !pv || !both.value || restoring) return
+  const ed = editorLines(ta)
+  const anchors = previewAnchors(pv, ed.tops.length)
+  if (source === 'editor') {
+    const line = editorLineAt(ed.tops, ta.scrollTop + ta.clientHeight / 2, ed.height)
+    pv.scrollTop = scrollFor(previewTopOf(anchors, line), pv.clientHeight, pv.scrollHeight, edgeOf(ta.scrollTop, ta.clientHeight, ta.scrollHeight))
+  } else {
+    const line = previewLineAt(anchors, pv.scrollTop + pv.clientHeight / 2)
+    ta.scrollTop = scrollFor(editorTopOf(ed.tops, line, ed.height), ta.clientHeight, ta.scrollHeight, edgeOf(pv.scrollTop, pv.clientHeight, pv.scrollHeight))
+  }
+}
+
+function syncScroll() {
+  const ta = textarea.value
   if (!ta || restoring) return
   saveView(props.tab.id, { editorTop: ta.scrollTop })
-  if (!pv || !both.value) return
-  const max = ta.scrollHeight - ta.clientHeight
-  const ratio = max > 0 ? ta.scrollTop / max : 0
-  pv.scrollTop = ratio * (pv.scrollHeight - pv.clientHeight)
+  if (active === 'editor') syncFrom('editor')
 }
+
+// The preview's height changes as you type (and when a diagram is drawn): keep it level.
+watch(html, () => {
+  if (active === 'editor') requestAnimationFrame(() => syncFrom('editor'))
+}, { flush: 'post' })
 
 // Switching tabs (or opening the workspace) → back to where that file was left.
 watch(() => props.tab.id, () => void restoreView(), { immediate: true })
@@ -239,6 +309,10 @@ onBeforeUnmount(endDrag)
           @mouseup="rememberSelection"
           @keydown="onKeydown"
           @scroll="syncScroll"
+          @wheel.passive="touchEditor"
+          @pointerdown="touchEditor"
+          @keydown.capture="touchEditor"
+          @touchstart.passive="touchEditor"
         />
       </div>
       <button v-else class="rail" title="Show editor" aria-label="Show editor" @click="toggleEditor">
@@ -273,7 +347,16 @@ onBeforeUnmount(endDrag)
           <span class="pane-meta" />
           <FocusControls :supported="shadowSupported" :count="focusFrame?.count ?? 0" />
         </header>
-        <div ref="preview" class="preview-scroll" @scroll="onPreviewScroll">
+        <div
+          ref="preview"
+          class="preview-scroll"
+          tabindex="-1"
+          @scroll="onPreviewScroll"
+          @wheel.passive="touchPreview"
+          @pointerdown="touchPreview"
+          @keydown="touchPreview"
+          @touchstart.passive="touchPreview"
+        >
           <!-- eslint-disable-next-line vue/no-v-html — sanitized by DOMPurify in lib/markdown.ts -->
           <article class="md-body" v-html="html" />
           <p v-if="!tab.content.trim()" class="empty-preview">Nothing to preview yet.</p>
@@ -407,6 +490,9 @@ onBeforeUnmount(endDrag)
   background: var(--paper-selection);
 }
 
+.preview-scroll:focus {
+  outline: none; /* focusable only so arrow keys / Page Down scroll it */
+}
 .preview-scroll {
   flex: 1;
   overflow: auto;

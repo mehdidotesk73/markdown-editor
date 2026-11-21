@@ -60,6 +60,12 @@ export function inlineHtml(nodes: Inline[]): string {
   return out
 }
 
+/**
+ * The source line a block starts on (0-based), as a data-line attribute. The
+ * preview uses these to keep the two panes level (lib/scrollSync.ts).
+ */
+const L = (b: Block) => ` data-line="${b.startLine - 1}"`
+
 function blocksHtml(blocks: Block[], tight: boolean): string {
   return blocks.map((b) => blockHtml(b, tight)).join('')
 }
@@ -69,16 +75,16 @@ function blockHtml(b: Block, tight = false): string {
     case 'document':
       return blocksHtml(b.children, false)
     case 'paragraph':
-      return tight ? inlineHtml(b.inlines) : `<p>${inlineHtml(b.inlines)}</p>\n`
+      return tight ? inlineHtml(b.inlines) : `<p${L(b)}>${inlineHtml(b.inlines)}</p>\n`
     case 'heading':
-      return `<h${b.level}>${inlineHtml(b.inlines)}</h${b.level}>\n`
+      return `<h${b.level}${L(b)}>${inlineHtml(b.inlines)}</h${b.level}>\n`
     case 'hr':
-      return '<hr />\n'
+      return `<hr${L(b)} />\n`
     case 'blockquote':
-      return `<blockquote>\n${blocksHtml(b.children, false)}</blockquote>\n`
+      return `<blockquote${L(b)}>\n${blocksHtml(b.children, false)}</blockquote>\n`
     case 'alert':
       return (
-        `<div class="markdown-alert markdown-alert-${b.alert}">\n` +
+        `<div class="markdown-alert markdown-alert-${b.alert}"${L(b)}>\n` +
         `<p class="markdown-alert-title">${ALERT_TITLES[b.alert] ?? b.alert}</p>\n` +
         `${blocksHtml(b.children, false)}</div>\n`
       )
@@ -86,11 +92,11 @@ function blockHtml(b: Block, tight = false): string {
       const lang = b.info.split(/\s+/)[0]
       // A1: ```mermaid (exactly) is a diagram; the preview draws it (lib/diagram.ts).
       if (b.fenced && lang === 'mermaid')
-        return `<div class="mermaid-block"><pre><code>${escapeHtml(b.content)}</code></pre></div>\n`
-      return `<pre><code${lang ? ` class="language-${escapeHtml(lang)}"` : ''}>${escapeHtml(b.content)}</code></pre>\n`
+        return `<div class="mermaid-block"${L(b)}><pre><code>${escapeHtml(b.content)}</code></pre></div>\n`
+      return `<pre${L(b)}><code${lang ? ` class="language-${escapeHtml(lang)}"` : ''}>${escapeHtml(b.content)}</code></pre>\n`
     }
     case 'math':
-      return `<div class="math math-display">${mathHtml(b.content.replace(/\n$/, ''), true)}</div>\n`
+      return `<div class="math math-display"${L(b)}>${mathHtml(b.content.replace(/\n$/, ''), true)}</div>\n`
     case 'html':
       return b.content
     case 'list': {
@@ -108,7 +114,7 @@ function blockHtml(b: Block, tight = false): string {
         return `<${tag}${a ? ` align="${a}"` : ''}>${inlineHtml(c)}</${tag}>\n`
       }
       const [head, ...body] = b.rows
-      let out = `<table>\n<thead>\n<tr>\n${head.map((c, i) => cell('th', c, i)).join('')}</tr>\n</thead>\n`
+      let out = `<table${L(b)}>\n<thead>\n<tr>\n${head.map((c, i) => cell('th', c, i)).join('')}</tr>\n</thead>\n`
       if (body.length) out += `<tbody>\n${body.map((r) => `<tr>\n${r.map((c, i) => cell('td', c, i)).join('')}</tr>\n`).join('')}</tbody>\n`
       return out + '</table>\n'
     }
@@ -118,17 +124,17 @@ function blockHtml(b: Block, tight = false): string {
 }
 
 function itemHtml(item: Block, tight: boolean): string {
-  const attrs: string[] = []
+  const attrs: string[] = [L(item).trim()]
   if (item.checked !== null) attrs.push('class="task"')
   if (item.label !== null) attrs.push(`data-label="${escapeHtml(item.label)}"`)
   const box = item.checked === null ? '' : `<input type="checkbox" disabled=""${item.checked ? ' checked=""' : ''} /> `
   let inner = blocksHtml(item.children, tight)
   // The box goes at the start of the first paragraph (bare text in a tight item).
-  if (box) inner = inner.startsWith('<p>') ? `<p>${box}${inner.slice(3)}` : box + inner
+  if (box) inner = /^<p[ >]/.test(inner) ? inner.replace(/^<p([^>]*)>/, `<p$1>${box}`) : box + inner
   // A block-level first child starts on its own line, as the reference renderer writes it.
   const first = item.children[0]
   const nl = first && !(tight && first.type === 'paragraph') ? '\n' : ''
-  return `<li${attrs.length ? ' ' + attrs.join(' ') : ''}>${nl}${inner}</li>\n`
+  return `<li ${attrs.join(' ')}>${nl}${inner}</li>\n`
 }
 
 export function renderHtml(doc: Block): string {
