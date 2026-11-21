@@ -155,6 +155,12 @@ export function applyAdditions(lines: string[]): string[] {
       out.push(`${pad}math-block: ${tex.join(' ').replace(/\s+/g, ' ').trim()}`)
       continue
     }
+    // GFM: in a table cell, "\|" is a pipe in every inline span — math too (the
+    // reference leaves it escaped inside math).
+    if (/^(th|td): /.test(body) && body.includes('\\|')) {
+      out.push(line.replace(/\$[^$]*\$/g, (m) => m.replace(/\\\|/g, '|')))
+      continue
+    }
     // A5. A quote opened by an alert marker → alert.
     if (body === 'quote') {
       const next = lines[i + 1] ?? ''

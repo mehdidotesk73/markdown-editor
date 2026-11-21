@@ -14,8 +14,8 @@ the 2019 spec text predates current CommonMark (a few emphasis edge cases) or Gi
 
 ## Renderer: `current`
 
-- **GFM spec examples:** 551 / 606 pass (raw-HTML sections excluded)
-- **Fixture cases:** 240 / 328 pass
+- **GFM spec examples:** 552 / 606 pass (raw-HTML sections excluded)
+- **Fixture cases:** 242 / 328 pass
 
 | Fixture section | Pass | Failing cases |
 |---|---|---|
@@ -37,11 +37,11 @@ the 2019 spec text predates current CommonMark (a few emphasis edge cases) or Gi
 | 16. Nested lists | 13 / 18 | NEST-010, NEST-011, NEST-012, NEST-015, NEST-018 |
 | 17. Task lists (EXT) | 7 / 8 | TASK-007 |
 | 18. List item content | 5 / 14 | LIC-001, LIC-002, LIC-003, LIC-004, LIC-005, LIC-006, LIC-007, LIC-012, LIC-013 |
-| 19. Fenced code blocks | 17 / 18 | FENCE-011 |
+| 19. Fenced code blocks | 18 / 18 | — |
 | 20. Indented code blocks | 6 / 7 | INDCODE-006 |
 | 21. Code blocks inside containers | 2 / 18 | CIC-001, CIC-002, CIC-005, CIC-006, CIC-007, CIC-008, CIC-009, CIC-010, CIC-011, CIC-012, CIC-013, CIC-014, CIC-015, CIC-016, CIC-017, CIC-018 |
 | 22. Tables | 22 / 23 | TBL-017 |
-| 23. Mermaid diagrams | 33 / 39 | MMD-026, MMD-028, MMD-030, MMD-031, MMD-032, MMD-034 |
+| 23. Mermaid diagrams | 34 / 39 | MMD-028, MMD-030, MMD-031, MMD-032, MMD-034 |
 | 24. Cross-component combinations | 6 / 14 | COMBO-001, COMBO-002, COMBO-003, COMBO-004, COMBO-005, COMBO-006, COMBO-007, COMBO-010 |
 | 25. Edge cases and robustness | 18 / 20 | EDGE-010, EDGE-011 |
 | 26. Realistic design document (end-to-end sample) | 0 / 1 | DOC-001 |
@@ -62,7 +62,7 @@ the 2019 spec text predates current CommonMark (a few emphasis edge cases) or Gi
 | Tables (extension) | 8 / 8 |
 | Block quotes | 25 / 25 |
 | List items | 21 / 48 |
-| Lists | 10 / 26 |
+| Lists | 11 / 26 |
 | Inlines | 1 / 1 |
 | Backslash escapes | 13 / 13 |
 | Entity and numeric character references | 15 / 17 |
@@ -73,6 +73,71 @@ the 2019 spec text predates current CommonMark (a few emphasis edge cases) or Gi
 | Images | 22 / 22 |
 | Autolinks | 19 / 19 |
 | Autolinks (extension) | 10 / 11 |
+| Hard line breaks | 15 / 15 |
+| Soft line breaks | 2 / 2 |
+| Textual content | 3 / 3 |
+
+## Renderer: `next`
+
+- **GFM spec examples:** 606 / 606 pass (raw-HTML sections excluded)
+- **Fixture cases:** 328 / 328 pass
+
+| Fixture section | Pass | Failing cases |
+|---|---|---|
+| 1. Headings | 11 / 11 | — |
+| 2. Paragraphs and line breaks | 8 / 8 | — |
+| 3. Thematic breaks | 5 / 5 | — |
+| 4. Blockquotes | 11 / 11 | — |
+| 5. Alerts (EXT: GFM alerts) | 7 / 7 | — |
+| 6. Emphasis and inline formatting | 11 / 11 | — |
+| 7. Inline code | 7 / 7 | — |
+| 8. Links | 12 / 12 | — |
+| 9. Images | 7 / 7 | — |
+| 10. Escapes and entities | 7 / 7 | — |
+| 11. Math (EXT: LaTeX) | 15 / 15 | — |
+| 12. Unordered lists | 10 / 10 | — |
+| 13. Ordered lists | 12 / 12 | — |
+| 14. Alphanumeric lists (EXT) | 14 / 14 | — |
+| 15. Tight vs loose lists | 8 / 8 | — |
+| 16. Nested lists | 18 / 18 | — |
+| 17. Task lists (EXT) | 8 / 8 | — |
+| 18. List item content | 14 / 14 | — |
+| 19. Fenced code blocks | 18 / 18 | — |
+| 20. Indented code blocks | 7 / 7 | — |
+| 21. Code blocks inside containers | 18 / 18 | — |
+| 22. Tables | 23 / 23 | — |
+| 23. Mermaid diagrams | 39 / 39 | — |
+| 24. Cross-component combinations | 14 / 14 | — |
+| 25. Edge cases and robustness | 20 / 20 | — |
+| 26. Realistic design document (end-to-end sample) | 1 / 1 | — |
+| 27. Unterminated constructs (MUST BE LAST IN FILE) | 3 / 3 | — |
+
+| Spec section | Pass |
+|---|---|
+| Tabs | 11 / 11 |
+| Precedence | 1 / 1 |
+| Thematic breaks | 19 / 19 |
+| ATX headings | 18 / 18 |
+| Setext headings | 27 / 27 |
+| Indented code blocks | 12 / 12 |
+| Fenced code blocks | 29 / 29 |
+| Link reference definitions | 28 / 28 |
+| Paragraphs | 8 / 8 |
+| Blank lines | 1 / 1 |
+| Tables (extension) | 8 / 8 |
+| Block quotes | 25 / 25 |
+| List items | 48 / 48 |
+| Lists | 26 / 26 |
+| Inlines | 1 / 1 |
+| Backslash escapes | 13 / 13 |
+| Entity and numeric character references | 17 / 17 |
+| Code spans | 22 / 22 |
+| Emphasis and strong emphasis | 131 / 131 |
+| Strikethrough (extension) | 2 / 2 |
+| Links | 87 / 87 |
+| Images | 22 / 22 |
+| Autolinks | 19 / 19 |
+| Autolinks (extension) | 11 / 11 |
 | Hard line breaks | 15 / 15 |
 | Soft line breaks | 2 / 2 |
 | Textual content | 3 / 3 |

@@ -75,7 +75,8 @@ function tidy(s: string): string {
 }
 
 function codeLines(text: string, pad: string): string[] {
-  const body = text.replace(/\n$/, '')
+  // Trailing blank lines are invisible; renderers differ on them for unclosed fences.
+  const body = text.replace(/\n[ \t\n]*$/, '')
   if (!body) return [`${pad}  (empty)`]
   return body.split('\n').map((l) => `${pad}  | ${l}`)
 }
