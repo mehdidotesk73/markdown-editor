@@ -177,7 +177,7 @@ whatever they're actually asking about.
   This is the gate — it catches TS errors _and_ Vue template parse errors.
   **Run it before every commit.** A broken build has reached history before
   because nothing ran it; don't let that happen.
-- **CI runs the same build on every PR** (`.github/workflows/ci.yml`, check name `build`), and the
+- **CI runs the same build on every PR** (`.github/workflows/ci.yml`, check name `build`, Node 22 — pdf.js in the PDF checks needs ≥ 22.13), and the
   branch ruleset requires it to pass before merge. That's a backstop, not a substitute: run
   `npm run build` locally before pushing rather than letting CI find it — a red check on the user's
   PR is noise they have to interpret.
