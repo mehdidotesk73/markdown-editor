@@ -35,3 +35,6 @@ Thumbs.db
 .env
 .env.local
 .env.*.local
+
+# conformance run details (regenerate with npm run conformance)
+tests/conformance/report/

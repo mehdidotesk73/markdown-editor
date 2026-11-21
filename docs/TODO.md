@@ -12,6 +12,14 @@ collapsible panes and a draggable divider, Save / Save as / Export PDF (html2pdf
 drafts + file handles persisted in IndexedDB, external-change pickup on focus, dark slate
 theme from power-gis, Help modal now renders `docs/concepts/*.md`.
 
+### In progress — standard-conformant renderer
+
+Test setup first: `npm run conformance` grades a renderer by structure against the user's fixture
+and the GFM spec, with expected output computed from a GitHub-compatible reference plus our additions
+(`tests/conformance/RULES.md`). Today's renderer: see `tests/conformance/SCORECARD.md`. Next: a parallel
+renderer built from scratch (block containers → inlines → one tree → HTML and PDF), switched in once it
+passes. Open decisions D1–D4 in `RULES.md`.
+
 ### v0.13.0 — Raw code in lists, bigger PDF diagrams (2026-11-18)
 
 Each open file remembers where you were (cursor and scroll), across tab switches and reloads.

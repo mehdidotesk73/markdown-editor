@@ -180,6 +180,12 @@ whatever they're actually asking about.
   `.github/workflows/ci.yml`, never a separate job. The ruleset requires a check named `build`; a
   second job called `test` would fail without blocking anything, since the ruleset isn't watching
   it.
+- **Rendering conformance** (`tests/conformance/`, `npm run conformance`): grades renderers by
+  *structure* against the user's fixture (`fixture.md`, ~330 cases) and the GFM spec examples. Output →
+  an outline (`outline.ts`); expected = the micromark+GFM+math reference with our additions applied
+  (`expected.ts`); the rules and open decisions are in `RULES.md`, results in `SCORECARD.md`, failure
+  diffs in `report/` (gitignored). Baseline is the standard as GitHub renders it — don't hand-write
+  expected outputs; add a rule. A parallel structural renderer is being built to pass it.
 - **No external data dependencies** — the app is self-contained. It can be driven end-to-end
   with Playwright against `npm run preview`: stub `window.showOpenFilePicker` /
   `showSaveFilePicker` to return OPFS handles (`navigator.storage.getDirectory()`), which are
