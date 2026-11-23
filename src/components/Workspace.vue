@@ -11,7 +11,7 @@ import { indentEdit } from '../lib/indent'
 import { getView, saveView, clampSelection } from '../lib/tabView'
 import { edgeOf, editorLineAt, previewTopOf, scrollFor, segmentAtLine, wordFractionAt, wordMiddleAt } from '../lib/scrollSync'
 import { editorMetrics, editorWordBoxes, previewAnchors, previewWordBoxes } from '../lib/scrollSyncDom'
-import { PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Plug } from '@lucide/vue'
+import { FolderOpen, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Plug } from '@lucide/vue'
 import { useFocusShadow } from '../lib/focus/useFocusShadow'
 
 // The split view for one tab: markdown source on the left, rendered preview
@@ -19,7 +19,7 @@ import { useFocusShadow } from '../lib/focus/useFocusShadow'
 // read, collapse the preview to write. One side is always open.
 
 const props = defineProps<{ tab: Tab }>()
-defineEmits<{ (e: 'reconnect'): void }>()
+defineEmits<{ (e: 'reconnect'): void; (e: 'relink'): void }>()
 
 
 // ---- layout (a per-viewer convenience, so localStorage is fine) ------------
@@ -240,6 +240,14 @@ onBeforeUnmount(endDrag)
         pick up changes made outside the editor.
       </span>
       <UiButton size="compact" tone="attention" :icon-left="Plug" @click="$emit('reconnect')">Reconnect</UiButton>
+      <UiButton
+        size="compact"
+        :icon-left="FolderOpen"
+        title="If Reconnect doesn't work: pick the file again (your unsaved edits are kept)"
+        @click="$emit('relink')"
+      >
+        Choose file…
+      </UiButton>
     </div>
 
     <div

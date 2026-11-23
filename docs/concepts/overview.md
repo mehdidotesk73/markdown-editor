@@ -58,6 +58,10 @@ A: Chrome, Edge, Brave, Arc and Opera on a computer. Safari, Firefox and phone b
 
 A: For your security the browser forgets permission to a file when the page reloads. Your tabs and any unsaved text are kept — click **Reconnect** and allow access, and saving works again.
 
+**Q: I clicked Reconnect (or Save) and nothing happened.**
+
+A: The browser didn't show its permission prompt, or refused. After a few seconds **View logs** says which. Click **Choose file…** on the same banner and pick the file again: that links the tab without the prompt, and your unsaved text is kept. Opening the same file with **Open** does the same. If it's somewhere else now, **Save as…** saves your text to a new file.
+
 **Q: I edited the file in another app. Will the editor see it?**
 
 A: Yes — when you switch back to the editor it re-reads the file. If you also had unsaved changes in that tab, your changes are kept and the tab stays marked unsaved.

@@ -24,7 +24,7 @@ import { debugState, logDebug, logAsText } from './debug'
 import { setupPWAUpdates } from './pwa'
 import { useVersionCheck } from './lib/useVersionCheck'
 import { useTabs, isDirty } from './lib/useTabs'
-import { supportsFileSystemAccess } from './lib/fileAccess'
+import { supportsFileSystemAccess, errorText } from './lib/fileAccess'
 import { exportMarkdownToPdf } from './lib/exportPdf'
 import { pdfFont, PDF_FONTS } from './lib/pdfFont'
 import type { PdfFont } from './lib/pdf/markdownToPdf'
@@ -116,7 +116,7 @@ async function onOpen() {
   try {
     await tabs.openFiles()
   } catch (e) {
-    logDebug(`Could not open file: ${(e as Error).message}`, 'error')
+    logDebug(`Open failed: ${errorText(e)}`, 'error')
   }
 }
 
@@ -145,11 +145,18 @@ function chooseFont(f: PdfFont) {
 async function onExport() {
   if (!active.value || exporting.value) return
   exporting.value = true
+  const name = active.value.name
+  const started = performance.now()
+  logDebug(`Export PDF: building ${name} (${pdfFont.value})…`)
   try {
-    await exportMarkdownToPdf(active.value.content, active.value.name, pdfFont.value)
-    logDebug(`Exported ${active.value.name} to PDF (${pdfFont.value})`)
+    const r = await exportMarkdownToPdf(active.value.content, name, pdfFont.value)
+    const secs = ((performance.now() - started) / 1000).toFixed(1)
+    logDebug(`Export PDF: downloaded ${r.name} (${Math.max(1, Math.round(r.bytes / 1024))} KB, ${secs} s)`)
+    if (r.missingImages.length) logDebug(`Export PDF: ${r.missingImages.length} image(s) couldn't be loaded, so their alt text is shown: ${r.missingImages.join(', ')}`, 'warn')
+    if (r.failedDiagrams) logDebug(`Export PDF: ${r.failedDiagrams} diagram(s) didn't draw and appear as code`, 'warn')
+    if (r.failedMath) logDebug(`Export PDF: ${r.failedMath} formula(s) didn't typeset and appear as text`, 'warn')
   } catch (e) {
-    logDebug(`PDF export failed: ${(e as Error).message}`, 'error')
+    logDebug(`Export PDF failed for ${name}: ${errorText(e)}`, 'error')
   } finally {
     exporting.value = false
   }
@@ -359,7 +366,7 @@ const helpDoc = ref('overview')
       @new="tabs.newDocument()"
     />
 
-    <Workspace v-if="active" ref="workspace" :tab="active" @reconnect="tabs.reconnect(active)" />
+    <Workspace v-if="active" ref="workspace" :tab="active" @reconnect="tabs.reconnect(active)" @relink="tabs.relink(active)" />
 
     <section v-else-if="state.ready" class="empty">
       <div class="empty-card">

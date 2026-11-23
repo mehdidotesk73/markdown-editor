@@ -22,7 +22,7 @@ interface FsaWindow {
   showSaveFilePicker(o?: object): Promise<FileSystemFileHandle>
 }
 
-const fsa = window as unknown as Partial<FsaWindow>
+const fsa = (typeof window === 'undefined' ? {} : window) as unknown as Partial<FsaWindow>
 
 export const supportsFileSystemAccess =
   typeof fsa.showOpenFilePicker === 'function' && typeof fsa.showSaveFilePicker === 'function'
@@ -89,18 +89,70 @@ export async function pickSaveTarget(suggestedName: string): Promise<FileSystemF
   }
 }
 
+/** What the browser said when asked for access, or that it never answered. */
+export type Access = PermissionState | 'no-answer'
+
+/** How long to wait for the browser's permission prompt before saying so in the log. */
+export const PERMISSION_WAIT_MS = 15_000
+
 /**
  * Current permission for a stored handle. A handle restored after a reload
  * usually comes back as 'prompt': the browser needs a click before it will
- * let the page touch the file again.
+ * let the page touch the file again. With `ask`, the browser's prompt is
+ * requested when access isn't already granted. A prompt the browser never answers resolves as
+ * 'no-answer' after PERMISSION_WAIT_MS instead of leaving the caller waiting
+ * forever.
  */
-export async function permissionOf(handle: FileSystemFileHandle, ask = false): Promise<PermissionState> {
+export async function permissionOf(handle: FileSystemFileHandle, ask = false, waitMs = PERMISSION_WAIT_MS): Promise<Access> {
   const h = handle as FsaHandle
   if (typeof h.queryPermission !== 'function') return 'granted'
   const mode: PermissionMode = { mode: 'readwrite' }
   const state = await h.queryPermission(mode)
   if (state === 'granted' || !ask) return state
-  return h.requestPermission(mode)
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const noAnswer = new Promise<Access>((resolve) => (timer = setTimeout(() => resolve('no-answer'), waitMs)))
+  try {
+    return await Promise.race([h.requestPermission(mode), noAnswer])
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+/** Why access is missing, in words for the log. */
+export function accessProblem(name: string, a: Access): string {
+  if (a === 'denied') return `the browser refused access to ${name} (blocked, or "Don't allow" was chosen). Use "Choose file…" to pick it again.`
+  if (a === 'no-answer')
+    return `the browser didn't answer the request for access to ${name}. Look for a prompt by the address bar, or use "Choose file…" to pick the file again.`
+  return `access to ${name} wasn't granted (the prompt was dismissed). Click Reconnect to ask again.`
+}
+
+/** Why something failed, for the log. */
+export function errorText(e: unknown): string {
+  if (e instanceof DOMException || e instanceof Error) return `${e.name}: ${e.message}`
+  return String(e)
+}
+
+/**
+ * Pick one file to stand in for a tab whose link was lost — opens where the
+ * old file was when the browser can. Null if cancelled.
+ */
+export async function pickReplacement(old: FileSystemFileHandle | null): Promise<PickedFile | null> {
+  if (!supportsFileSystemAccess) return null
+  try {
+    const opts = { multiple: false, types: MD_TYPES, id: 'md-open', ...(old ? { startIn: old } : {}) }
+    let handles: FileSystemFileHandle[]
+    try {
+      handles = await fsa.showOpenFilePicker!(opts)
+    } catch (e) {
+      // A stale handle can make startIn itself fail: try again without it.
+      if (isAbort(e) || !old) throw e
+      handles = await fsa.showOpenFilePicker!({ multiple: false, types: MD_TYPES, id: 'md-open' })
+    }
+    return handles[0] ? readHandle(handles[0]) : null
+  } catch (e) {
+    if (isAbort(e)) return null
+    throw e
+  }
 }
 
 /** Re-read a linked file from disk. */
@@ -109,10 +161,16 @@ export async function readFile(handle: FileSystemFileHandle): Promise<PickedFile
 }
 
 /** Overwrite a linked file on disk. Returns the file's new lastModified. */
-export async function writeFile(handle: FileSystemFileHandle, text: string): Promise<number> {
-  if ((await permissionOf(handle, true)) !== 'granted') {
-    throw new Error(`Permission to write ${handle.name} was not granted.`)
+export class NoAccessError extends Error {
+  constructor(public access: Access, name: string) {
+    super(accessProblem(name, access))
+    this.name = 'NoAccessError'
   }
+}
+
+export async function writeFile(handle: FileSystemFileHandle, text: string): Promise<number> {
+  const access = await permissionOf(handle, true)
+  if (access !== 'granted') throw new NoAccessError(access, handle.name)
   const w = await handle.createWritable()
   await w.write(text)
   await w.close()
