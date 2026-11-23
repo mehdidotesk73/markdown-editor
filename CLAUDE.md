@@ -42,7 +42,11 @@ How files work (see `src/lib/fileAccess.ts`, `src/lib/useTabs.ts`):
 - **Chromium (Chrome, Edge, Brave, Arc):** Open stores a `FileSystemFileHandle` per tab; Save
   writes straight back to that file. Handles + drafts persist in IndexedDB (`idb-keyval`), so
   tabs survive reloads. After a reload the browser usually needs one click (**Reconnect**
-  banner) to grant access again. Linked files are re-read on window focus, so edits made in
+  banner) to grant access again. A permission request the browser never answers resolves as `'no-answer'` after
+  15 s (`permissionOf`), so Reconnect / Save can't hang silently; **Choose file…** on the banner re-links
+  the tab through the file picker (no permission prompt needed), keeping the draft. **Every file
+  operation logs its step and outcome** to the page log (open, save, save as, reconnect, choose file,
+  lost access, file gone, PDF export) — keep it that way for new ones. Linked files are re-read on window focus, so edits made in
   other apps show up (unless the tab has unsaved edits — then the draft wins).
 - **Safari / Firefox / phones:** no File System Access API. Open uses a file input; Save
   downloads a copy. Drafts still persist in IndexedDB.
@@ -197,7 +201,9 @@ whatever they're actually asking about.
   `npm run build` locally before pushing rather than letting CI find it — a red check on the user's
   PR is noise they have to interpret.
 - **Unit tests:** `npm test` (Vitest 3, node environment), `*.test.ts` beside the code. Today they
-  cover the PDF converter's layout rules and math handling. Keep tested logic DOM-free (that's why
+  cover the PDF converter's layout rules and math handling, and the file paths: `useTabs.test.ts` drives
+  restore / open / save / save as / reconnect / choose file against a faked file system (mocked `fileAccess`
+  + `idb-keyval`) and checks the log lines; `fileAccess.test.ts` covers the permission timeout. Keep tested logic DOM-free (that's why
   the parser lives in `lib/md`, apart from DOMPurify and the KaTeX CSS). Add tests when
   a change adds logic later features will sit on (`ship-feature` step 4).
 - **If tests exist, they run inside the `build` job** — one `npm test` line in

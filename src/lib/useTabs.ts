@@ -3,7 +3,11 @@ import { get, set } from 'idb-keyval'
 import {
   pickFiles,
   pickSaveTarget,
+  pickReplacement,
   permissionOf,
+  accessProblem,
+  errorText,
+  isAbort,
   readFile,
   writeFile,
   downloadText,
@@ -90,6 +94,12 @@ async function restore() {
       state.activeId = stored.tabs.some((t) => t.id === stored.activeId) ? stored.activeId : stored.tabs[0].id
       // Reconnect silently wherever the browser still grants access.
       await Promise.all(state.tabs.map((t) => refreshFromDisk(t, false)))
+      const count = (a: Tab['access']) => state.tabs.filter((t) => t.access === a).length
+      const waiting = state.tabs.filter((t) => t.access === 'needs-access').map((t) => t.name)
+      logDebug(
+        `Restored ${state.tabs.length} tab(s): ${count('linked')} linked, ${count('needs-access')} need reconnecting, ${count('unlinked')} not linked to a file` +
+          (waiting.length ? ` (${waiting.join(', ')})` : ''),
+      )
     }
   } catch (e) {
     logDebug(`Could not restore tabs: ${(e as Error).message}`, 'warn')
@@ -108,10 +118,13 @@ async function restore() {
  */
 async function refreshFromDisk(t: Tab, ask: boolean): Promise<boolean> {
   if (!t.handle) return false
+  const was = t.access
   try {
     const perm = await permissionOf(t.handle, ask)
     if (perm !== 'granted') {
       t.access = 'needs-access'
+      if (ask) logDebug(`Reconnect ${t.name}: ${accessProblem(t.name, perm)}`, 'warn')
+      else if (was === 'linked') logDebug(`Lost access to ${t.name} (browser now says "${perm}") — click Reconnect.`, 'warn')
       return false
     }
     const f = await readFile(t.handle)
@@ -122,17 +135,19 @@ async function refreshFromDisk(t: Tab, ask: boolean): Promise<boolean> {
       t.saved = f.text
       t.lastModified = f.lastModified
       if (wasClean) t.content = f.text
+      if (was === 'linked') logDebug(`${t.name} changed on disk — ${wasClean ? 'loaded the new version' : 'kept your unsaved edits'}`)
     }
+    if (was !== 'linked') logDebug(`Reconnected ${t.name}${isDirty(t) ? ' (your unsaved edits are kept)' : ''}`)
     return true
   } catch (e) {
     // NotFoundError: the file was moved or deleted. Keep the text, drop the link.
     if (e instanceof DOMException && e.name === 'NotFoundError') {
-      logDebug(`${t.name} is no longer on disk — Save will ask where to put it.`, 'warn')
+      logDebug(`${t.name} is no longer on disk (moved or deleted) — your text is kept; Save will ask where to put it.`, 'warn')
       t.handle = null
       t.access = 'unlinked'
       t.saved = ''
     } else {
-      logDebug(`Could not read ${t.name}: ${(e as Error).message}`, 'warn')
+      logDebug(`Could not read ${t.name}: ${errorText(e)}`, ask ? 'error' : 'warn')
     }
     return false
   }
@@ -140,7 +155,36 @@ async function refreshFromDisk(t: Tab, ask: boolean): Promise<boolean> {
 
 /** Reconnect a restored tab to its file (shows the browser's permission prompt). */
 async function reconnect(t: Tab) {
+  logDebug(`Reconnect ${t.name}: asking the browser for access…`)
   await refreshFromDisk(t, true)
+}
+
+/**
+ * Link a tab to a file the user picks again — the way back when the browser
+ * won't grant access to the old link. The tab's unsaved edits are kept.
+ */
+async function relink(t: Tab): Promise<boolean> {
+  logDebug(`Choose file for ${t.name}: opening the file picker…`)
+  try {
+    const f = await pickReplacement(t.handle)
+    if (!f?.handle) {
+      logDebug(`Choose file for ${t.name}: cancelled`)
+      return false
+    }
+    const keepDraft = isDirty(t)
+    const old = t.name
+    t.handle = f.handle
+    t.name = f.name
+    t.saved = f.text
+    t.lastModified = f.lastModified
+    if (!keepDraft) t.content = f.text
+    t.access = 'linked'
+    logDebug(`Linked ${old === f.name ? f.name : `${old} → ${f.name}`}${keepDraft ? ' (your unsaved edits are kept)' : ''}`)
+    return true
+  } catch (e) {
+    logDebug(`Choose file for ${t.name} failed: ${errorText(e)}`, 'error')
+    return false
+  }
 }
 
 /** Re-check every linked tab against disk — e.g. when the window regains focus. */
@@ -152,12 +196,28 @@ async function refreshAll() {
 
 async function addPicked(f: PickedFile) {
   // Already open? Just switch to it.
+  // Its fresh handle comes with the access the picker just granted, so a tab
+  // waiting to be reconnected is linked again by opening its file.
   for (const t of state.tabs) {
-    if (f.handle && t.handle && (await t.handle.isSameEntry(f.handle))) {
-      state.activeId = t.id
-      await refreshFromDisk(t, true)
-      return
+    if (!f.handle || !t.handle) continue
+    let same = false
+    try {
+      same = await t.handle.isSameEntry(f.handle)
+    } catch {
+      // A stale handle can't be compared: treat it as a different file.
     }
+    if (!same) continue
+    state.activeId = t.id
+    const keepDraft = isDirty(t)
+    const was = t.access
+    t.handle = f.handle
+    t.name = f.name
+    t.saved = f.text
+    t.lastModified = f.lastModified
+    if (!keepDraft) t.content = f.text
+    t.access = 'linked'
+    logDebug(`${f.name} was already open — switched to it${was !== 'linked' ? ' and reconnected it' : ''}${keepDraft ? ' (your unsaved edits are kept)' : ''}`)
+    return
   }
   const tab: Tab = {
     id: newId(),
@@ -173,9 +233,17 @@ async function addPicked(f: PickedFile) {
 }
 
 async function openFiles() {
-  const files = await pickFiles()
+  logDebug('Open: showing the file picker…')
+  let files: PickedFile[]
+  try {
+    files = await pickFiles()
+  } catch (e) {
+    logDebug(`Open failed: ${errorText(e)}`, 'error')
+    return
+  }
+  if (!files.length) return logDebug('Open: cancelled')
   for (const f of files) await addPicked(f)
-  if (files.length) logDebug(`Opened ${files.map((f) => f.name).join(', ')}`)
+  logDebug(`Opened ${files.map((f) => f.name).join(', ')}${files[0].handle ? '' : ' (read-only copy: this browser saves by downloading)'}`)
 }
 
 function untitledName(): string {
@@ -211,32 +279,52 @@ function newDocument() {
  * `saveAs` always asks for a new location.
  */
 async function save(t: Tab, saveAs = false): Promise<boolean> {
+  const what = saveAs ? 'Save as' : 'Save'
   try {
     if (!supportsFileSystemAccess) {
       downloadText(t.name, t.content)
       t.saved = t.content
-      logDebug(`Downloaded ${t.name} (this browser can't write files in place)`)
+      logDebug(`${what}: downloaded ${t.name} (this browser can't write files in place)`)
       return true
     }
     if (!t.handle || saveAs) {
+      logDebug(`${what} ${t.name}: asking where to save…`)
       const handle = await pickSaveTarget(t.name)
-      if (!handle) return false
+      if (!handle) {
+        logDebug(`${what} ${t.name}: cancelled`)
+        return false
+      }
       t.handle = handle
       t.name = handle.name
+    } else if (t.access !== 'linked') {
+      logDebug(`${what} ${t.name}: asking the browser for access first…`)
     }
     t.lastModified = await writeFile(t.handle, t.content)
     t.saved = t.content
+    const reconnected = t.access !== 'linked'
     t.access = 'linked'
-    logDebug(`Saved ${t.name}`)
+    logDebug(`${what}: saved ${t.name} (${t.content.length.toLocaleString()} characters)${reconnected ? ' — and reconnected it' : ''}`)
     return true
   } catch (e) {
-    logDebug(`Save failed for ${t.name}: ${(e as Error).message}`, 'error')
+    if (isAbort(e)) {
+      logDebug(`${what} ${t.name}: cancelled`)
+      return false
+    }
+    if ((e as Error).name === 'NoAccessError') {
+      t.access = 'needs-access'
+      logDebug(`${what} failed — ${(e as Error).message} Your text is safe here; "Save as…" saves it to a new file.`, 'error')
+    } else if (e instanceof DOMException && e.name === 'NotFoundError') {
+      logDebug(`${what} failed — ${t.name} is no longer where it was. Use "Save as…" to put it somewhere.`, 'error')
+    } else {
+      logDebug(`${what} failed for ${t.name}: ${errorText(e)}`, 'error')
+    }
     return false
   }
 }
 
 function close(t: Tab) {
-  if (isDirty(t) && !confirm(`${t.name} has unsaved changes. Close it anyway?`)) return
+  if (isDirty(t) && !confirm(`${t.name} has unsaved changes. Close it anyway?`)) return logDebug(`Close ${t.name}: kept open (unsaved changes)`)
+  if (isDirty(t)) logDebug(`Closed ${t.name} — its unsaved changes were discarded`, 'warn')
   const i = state.tabs.findIndex((x) => x.id === t.id)
   if (i < 0) return
   state.tabs.splice(i, 1)
@@ -266,6 +354,7 @@ export function useTabs() {
     close,
     activate,
     reconnect,
+    relink,
     refreshAll,
   }
 }

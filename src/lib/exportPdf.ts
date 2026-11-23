@@ -86,7 +86,18 @@ async function loadImage(url: string): Promise<{ dataUrl: string; width: number;
  * Heavy pieces load on first use only: pdfmake (~1 MB) on the first export,
  * MathJax (~1.5 MB) only when a document has display math.
  */
-export async function exportMarkdownToPdf(markdown: string, fileName: string, font: PdfFont = 'Sans'): Promise<void> {
+/** What an export produced, for the log. */
+export interface ExportReport {
+  name: string
+  bytes: number
+  /** Images that couldn't be fetched (the PDF shows their alt text). */
+  missingImages: string[]
+  /** Diagrams and display formulas that didn't render (shown as code / text). */
+  failedDiagrams: number
+  failedMath: number
+}
+
+export async function exportMarkdownToPdf(markdown: string, fileName: string, font: PdfFont = 'Sans'): Promise<ExportReport> {
   const doc = parse(markdown)
 
   const display = new Set<string>()
@@ -144,4 +155,11 @@ export async function exportMarkdownToPdf(markdown: string, fileName: string, fo
   pdfMake.setFonts({ [font]: FONTS[font], Mono: FONTS.Mono })
   const blob: Blob = await pdfMake.createPdf(def).getBlob()
   downloadBlob(name, blob)
+  return {
+    name,
+    bytes: blob.size,
+    missingImages: images.filter((e) => !e[1]).map((e) => e[0]),
+    failedDiagrams: mermaid.size - diagrams.size,
+    failedMath: display.size - math.size,
+  }
 }

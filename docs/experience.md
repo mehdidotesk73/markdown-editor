@@ -402,6 +402,13 @@ look wrong in a shot taken <0.25 s later. Wait out the transition before judging
 
 ## Version History
 
+### v0.15.0 — 2026-11-23
+- **Fixed:** Reconnect and Save could do nothing, with nothing in the log (user, on another computer after a weekend, every tab ⚠). Two silent paths: Reconnect ignored any answer but "granted", and a permission prompt the browser never answers left both buttons waiting forever. Now the request times out after 15 s and the log says what the browser answered and what to do
+- **Added:** **Choose file…** on the Reconnect banner — re-links the tab by picking the file again (the picker grants access without the permission prompt); unsaved edits are kept. Opening a file that's already in a waiting tab re-links that tab too
+- **Added:** The page log records every file operation and its outcome: restore (how many tabs need reconnecting), open, save, save as, reconnect, choose file, lost access, file gone, changed on disk, close with discarded edits, and PDF export (size, time, images / diagrams / formulas that didn't make it)
+- **Added:** Tests for the tab store's file paths (`useTabs.test.ts`, faked file system) and the permission timeout (`fileAccess.test.ts`) — there were none
+- **Lesson:** an operation that can wait on the browser needs a timeout, or its failure is invisible: no error is ever thrown to log
+
 ### v0.14.0 — 2026-11-21
 - **Changed:** New renderer written from scratch (`lib/md`) on the CommonMark algorithm: one tree for preview and PDF. Matches the standard as GitHub renders it — standard nesting, loose/tight lists, no lettered lists — plus Mermaid, math (Pandoc `$` rule, one-line `$$`), `{label}` bullets, numbered todos, GitHub alerts (`tests/conformance/RULES.md`)
 - **Added:** Conformance harness — the user's 328-case fixture + 606 GFM spec examples graded by structure against a calibrated reference (micromark); the gate runs in CI. Old renderer: 552/606, 242/328; new: 606/606, 328/328
