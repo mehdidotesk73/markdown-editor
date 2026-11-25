@@ -17,6 +17,7 @@ import {
 } from './fileAccess'
 import { logDebug } from '../debug'
 import { pruneViews } from './tabView'
+import { moveItem } from './tabOrder'
 // What a new document starts with: the guide to Markdown Lab and the focus shadow.
 import STARTER from '../../docs/focus-shadow-showcase.md?raw'
 
@@ -394,6 +395,14 @@ function close(t: Tab) {
   }
 }
 
+/** Move a tab to position `to` (0-based) — dragging in the tab bar. Kept across reloads like the rest. */
+function move(id: string, to: number) {
+  const from = state.tabs.findIndex((t) => t.id === id)
+  if (from < 0 || from === to) return
+  state.tabs = moveItem(state.tabs, from, to)
+  logDebug(`Moved ${state.tabs[Math.min(to, state.tabs.length - 1)].name} to position ${Math.min(to, state.tabs.length - 1) + 1} of ${state.tabs.length}`)
+}
+
 function activate(id: string) {
   state.activeId = id
   const t = state.tabs.find((x) => x.id === id)
@@ -413,6 +422,7 @@ export function useTabs() {
     save,
     close,
     activate,
+    move,
     reconnect,
     relink,
     refreshAll,

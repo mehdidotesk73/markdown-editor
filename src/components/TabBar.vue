@@ -2,6 +2,7 @@
 import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { isDirty, type Tab } from '../lib/useTabs'
 import { labelSink, Spring } from '../lib/liquidTabs'
+import { dropIndex, slideOf, DRAG_THRESHOLD } from '../lib/tabOrder'
 import { Plus, X } from '@lucide/vue'
 
 // Matte tab bar, in the same style as the buttons (UiButton): a flat bar with a
@@ -14,6 +15,7 @@ const emit = defineEmits<{
   (e: 'activate', id: string): void
   (e: 'close', tab: Tab): void
   (e: 'new'): void
+  (e: 'reorder', id: string, to: number): void
 }>()
 
 const BAR_H = 32
@@ -123,21 +125,138 @@ onBeforeUnmount(() => {
   cancelAnimationFrame(raf)
 })
 
+// ---- dragging to reorder (lib/tabOrder.ts) -----------------------------------
+//
+// Pointer events, for mouse and pen (touch keeps swiping the bar). A press only becomes a drag
+// after DRAG_THRESHOLD px, so a click still just picks the tab. The dragged tab
+// follows the pointer; the tabs it passes slide one slot to show the gap.
+
+interface Drag {
+  id: string
+  from: number
+  startX: number
+  startScroll: number
+  pointerId: number
+  moving: boolean
+}
+let drag: Drag | null = null
+const dragId = ref<string | null>(null)
+const dragOffset = ref(0)
+const dragTo = ref(0)
+let swallowClick = false
+
+function gapPx(): number {
+  return track.value ? parseFloat(getComputedStyle(track.value).columnGap) || 0 : 0
+}
+
+function onPointerDown(e: PointerEvent, t: Tab) {
+  // Mouse and pen only: on touch, a sideways swipe keeps scrolling the bar.
+  if (e.pointerType === 'touch' || e.button !== 0 || (e.target as HTMLElement).closest('.x')) return
+  drag = {
+    id: t.id,
+    from: props.tabs.findIndex((x) => x.id === t.id),
+    startX: e.clientX,
+    startScroll: scroller.value?.scrollLeft ?? 0,
+    pointerId: e.pointerId,
+    moving: false,
+  }
+}
+
+function onPointerMove(e: PointerEvent) {
+  if (!drag || e.pointerId !== drag.pointerId) return
+  const sc = scroller.value
+  if (!drag.moving) {
+    if (Math.abs(e.clientX - drag.startX) < DRAG_THRESHOLD) return
+    drag.moving = true
+    dragId.value = drag.id
+    dragTo.value = drag.from
+    tabEls.get(drag.id)?.setPointerCapture(e.pointerId)
+  }
+  // Near an edge of a bar that scrolls: scroll it along.
+  if (sc) {
+    const r = sc.getBoundingClientRect()
+    if (e.clientX < r.left + 28) sc.scrollLeft -= 12
+    else if (e.clientX > r.right - 28) sc.scrollLeft += 12
+  }
+  dragOffset.value = e.clientX - drag.startX + ((sc?.scrollLeft ?? 0) - drag.startScroll)
+  const centres = props.tabs.map((t) => geo.value[t.id]?.c ?? 0)
+  const g = geo.value[drag.id] ?? { c: 0, w: 0 }
+  const centre = g.c + dragOffset.value
+  dragTo.value = dropIndex(centres, drag.from, centre - g.w / 2, centre + g.w / 2)
+}
+
+function endDrag(e: PointerEvent, cancelled = false) {
+  if (!drag || e.pointerId !== drag.pointerId) return
+  const d = drag
+  drag = null
+  if (!d.moving) return
+  swallowClick = true // the click that follows this release isn't a pick
+  // Start the well from where the active tab is now, so it settles smoothly.
+  if (props.activeId) {
+    x.set(liveCentre(props.activeId))
+    pos.value = x.value
+  }
+  const to = dragTo.value
+  dragId.value = null
+  dragOffset.value = 0
+  if (!cancelled && to !== d.from) emit('reorder', d.id, to)
+  // Glide the well home — also when the order didn't change (nothing else would move it).
+  void relayout()
+}
+
+function onTabClick(t: Tab) {
+  if (swallowClick) {
+    swallowClick = false
+    return
+  }
+  emit('activate', t.id)
+}
+
+/** How far a tab is drawn from its place right now: following the pointer, or sliding aside. */
+function shiftOf(id: string): number {
+  if (!dragId.value) return 0
+  if (id === dragId.value) return dragOffset.value
+  const from = props.tabs.findIndex((t) => t.id === dragId.value)
+  const k = props.tabs.findIndex((t) => t.id === id)
+  const slot = (geo.value[dragId.value]?.w ?? 0) + gapPx()
+  return slideOf(k, from, dragTo.value) * slot
+}
+function liveCentre(id: string): number {
+  return (geo.value[id]?.c ?? 0) + shiftOf(id)
+}
+
+/** Ctrl/⌘+Shift+← / → moves the focused tab one place. */
+async function moveByKey(e: KeyboardEvent, t: Tab): Promise<boolean> {
+  if (!(e.ctrlKey || e.metaKey) || !e.shiftKey || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight')) return false
+  e.preventDefault()
+  const from = props.tabs.findIndex((x) => x.id === t.id)
+  const to = from + (e.key === 'ArrowLeft' ? -1 : 1)
+  if (to < 0 || to >= props.tabs.length) return true
+  emit('reorder', t.id, to)
+  await nextTick()
+  tabEls.get(t.id)?.focus() // moving the element can drop its focus
+  return true
+}
+
 // ---- what the template draws -------------------------------------------------
 
 /** How much the well is under a tab right now: 0 = clear of it, 1 = centred on it. */
 function lit(id: string): number {
   const g = geo.value[id]
-  return g ? labelSink(g.c, g.w, pos.value, ww.value) : 0
+  if (!g) return 0
+  const wellAt = dragId.value && props.activeId ? liveCentre(props.activeId) : pos.value
+  return labelSink(liveCentre(id), g.w, wellAt, ww.value)
 }
 function tabStyle(id: string) {
-  return { '--lit': lit(id).toFixed(3) }
+  const shift = shiftOf(id)
+  return { '--lit': lit(id).toFixed(3), ...(shift ? { transform: `translateX(${shift.toFixed(1)}px)` } : {}) }
 }
 
-const wellStyle = computed(() => ({
-  width: `${ww.value}px`,
-  transform: `translateX(${(pos.value - ww.value / 2).toFixed(2)}px)`,
-}))
+const wellStyle = computed(() => {
+  // While dragging, the well rides with the active tab (dragged or sliding aside).
+  const c = dragId.value && props.activeId ? liveCentre(props.activeId) : pos.value
+  return { width: `${ww.value}px`, transform: `translateX(${(c - ww.value / 2).toFixed(2)}px)` }
+})
 
 function title(t: Tab): string {
   const where =
@@ -149,7 +268,8 @@ function title(t: Tab): string {
   return `${t.name}\n${where}${isDirty(t) ? '\nUnsaved changes' : ''}`
 }
 
-function onKey(e: KeyboardEvent, t: Tab) {
+async function onKey(e: KeyboardEvent, t: Tab) {
+  if (await moveByKey(e, t)) return
   if (e.key === 'Enter' || e.key === ' ') {
     e.preventDefault()
     emit('activate', t.id)
@@ -172,10 +292,15 @@ function onKey(e: KeyboardEvent, t: Tab) {
           role="tab"
           tabindex="0"
           :aria-selected="t.id === activeId"
-          :class="{ dirty: isDirty(t), unlinked: t.access === 'unlinked', current: t.id === activeId }"
+          :class="{ dirty: isDirty(t), unlinked: t.access === 'unlinked', current: t.id === activeId, dragged: t.id === dragId, sliding: !!dragId && t.id !== dragId }"
           :style="tabStyle(t.id)"
           :title="title(t)"
-          @click="$emit('activate', t.id)"
+          @click="onTabClick(t)"
+          @pointerdown="onPointerDown($event, t)"
+          @pointermove="onPointerMove"
+          @pointerup="endDrag($event)"
+          @pointercancel="endDrag($event, true)"
+          @lostpointercapture="endDrag($event)"
           @keydown="onKey($event, t)"
           @auxclick.middle.prevent="$emit('close', t)"
         >
@@ -257,6 +382,23 @@ function onKey(e: KeyboardEvent, t: Tab) {
 }
 .tab:not(.current):hover {
   color: var(--text);
+}
+/* Dragging: the picked-up tab rides above the others, which slide aside. */
+.tab.dragged {
+  z-index: 2;
+  cursor: grabbing;
+  background: var(--btn-bg-hover);
+  box-shadow:
+    0 0 0 1px var(--btn-border-hover),
+    0 3px 10px rgba(var(--shadow-rgb), 0.25);
+}
+.tab.sliding {
+  transition: transform 0.15s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tab.sliding {
+    transition: none;
+  }
 }
 .tab:focus-visible {
   text-decoration: underline;
