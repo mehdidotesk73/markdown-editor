@@ -146,12 +146,10 @@ export async function permissionOf(
   handle: FileSystemFileHandle,
   ask = false,
   waitMs = PERMISSION_WAIT_MS,
-  /** Reading needs only 'read' — what Open and Choose file grant; writing asks for 'readwrite'. */
-  want: PermissionMode['mode'] = 'readwrite',
 ): Promise<Access> {
   const h = handle as FsaHandle
   if (typeof h.queryPermission !== 'function') return 'granted'
-  const mode: PermissionMode = { mode: want }
+  const mode: PermissionMode = { mode: 'readwrite' }
   const state = await step(h.queryPermission(mode), 'Checking access to', handle.name)
   if (state === 'granted' || !ask) return state
   let timer: ReturnType<typeof setTimeout> | undefined

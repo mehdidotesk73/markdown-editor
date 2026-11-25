@@ -50,8 +50,6 @@ const state = reactive({
   tabs: [] as Tab[],
   activeId: null as string | null,
   ready: false,
-  /** Why the last write of tabs + drafts to the browser's storage failed; null when it works. */
-  storageError: null as string | null,
 })
 
 const active = computed(() => state.tabs.find((t) => t.id === state.activeId) ?? null)
@@ -73,6 +71,9 @@ function schedulePersist() {
   persistTimer = setTimeout(persist, 300)
 }
 
+/** Why the last write of tabs + drafts to the browser's storage failed; null when it works. */
+let storageError: string | null = null
+
 async function persist() {
   const tabs: StoredTab[] = state.tabs.map((t) => ({
     id: t.id,
@@ -84,14 +85,14 @@ async function persist() {
   }))
   try {
     await set(STORE_KEY, { tabs, activeId: state.activeId })
-    if (state.storageError) logDebug('Drafts are being kept in the browser again')
-    state.storageError = null
+    if (storageError) logDebug('Drafts are being kept in the browser again')
+    storageError = null
   } catch (e) {
     const msg = (e as Error).message
-    // Shown as a banner, not just a log line: unsaved drafts aren't backed up while it lasts.
-    if (state.storageError !== msg)
+    // Logged once as an error (the red View logs badge), not on every keystroke.
+    if (storageError !== msg)
       logDebug(`Could not store tabs locally: ${msg} — the browser couldn't write this site's storage (often a full disk, or Edge/Chrome's site storage is damaged). Unsaved drafts aren't backed up until it works again.`, 'error')
-    state.storageError = msg
+    storageError = msg
   }
 }
 
@@ -129,9 +130,9 @@ async function refreshFromDisk(t: Tab, ask: boolean): Promise<boolean> {
   if (!t.handle) return false
   const was = t.access
   try {
-    // A background check only needs to read the file (Open and Choose file grant
-    // just that); Reconnect asks for read + write, so Save works right after it.
-    const perm = await permissionOf(t.handle, ask, undefined, ask ? 'readwrite' : 'read')
+    // Read + write, in the background too: Open asks for both up front, so this is
+    // what "working" means, and every tab's ⚠ shows its true state at once.
+    const perm = await permissionOf(t.handle, ask)
     if (perm !== 'granted') {
       t.access = 'needs-access'
       if (ask) logDebug(`Reconnect ${t.name}: ${accessProblem(t.name, perm)}`, 'warn')
@@ -170,19 +171,22 @@ async function refreshFromDisk(t: Tab, ask: boolean): Promise<boolean> {
 
 /**
  * Ask for write access straight after a file is picked — the pick is the click
- * the browser's prompt needs — so the user answers once, up front, and Save
- * and the background checks just work until something really disconnects.
- * If the browser declines (or won't prompt here), the file stays open and
- * Save asks again later.
+ * the browser's prompt needs — so the user answers once, up front, and every
+ * tab then simply works until something really disconnects. Declined: the
+ * file still opens, marked ⚠ so it's fixed before writing, not at Save.
  */
-async function askWriteAccess(handle: FileSystemFileHandle, what: string) {
+async function askWriteAccess(handle: FileSystemFileHandle, what: string): Promise<boolean> {
   try {
-    const a = await permissionOf(handle, true, undefined, 'readwrite')
-    if (a === 'granted') logDebug(`${what}: write access to ${handle.name} granted`)
-    else logDebug(`${what}: write access to ${handle.name} not granted yet (${a}) — Save will ask`, 'warn')
+    const a = await permissionOf(handle, true)
+    if (a === 'granted') {
+      logDebug(`${what}: write access to ${handle.name} granted`)
+      return true
+    }
+    logDebug(`${what}: write access to ${handle.name} not granted (${a}) — the tab shows ⚠; click Reconnect to allow editing`, 'warn')
   } catch (e) {
-    logDebug(`${what}: couldn't ask for write access to ${handle.name} (${errorText(e)}) — Save will ask`, 'warn')
+    logDebug(`${what}: couldn't ask for write access to ${handle.name} (${errorText(e)}) — the tab shows ⚠; click Reconnect to allow editing`, 'warn')
   }
+  return false
 }
 
 /** Reconnect a restored tab to its file (shows the browser's permission prompt). */
@@ -213,7 +217,7 @@ async function relink(t: Tab): Promise<boolean> {
       logDebug(`Choose file for ${t.name}: cancelled`)
       return false
     }
-    await askWriteAccess(f.handle, 'Choose file')
+    const writable = await askWriteAccess(f.handle, 'Choose file')
     const keepDraft = isDirty(t)
     const old = t.name
     t.handle = f.handle
@@ -221,7 +225,7 @@ async function relink(t: Tab): Promise<boolean> {
     t.saved = f.text
     t.lastModified = f.lastModified
     if (!keepDraft) t.content = f.text
-    t.access = 'linked'
+    t.access = writable ? 'linked' : 'needs-access'
     logDebug(`Linked ${old === f.name ? f.name : `${old} → ${f.name}`}${keepDraft ? ' (your unsaved edits are kept)' : ''}`)
     return true
   } catch (e) {
@@ -255,7 +259,7 @@ async function findOpenTab(f: PickedFile): Promise<Tab | null> {
   return candidates[answers.indexOf(true)] ?? null
 }
 
-async function addPicked(f: PickedFile) {
+async function addPicked(f: PickedFile, writable: boolean) {
   // Already open? Just switch to it.
   // Its fresh handle comes with the access the picker just granted, so a tab
   // waiting to be reconnected is linked again by opening its file.
@@ -271,7 +275,7 @@ async function addPicked(f: PickedFile) {
     t.saved = f.text
     t.lastModified = f.lastModified
     if (!keepDraft) t.content = f.text
-    t.access = 'linked'
+    t.access = writable ? 'linked' : 'needs-access'
     logDebug(`${f.name} was already open — switched to it${was !== 'linked' ? ' and reconnected it' : ''}${keepDraft ? ' (your unsaved edits are kept)' : ''}`)
     return
   }
@@ -282,7 +286,7 @@ async function addPicked(f: PickedFile) {
     content: f.text,
     saved: f.text,
     lastModified: f.lastModified,
-    access: f.handle ? 'linked' : 'unlinked',
+    access: !f.handle ? 'unlinked' : writable ? 'linked' : 'needs-access',
   }
   state.tabs.push(tab)
   state.activeId = tab.id
@@ -298,8 +302,7 @@ async function openFiles() {
     return
   }
   if (!files.length) return logDebug('Open: cancelled')
-  for (const f of files) if (f.handle) await askWriteAccess(f.handle, 'Open')
-  for (const f of files) await addPicked(f)
+  for (const f of files) await addPicked(f, f.handle ? await askWriteAccess(f.handle, 'Open') : false)
   logDebug(`Opened ${files.map((f) => f.name).join(', ')}${files[0].handle ? '' : ' (read-only copy: this browser saves by downloading)'}`)
 }
 
