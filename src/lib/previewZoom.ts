@@ -5,19 +5,19 @@ import { ref, watch } from 'vue'
 // per-viewer preference, so localStorage is fine.
 
 const KEY = 'md-editor:preview-zoom'
-export const ZOOM_STEPS = [50, 67, 75, 80, 90, 100, 110, 125, 150, 175, 200] as const
+export const ZOOM = { min: 50, max: 200, step: 5 } as const
 export const DEFAULT_ZOOM = 100
 
-/** The next step up (dir 1) or down (dir -1) from any zoom, clamped to the ends. */
-export function stepZoom(current: number, dir: 1 | -1): number {
-  if (dir > 0) return ZOOM_STEPS.find((z) => z > current) ?? ZOOM_STEPS[ZOOM_STEPS.length - 1]
-  return [...ZOOM_STEPS].reverse().find((z) => z < current) ?? ZOOM_STEPS[0]
+/** Any value → a valid zoom: on a step, within range (stored values may be stale). */
+export function clampZoom(v: number): number {
+  if (!Number.isFinite(v)) return DEFAULT_ZOOM
+  return Math.min(ZOOM.max, Math.max(ZOOM.min, Math.round(v / ZOOM.step) * ZOOM.step))
 }
 
 function load(): number {
   try {
-    const v = Number(localStorage.getItem(KEY))
-    if ((ZOOM_STEPS as readonly number[]).includes(v)) return v
+    const v = localStorage.getItem(KEY)
+    if (v) return clampZoom(Number(v))
   } catch {
     /* storage blocked */
   }

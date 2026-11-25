@@ -28,9 +28,11 @@ UI structure:
   the textarea with word spans; Ranges over the preview's text, skipping nested blocks and KaTeX MathML).
   Wordless blocks (diagram, formula, image) spread their lines over their height; top/bottom pin together.
   The preview's lines run the **full width of the pane** (no max-width cap — the user wants text to wrap to
-  whatever room there is). A **zoom** control in the Preview header (− / 50–200% dropdown / +,
-  `lib/previewZoom.ts`, localStorage `md-editor:preview-zoom`) scales `.md-body`'s font size; everything in it
-  is in em, so headings, code and math follow. On narrow screens only the dropdown shows.
+  whatever room there is). A **zoom slider** in the Preview header (50–200% in 5s, value shown beside it, double-click
+  the value → 100%; `lib/previewZoom.ts`, localStorage `md-editor:preview-zoom`) scales `.md-body`'s font size;
+  everything in it is in em, so headings, code and math follow. The user chose a low-profile slider (like
+  ReUI's) over − / dropdown / +. **Sliders go through `components/ui/UiSlider.vue`** (hairline track, filled
+  part, small round thumb, value beside it, tokens only).
   Each tab remembers its cursor/selection and both panes' scroll (`lib/tabView.ts`, localStorage
   `md-editor:views`, pruned on close), so switching tabs or reloading returns to where you were.
 - **Empty state** — Open a file / New file, shown when no tabs are open.
@@ -286,6 +288,7 @@ src/
                            scale, decay, lag, counter
     HelpModal.vue          renders docs/concepts/*.md into the Help modal
     ui/UiButton.vue        the app's button (sizes, tones, Lucide icons left/right)
+    ui/UiSlider.vue        the app's slider: low profile, value shown beside it
   styles/
     vars.css               base tokens (:root) + one [data-theme] block per look
     markdown.css           rendered-markdown styles (.md-body) for preview + Help
