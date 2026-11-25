@@ -402,6 +402,9 @@ look wrong in a shot taken <0.25 s later. Wait out the transition before judging
 
 ## Version History
 
+### v0.17.0 — 2026-11-25
+- **Added:** Reorder tabs by dragging (mouse / pen): the tab follows the pointer on a raised matte fill, the tabs it passes slide one slot aside, and the order is kept across reloads. Ctrl/⌘+Shift+← / → moves the focused tab. A press only becomes a drag after 5px, so a click still picks the tab; touch is left alone so a swipe still scrolls a long tab bar
+
 ### v0.16.2 — 2026-11-25
 - **Found:** On the user's Edge the log showed "Could not store tabs locally: Failed to write blobs" — Edge couldn't write this site's IndexedDB (Chromium's error when the disk is nearly full or the site's storage is damaged). Same machine: permission checks never finished. The app didn't change; the browser's storage on that computer did
 - **Changed:** "Could not store tabs locally" is logged once, as an error (red badge), instead of a warning on every keystroke. A banner for it was tried and dropped — the user judged it unnecessary

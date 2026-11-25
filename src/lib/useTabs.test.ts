@@ -327,3 +327,19 @@ describe('asking for write access when a file is picked', () => {
     expect(s.log()).toContain('[log] Choose file: write access to a.md granted')
   })
 })
+
+describe('reordering tabs', () => {
+  it('moves a tab, keeps the active one, and logs it', async () => {
+    const s = await load([
+      { name: 'a.md', content: 'A', saved: 'A' },
+      { name: 'b.md', content: 'B', saved: 'B' },
+      { name: 'x.md', content: 'X', saved: 'X' },
+    ])
+    s.move('t0', 2)
+    expect(s.state.tabs.map((t) => t.name)).toEqual(['b.md', 'x.md', 'a.md'])
+    expect(s.state.activeId).toBe('t0')
+    expect(s.log()).toContain('[log] Moved a.md to position 3 of 3')
+    s.move('t0', 2) // already there: nothing happens
+    expect(s.log().filter((l) => l.startsWith('[log] Moved'))).toHaveLength(1)
+  })
+})

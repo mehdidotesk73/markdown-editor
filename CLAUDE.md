@@ -15,7 +15,9 @@ UI structure:
 - **Top bar** — title, file actions (Open, Save, Save as…, Export PDF), theme toggle
   (Dark / Light + a look menu), Help.
 - **Tab bar** — one tab per open file; amber name = unsaved, ⚠ = needs reconnecting, italic =
-  not linked to a file yet; ＋ makes a new document.
+  not linked to a file yet; ＋ makes a new document. **Drag a tab to reorder** (mouse / pen; past 5px, so a
+  click still picks it — touch keeps swiping the bar), or Ctrl/⌘+Shift+← / → on a focused tab; the order is kept
+  across reloads (`move()` in `useTabs.ts`, `lib/tabOrder.ts` tested).
 - **Workspace** (`Workspace.vue`) — markdown source (left) and rendered preview (right),
   with a draggable divider. Either pane collapses to a thin rail: editor collapsed = read
   focus, preview collapsed = edit focus. Always side by side (left/right), even on a phone.
@@ -293,6 +295,7 @@ src/
     themes.ts              the looks (id, label, dark/light, colours for the menu)
     useTheme.ts            current look + chosen dark/light look → data-theme on <html>
     liquidTabs.ts          tab bar motion: how lit each tab is, the spring (pure; tested)
+    tabOrder.ts            drag-to-reorder: where a dragged tab lands, which tabs slide (pure; tested)
     focus/                 focus engine: segment, wave (attention + 60% focus), focal (lag
                            trail of the cursor's path), align (pure; tested) + useFocusShadow (underline), settings
     useVersionCheck.ts     compares the running build with the live one

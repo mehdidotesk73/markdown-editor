@@ -364,6 +364,7 @@ const helpDoc = ref('overview')
       @activate="tabs.activate"
       @close="tabs.close"
       @new="tabs.newDocument()"
+      @reorder="tabs.move"
     />
 
     <Workspace v-if="active" ref="workspace" :tab="active" @reconnect="tabs.reconnect(active)" @relink="tabs.relink(active)" />
