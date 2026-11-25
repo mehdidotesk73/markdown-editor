@@ -54,7 +54,8 @@ How files work (see `src/lib/fileAccess.ts`, `src/lib/useTabs.ts`):
   15 s (`permissionOf`), and **every other step on a file** (checking access, opening, reading, writing) goes
   through `step()` in `fileAccess.ts`, which rejects with a `StalledError` naming the step after 15 s — on the
   user's Edge, access was granted but reading never finished (likely an online-only OneDrive file), and
-  Reconnect hung with nothing logged. So Reconnect / Save / restore can't hang silently; **Choose file…** on the banner re-links
+  Reconnect hung with nothing logged. So Reconnect / Save / restore can't hang silently, and Open never waits on stuck tabs (it asks every tab
+  whether it holds the picked file at once, with one 2 s limit — `findOpenTab`); **Choose file…** on the banner re-links
   the tab through the file picker (no permission prompt needed), keeping the draft. **Every file
   operation logs its step and outcome** to the page log (open, save, save as, reconnect, choose file,
   lost access, file gone, PDF export) — keep it that way for new ones. Linked files are re-read on window focus, so edits made in

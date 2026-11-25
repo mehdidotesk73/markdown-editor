@@ -209,20 +209,32 @@ async function refreshAll() {
 
 // ---- tab actions -----------------------------------------------------------
 
+/** How long Open waits, in all, for open tabs to say whether they hold the picked file. */
+const COMPARE_MS = 2000
+
+/** The open tab holding the same file as `f`, if any — tabs that don't answer in time don't count. */
+async function findOpenTab(f: PickedFile): Promise<Tab | null> {
+  if (!f.handle) return null
+  const candidates = state.tabs.filter((t) => t.handle)
+  const answers = await Promise.all(
+    candidates.map((t) =>
+      step(t.handle!.isSameEntry(f.handle!), 'Comparing with the open tab', t.name, COMPARE_MS).catch((e: Error) => {
+        if (e.name === 'StalledError') logDebug(`Open ${f.name}: the tab ${t.name} didn't answer, so it's treated as a different file`, 'warn')
+        return false // a stale handle can't be compared either
+      }),
+    ),
+  )
+  return candidates[answers.indexOf(true)] ?? null
+}
+
 async function addPicked(f: PickedFile) {
   // Already open? Just switch to it.
   // Its fresh handle comes with the access the picker just granted, so a tab
   // waiting to be reconnected is linked again by opening its file.
-  for (const t of state.tabs) {
-    if (!f.handle || !t.handle) continue
-    let same = false
-    try {
-      same = await step(t.handle.isSameEntry(f.handle), 'Comparing with the open tab', t.name, 5000)
-    } catch (e) {
-      // A stale handle can't be compared: treat it as a different file.
-      if ((e as Error).name === 'StalledError') logDebug(`Open ${f.name}: ${(e as Error).message}`, 'warn')
-    }
-    if (!same) continue
+  // Every tab is asked at once, with one short limit: a stuck tab (its handle
+  // never answers) counts as a different file, so it can't hold up Open.
+  const t = await findOpenTab(f)
+  if (t) {
     state.activeId = t.id
     const keepDraft = isDirty(t)
     const was = t.access

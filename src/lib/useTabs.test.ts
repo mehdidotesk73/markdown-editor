@@ -184,6 +184,22 @@ describe('Open', () => {
     expect(s.log()).toContain('[log] b.md was already open — switched to it and reconnected it')
   })
 
+  it("isn't held up by stuck tabs: they're asked at once, and one that never answers counts as a different file", async () => {
+    const s = await load([
+      { name: 'a.md', content: 'A', saved: 'A' },
+      { name: 'b.md', content: 'B', saved: 'B' },
+      { name: 'x.md', content: 'X', saved: 'X' },
+    ])
+    for (const t of s.state.tabs) (t.handle as unknown as { isSameEntry: () => Promise<boolean> }).isSameEntry = () => new Promise(() => {})
+    fs.pick = [{ name: 'c.md', text: 'C', lastModified: 1, handle: fileHandle('c.md') }]
+    const started = Date.now()
+    await s.openFiles()
+    expect(Date.now() - started).toBeLessThan(3000) // one shared limit, not one per tab
+    expect(s.state.tabs.map((t) => t.name)).toEqual(['a.md', 'b.md', 'x.md', 'c.md'])
+    expect(s.log()).toContain('[log] Opened c.md')
+    expect(s.log()).toContain("[warn] Open c.md: the tab a.md didn't answer, so it's treated as a different file")
+  })
+
   it('opens new files and logs them; logs a cancel', async () => {
     const s = await load([])
     await s.openFiles()
