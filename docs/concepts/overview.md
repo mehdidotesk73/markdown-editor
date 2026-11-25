@@ -61,7 +61,7 @@ A: For your security the browser forgets permission to a file when the page relo
 
 **Q: I clicked Reconnect (or Save) and nothing happened.**
 
-A: The browser didn't show its permission prompt, or refused. After a few seconds **View logs** says which. Click **Choose file…** on the same banner and pick the file again: that links the tab without the prompt, and your unsaved text is kept. Opening the same file with **Open** does the same. If it's somewhere else now, **Save as…** saves your text to a new file.
+A: The browser didn't show its permission prompt, or refused. After a few seconds **View logs** says which. Click **Choose file…** on the same banner and pick the file again: that links the tab without the prompt, and your unsaved text is kept. Opening the same file with **Open** does the same. If it's somewhere else now, **Save as…** saves your text to a new file. If the log says a file **didn't finish opening**, it's usually in a OneDrive (or other cloud) folder and not downloaded to this computer, or another app has it locked: open the folder in File Explorer, right-click the file and choose **Always keep on this device**, then click **Reconnect** again.
 
 **Q: I edited the file in another app. Will the editor see it?**
 

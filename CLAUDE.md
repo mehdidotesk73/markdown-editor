@@ -51,7 +51,13 @@ How files work (see `src/lib/fileAccess.ts`, `src/lib/useTabs.ts`):
   writes straight back to that file. Handles + drafts persist in IndexedDB (`idb-keyval`), so
   tabs survive reloads. After a reload the browser usually needs one click (**Reconnect**
   banner) to grant access again. A permission request the browser never answers resolves as `'no-answer'` after
-  15 s (`permissionOf`), so Reconnect / Save can't hang silently; **Choose file…** on the banner re-links
+  30 s (`permissionOf` — that wait is the user reading the prompt), and **every other step on a file** (checking
+  access, opening, reading, writing) goes through `step()` in `fileAccess.ts`, which rejects with a `StalledError`
+  naming the step after 5 s (nothing goes online and local reads take milliseconds; 5 s covers OneDrive fetching an
+  online-only file, antivirus, a waking drive — the user found 15 s too long) — on the
+  user's Edge, access was granted but reading never finished (likely an online-only OneDrive file), and
+  Reconnect hung with nothing logged. So Reconnect / Save / restore can't hang silently, and Open never waits on stuck tabs (it asks every tab
+  whether it holds the picked file at once, with one 2 s limit — `findOpenTab`); **Choose file…** on the banner re-links
   the tab through the file picker (no permission prompt needed), keeping the draft. **Every file
   operation logs its step and outcome** to the page log (open, save, save as, reconnect, choose file,
   lost access, file gone, PDF export) — keep it that way for new ones. Linked files are re-read on window focus, so edits made in

@@ -40,16 +40,55 @@ export function isAbort(e: unknown): boolean {
   return e instanceof DOMException && e.name === 'AbortError'
 }
 
-async function readHandle(handle: FileSystemFileHandle): Promise<PickedFile> {
-  const file = await handle.getFile()
-  return { name: file.name, text: await file.text(), lastModified: file.lastModified, handle }
+/**
+ * How long one step on a file (checking access, opening, reading, writing) may
+ * take. Nothing here goes online, and a local read takes milliseconds; 5 s
+ * still leaves room for OneDrive fetching an online-only file, antivirus
+ * scanning it, or a sleeping network / USB drive waking up.
+ */
+export const STEP_WAIT_MS = 5_000
+
+/** A step on a file that never finished — the browser or the disk stopped answering. */
+export class StalledError extends Error {
+  constructor(public step: string, name: string, ms = STEP_WAIT_MS) {
+    super(`${step} ${name} didn't finish within ${ms / 1000} s. ${stallHint(step)}`)
+    this.name = 'StalledError'
+  }
 }
 
-/** Let the user pick one or more files. Resolves [] if they cancel. */
-export async function pickFiles(): Promise<PickedFile[]> {
+function stallHint(step: string): string {
+  if (/read|open/i.test(step))
+    return 'The file may be online-only (OneDrive / cloud folder not downloaded), on a disconnected drive, or locked by another app. Open the folder in File Explorer, make sure the file is available on this device, then try again.'
+  if (/writ|sav/i.test(step)) return 'The file may be locked by another app, read-only, or in a cloud folder that is syncing.'
+  return 'The browser stopped answering. Reloading the page usually clears it.'
+}
+
+/**
+ * Wait for one step on a file, but never forever: a step that doesn't settle
+ * within `ms` rejects with a StalledError naming the step and the file.
+ */
+export async function step<T>(work: Promise<T>, what: string, name: string, ms = STEP_WAIT_MS): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const stalled = new Promise<never>((_, reject) => (timer = setTimeout(() => reject(new StalledError(what, name, ms)), ms)))
+  try {
+    return await Promise.race([work, stalled])
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+async function readHandle(handle: FileSystemFileHandle): Promise<PickedFile> {
+  const file = await step(handle.getFile(), 'Opening', handle.name)
+  const text = await step(file.text(), 'Reading', handle.name)
+  return { name: file.name, text, lastModified: file.lastModified, handle }
+}
+
+/** Let the user pick one or more files. Resolves [] if they cancel. `onPicked` hears the names before they're read. */
+export async function pickFiles(onPicked?: (names: string[]) => void): Promise<PickedFile[]> {
   if (supportsFileSystemAccess) {
     try {
       const handles = await fsa.showOpenFilePicker!({ multiple: true, types: MD_TYPES, id: 'md-open' })
+      onPicked?.(handles.map((h) => h.name))
       return Promise.all(handles.map(readHandle))
     } catch (e) {
       if (isAbort(e)) return []
@@ -92,8 +131,8 @@ export async function pickSaveTarget(suggestedName: string): Promise<FileSystemF
 /** What the browser said when asked for access, or that it never answered. */
 export type Access = PermissionState | 'no-answer'
 
-/** How long to wait for the browser's permission prompt before saying so in the log. */
-export const PERMISSION_WAIT_MS = 15_000
+/** How long to wait on the browser's permission prompt — that's the user reading it, so longer than a disk step. */
+export const PERMISSION_WAIT_MS = 30_000
 
 /**
  * Current permission for a stored handle. A handle restored after a reload
@@ -107,7 +146,7 @@ export async function permissionOf(handle: FileSystemFileHandle, ask = false, wa
   const h = handle as FsaHandle
   if (typeof h.queryPermission !== 'function') return 'granted'
   const mode: PermissionMode = { mode: 'readwrite' }
-  const state = await h.queryPermission(mode)
+  const state = await step(h.queryPermission(mode), 'Checking access to', handle.name)
   if (state === 'granted' || !ask) return state
   let timer: ReturnType<typeof setTimeout> | undefined
   const noAnswer = new Promise<Access>((resolve) => (timer = setTimeout(() => resolve('no-answer'), waitMs)))
@@ -171,10 +210,10 @@ export class NoAccessError extends Error {
 export async function writeFile(handle: FileSystemFileHandle, text: string): Promise<number> {
   const access = await permissionOf(handle, true)
   if (access !== 'granted') throw new NoAccessError(access, handle.name)
-  const w = await handle.createWritable()
-  await w.write(text)
-  await w.close()
-  return (await handle.getFile()).lastModified
+  const w = await step(handle.createWritable(), 'Opening for writing', handle.name)
+  await step(w.write(text), 'Writing', handle.name)
+  await step(w.close(), 'Finishing the write to', handle.name)
+  return (await step(handle.getFile(), 'Opening', handle.name)).lastModified
 }
 
 /** The fallback "save": download the text as a file. */

@@ -13,6 +13,7 @@ const fs = vi.hoisted(() => ({
   pick: [] as unknown[],
   saveTarget: null as unknown,
   replacement: null as unknown,
+  readStalls: false,
 }))
 
 vi.mock('idb-keyval', () => ({
@@ -28,6 +29,7 @@ vi.mock('./fileAccess', async (importOriginal) => {
     supportsFileSystemAccess: true,
     permissionOf: vi.fn(async (_h: FileSystemFileHandle, ask = false): Promise<Access> => (ask ? (fs.request as Access) : (fs.permission as Access))),
     readFile: vi.fn(async (h: FileSystemFileHandle): Promise<PickedFile> => {
+      if (fs.readStalls) throw new real.StalledError('Opening', h.name)
       const f = fs.disk.get(h.name)
       if (!f) throw notFound(h.name)
       return { name: h.name, text: f.text, lastModified: f.lastModified, handle: h }
@@ -38,7 +40,11 @@ vi.mock('./fileAccess', async (importOriginal) => {
       fs.disk.set(h.name, { text, lastModified: 99 })
       return 99
     }),
-    pickFiles: vi.fn(async () => fs.pick),
+    pickFiles: vi.fn(async (onPicked?: (names: string[]) => void) => {
+      const picked = fs.pick as PickedFile[]
+      if (picked.length) onPicked?.(picked.map((f) => f.name))
+      return picked
+    }),
     pickSaveTarget: vi.fn(async () => fs.saveTarget),
     pickReplacement: vi.fn(async () => fs.replacement),
     downloadText: vi.fn(),
@@ -72,6 +78,7 @@ beforeEach(() => {
   fs.pick = []
   fs.saveTarget = null
   fs.replacement = null
+  fs.readStalls = false
 })
 
 describe('restoring tabs after a reload', () => {
@@ -117,8 +124,26 @@ describe('Reconnect', () => {
     const s = await load([{ name: 'a.md', content: 'A', saved: 'A' }])
     await s.reconnect(s.tab(0))
     expect(s.tab(0).access).toBe('needs-access')
-    expect(s.log()).toContain('[log] Reconnect a.md: asking the browser for access…')
+    expect(s.log()).toContain('[log] Reconnect a.md: checking access…')
     expect(s.log().some((l) => l.startsWith('[warn] Reconnect a.md:') && why.test(l))).toBe(true)
+  })
+
+  it('names the step when reading the file stalls (e.g. an online-only OneDrive file)', async () => {
+    const s = await load([{ name: 'a.md', content: 'A', saved: 'A' }])
+    fs.readStalls = true
+    await s.reconnect(s.tab(0))
+    expect(s.tab(0).access).toBe('needs-access')
+    expect(s.log()).toContain('[log] Reconnect a.md: access granted — reading the file…')
+    expect(s.log().some((l) => l.startsWith("[error] Reconnect a.md: Opening a.md didn't finish within 5 s.") && l.includes('OneDrive'))).toBe(true)
+  })
+
+  it('still finishes restoring, and says so, when a file stalls on load', async () => {
+    fs.permission = 'granted'
+    fs.readStalls = true
+    const s = await load([{ name: 'a.md', content: 'A', saved: 'A' }])
+    expect(s.tab(0).access).toBe('needs-access')
+    expect(s.log().some((l) => l.startsWith("[warn] Restore a.md: Opening a.md didn't finish"))).toBe(true)
+    expect(s.log().some((l) => l.startsWith('[log] Restored 1 tab(s): 0 linked, 1 need reconnecting'))).toBe(true)
   })
 
   it('drops the link, keeping the text, when the file is gone', async () => {
@@ -159,6 +184,22 @@ describe('Open', () => {
     expect(s.log()).toContain('[log] b.md was already open — switched to it and reconnected it')
   })
 
+  it("isn't held up by stuck tabs: they're asked at once, and one that never answers counts as a different file", async () => {
+    const s = await load([
+      { name: 'a.md', content: 'A', saved: 'A' },
+      { name: 'b.md', content: 'B', saved: 'B' },
+      { name: 'x.md', content: 'X', saved: 'X' },
+    ])
+    for (const t of s.state.tabs) (t.handle as unknown as { isSameEntry: () => Promise<boolean> }).isSameEntry = () => new Promise(() => {})
+    fs.pick = [{ name: 'c.md', text: 'C', lastModified: 1, handle: fileHandle('c.md') }]
+    const started = Date.now()
+    await s.openFiles()
+    expect(Date.now() - started).toBeLessThan(3000) // one shared limit, not one per tab
+    expect(s.state.tabs.map((t) => t.name)).toEqual(['a.md', 'b.md', 'x.md', 'c.md'])
+    expect(s.log()).toContain('[log] Opened c.md')
+    expect(s.log()).toContain("[warn] Open c.md: the tab a.md didn't answer, so it's treated as a different file")
+  })
+
   it('opens new files and logs them; logs a cancel', async () => {
     const s = await load([])
     await s.openFiles()
@@ -166,6 +207,7 @@ describe('Open', () => {
     fs.pick = [{ name: 'c.md', text: 'C', lastModified: 1, handle: fileHandle('c.md') }]
     await s.openFiles()
     expect(s.state.tabs.map((t) => t.name)).toEqual(['c.md'])
+    expect(s.log()).toContain('[log] Open: picked c.md — reading…')
     expect(s.log()).toContain('[log] Opened c.md')
   })
 })
