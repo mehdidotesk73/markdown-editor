@@ -9,13 +9,19 @@ describe('reordering tabs by dragging', () => {
     expect(moveItem(['a', 'b'], 0, 9)).toEqual(['b', 'a'])
   })
 
-  it('lands past every tab whose centre the dragged one has crossed', () => {
-    const centres = [50, 150, 250, 350] // four 100px tabs
-    expect(dropIndex(centres, 0, 60)).toBe(0) // barely moved
-    expect(dropIndex(centres, 0, 160)).toBe(1) // crossed b's centre
-    expect(dropIndex(centres, 0, 400)).toBe(3) // past the end
-    expect(dropIndex(centres, 3, 140)).toBe(1) // dragged left over b's centre
-    expect(dropIndex(centres, 3, 10)).toBe(0)
+  it("swaps once the gap behind the dragged tab is wider than what's left showing of the next one", () => {
+    // Tabs: X 200px wide at 0–200, Y 100px at 200–300, Z 100px at 300–400 (centres 100, 250, 350).
+    const centres = [100, 250, 350]
+    const at = (d: number) => dropIndex(centres, 0, 0 + d, 200 + d) // X dragged right by d
+    expect(at(49)).toBe(0) // gap 49 < Y showing 51
+    expect(at(51)).toBe(1) // gap 51 > Y showing 49: swap — X's width doesn't matter
+    expect(at(149)).toBe(1)
+    expect(at(151)).toBe(2) // and past Z's middle
+    // Z dragged left: its left edge passes Y's middle (250), then X's (100).
+    const zAt = (d: number) => dropIndex(centres, 2, 300 - d, 400 - d)
+    expect(zAt(49)).toBe(2)
+    expect(zAt(51)).toBe(1)
+    expect(zAt(201)).toBe(0)
   })
 
   it('slides the passed tabs one slot to show the gap', () => {

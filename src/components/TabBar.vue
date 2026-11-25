@@ -180,7 +180,9 @@ function onPointerMove(e: PointerEvent) {
   }
   dragOffset.value = e.clientX - drag.startX + ((sc?.scrollLeft ?? 0) - drag.startScroll)
   const centres = props.tabs.map((t) => geo.value[t.id]?.c ?? 0)
-  dragTo.value = dropIndex(centres, drag.from, (geo.value[drag.id]?.c ?? 0) + dragOffset.value)
+  const g = geo.value[drag.id] ?? { c: 0, w: 0 }
+  const centre = g.c + dragOffset.value
+  dragTo.value = dropIndex(centres, drag.from, centre - g.w / 2, centre + g.w / 2)
 }
 
 function endDrag(e: PointerEvent, cancelled = false) {

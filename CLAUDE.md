@@ -16,7 +16,9 @@ UI structure:
   (Dark / Light + a look menu), Help.
 - **Tab bar** — one tab per open file; amber name = unsaved, ⚠ = needs reconnecting, italic =
   not linked to a file yet; ＋ makes a new document. **Drag a tab to reorder** (mouse / pen; past 5px, so a
-  click still picks it — touch keeps swiping the bar), or Ctrl/⌘+Shift+← / → on a focused tab; the order is kept
+  click still picks it — touch keeps swiping the bar), swaps with a neighbour once the gap left behind is wider than what's still showing of the tab it covers —
+  its front edge past that tab's middle (the user's rule; centre-past-centre felt late for wide tabs) —
+  or Ctrl/⌘+Shift+← / → on a focused tab; the order is kept
   across reloads (`move()` in `useTabs.ts`, `lib/tabOrder.ts` tested).
 - **Workspace** (`Workspace.vue`) — markdown source (left) and rendered preview (right),
   with a draggable divider. Either pane collapses to a thin rail: editor collapsed = read

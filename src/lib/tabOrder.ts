@@ -12,14 +12,18 @@ export function moveItem<T>(items: readonly T[], from: number, to: number): T[] 
 }
 
 /**
- * Where the tab dragged from `from` lands, given the other tabs' centres
- * (in order) and the dragged tab's own centre now: past every tab whose
- * centre it has crossed.
+ * Where the tab dragged from `from` lands. As it moves, a gap opens behind it
+ * and its front edge covers the next tab; they swap once the gap is wider than
+ * what's still showing of that tab — i.e. once the front edge passes the
+ * tab's middle (the user's rule; the dragged tab's own width doesn't matter).
+ * `centres` are the tabs' centres in their places; `left` / `right` are the
+ * dragged tab's edges now.
  */
-export function dropIndex(centres: readonly number[], from: number, at: number): number {
-  let to = 0
+export function dropIndex(centres: readonly number[], from: number, left: number, right: number): number {
+  let to = from
   centres.forEach((c, k) => {
-    if (k !== from && c < at) to++
+    if (k > from && c < right) to++ // moving right: front edge past its middle
+    if (k < from && c > left) to-- // moving left: likewise
   })
   return to
 }
