@@ -27,6 +27,14 @@ UI structure:
   the word at k/N of the same block's rendered words (`scrollSyncDom.ts` measures word boxes: a mirror of
   the textarea with word spans; Ranges over the preview's text, skipping nested blocks and KaTeX MathML).
   Wordless blocks (diagram, formula, image) spread their lines over their height; top/bottom pin together.
+  The preview's lines run the **full width of the pane** (no max-width cap — the user wants text to wrap to
+  whatever room there is). A **zoom slider** in the Preview header (50–200% in 5s, value shown beside it, double-click
+  the value → 100%; `lib/previewZoom.ts`, localStorage `md-editor:preview-zoom`) scales `.md-body`'s font size;
+  everything in it is in em, so headings, code and math follow. Mermaid diagrams are sized in px with their own
+  16px text (em inside the SVG can't follow), so `scaleWithText` (`diagram.ts`) rewrites their size as
+  `min(100%, Npx × var(--zoom))`; `--zoom` is set on the preview's `.md-body` (1 elsewhere). The user chose a low-profile slider (like
+  ReUI's) over − / dropdown / +. **Sliders go through `components/ui/UiSlider.vue`** (hairline track, filled
+  part, small round thumb, value beside it, tokens only).
   Each tab remembers its cursor/selection and both panes' scroll (`lib/tabView.ts`, localStorage
   `md-editor:views`, pruned on close), so switching tabs or reloading returns to where you were.
 - **Empty state** — Open a file / New file, shown when no tabs are open.
@@ -264,6 +272,7 @@ src/
     highlight.ts           code colours: Shiki, lazy core + per-language grammar, cached
     diagram.ts             Mermaid: lazy load, preview drawing (cached), PDF SVG (flattened styles)
     pdfFont.ts             the PDF body font preference (Sans / Serif / Mono)
+    previewZoom.ts         the preview's zoom steps + remembered choice (tested)
     scrollSync.ts          editor ⇄ preview scroll: lines → blocks → word fraction, synced at the middles (pure; tested)
     scrollSyncDom.ts       its measuring: editor line/word boxes (mirror), preview blocks and words (Ranges)
     tabView.ts             per-tab cursor + scroll positions, restored on tab switch / reload (tested)
@@ -281,6 +290,7 @@ src/
                            scale, decay, lag, counter
     HelpModal.vue          renders docs/concepts/*.md into the Help modal
     ui/UiButton.vue        the app's button (sizes, tones, Lucide icons left/right)
+    ui/UiSlider.vue        the app's slider: low profile, value shown beside it
   styles/
     vars.css               base tokens (:root) + one [data-theme] block per look
     markdown.css           rendered-markdown styles (.md-body) for preview + Help

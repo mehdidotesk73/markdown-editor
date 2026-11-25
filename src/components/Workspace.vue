@@ -12,6 +12,8 @@ import { getView, saveView, clampSelection } from '../lib/tabView'
 import { edgeOf, editorLineAt, previewTopOf, scrollFor, segmentAtLine, wordFractionAt, wordMiddleAt } from '../lib/scrollSync'
 import { editorMetrics, editorWordBoxes, previewAnchors, previewWordBoxes } from '../lib/scrollSyncDom'
 import { FolderOpen, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Plug } from '@lucide/vue'
+import { previewZoom, ZOOM, DEFAULT_ZOOM } from '../lib/previewZoom'
+import UiSlider from './ui/UiSlider.vue'
 import { useFocusShadow } from '../lib/focus/useFocusShadow'
 
 // The split view for one tab: markdown source on the left, rendered preview
@@ -191,6 +193,9 @@ async function restoreView() {
 // middle is, say, 70% of the way through its block's words; the preview is
 // centred on the word 70% through the same block.
 
+// A zoom change moves every block: put the preview back level with the editor.
+watch(previewZoom, () => void nextTick(() => requestAnimationFrame(syncPreview)))
+
 function syncPreview() {
   const ta = textarea.value
   const pv = preview.value
@@ -314,6 +319,17 @@ onBeforeUnmount(endDrag)
           />
           <span class="pane-title">Preview</span>
           <span class="pane-meta" />
+          <UiSlider
+            v-model="previewZoom"
+            class="zoom"
+            :min="ZOOM.min"
+            :max="ZOOM.max"
+            :step="ZOOM.step"
+            :reset="DEFAULT_ZOOM"
+            :display="`${previewZoom}%`"
+            label="Preview text size"
+            title="Preview text size (double-click the value to reset)"
+          />
           <FocusControls :supported="shadowSupported" :count="focusFrame?.count ?? 0" />
         </header>
         <div
@@ -323,7 +339,7 @@ onBeforeUnmount(endDrag)
           @scroll="onPreviewScroll"
         >
           <!-- eslint-disable-next-line vue/no-v-html — sanitized by DOMPurify in lib/markdown.ts -->
-          <article class="md-body" v-html="html" />
+          <article class="md-body" :style="{ fontSize: `${previewZoom / 100}rem`, '--zoom': previewZoom / 100 }" v-html="html" />
           <p v-if="!tab.content.trim()" class="empty-preview">Nothing to preview yet.</p>
         </div>
       </div>
@@ -463,9 +479,12 @@ onBeforeUnmount(endDrag)
   overflow: auto;
   padding: 1.2rem 1.6rem 40vh;
 }
+/* Lines run the full width of the pane: widen the pane for longer lines. */
 .preview-scroll .md-body {
-  max-width: 48rem;
-  margin: 0 auto;
+  margin: 0;
+}
+.zoom {
+  margin-right: 0.3rem;
 }
 .empty-preview {
   color: var(--paper-muted);
@@ -537,6 +556,10 @@ onBeforeUnmount(endDrag)
   }
   .preview-scroll {
     padding: 0.8rem 0.8rem 2rem;
+  }
+  /* Narrow panes: a shorter track. */
+  .zoom {
+    --slider-width: 2.25rem;
   }
 }
 </style>
