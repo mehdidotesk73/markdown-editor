@@ -10,6 +10,7 @@ import {
   isAbort,
   readFile,
   writeFile,
+  step,
   downloadText,
   supportsFileSystemAccess,
   type PickedFile,
@@ -216,9 +217,10 @@ async function addPicked(f: PickedFile) {
     if (!f.handle || !t.handle) continue
     let same = false
     try {
-      same = await t.handle.isSameEntry(f.handle)
-    } catch {
+      same = await step(t.handle.isSameEntry(f.handle), 'Comparing with the open tab', t.name, 5000)
+    } catch (e) {
       // A stale handle can't be compared: treat it as a different file.
+      if ((e as Error).name === 'StalledError') logDebug(`Open ${f.name}: ${(e as Error).message}`, 'warn')
     }
     if (!same) continue
     state.activeId = t.id
@@ -250,9 +252,9 @@ async function openFiles() {
   logDebug('Open: showing the file picker…')
   let files: PickedFile[]
   try {
-    files = await pickFiles()
+    files = await pickFiles((names) => logDebug(`Open: picked ${names.join(', ')} — reading…`))
   } catch (e) {
-    logDebug(`Open failed: ${errorText(e)}`, 'error')
+    logDebug(`Open failed: ${(e as Error).name === 'StalledError' ? (e as Error).message : errorText(e)}`, 'error')
     return
   }
   if (!files.length) return logDebug('Open: cancelled')

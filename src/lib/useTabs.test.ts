@@ -40,7 +40,11 @@ vi.mock('./fileAccess', async (importOriginal) => {
       fs.disk.set(h.name, { text, lastModified: 99 })
       return 99
     }),
-    pickFiles: vi.fn(async () => fs.pick),
+    pickFiles: vi.fn(async (onPicked?: (names: string[]) => void) => {
+      const picked = fs.pick as PickedFile[]
+      if (picked.length) onPicked?.(picked.map((f) => f.name))
+      return picked
+    }),
     pickSaveTarget: vi.fn(async () => fs.saveTarget),
     pickReplacement: vi.fn(async () => fs.replacement),
     downloadText: vi.fn(),
@@ -187,6 +191,7 @@ describe('Open', () => {
     fs.pick = [{ name: 'c.md', text: 'C', lastModified: 1, handle: fileHandle('c.md') }]
     await s.openFiles()
     expect(s.state.tabs.map((t) => t.name)).toEqual(['c.md'])
+    expect(s.log()).toContain('[log] Open: picked c.md — reading…')
     expect(s.log()).toContain('[log] Opened c.md')
   })
 })

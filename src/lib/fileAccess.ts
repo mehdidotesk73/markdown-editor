@@ -78,11 +78,12 @@ async function readHandle(handle: FileSystemFileHandle): Promise<PickedFile> {
   return { name: file.name, text, lastModified: file.lastModified, handle }
 }
 
-/** Let the user pick one or more files. Resolves [] if they cancel. */
-export async function pickFiles(): Promise<PickedFile[]> {
+/** Let the user pick one or more files. Resolves [] if they cancel. `onPicked` hears the names before they're read. */
+export async function pickFiles(onPicked?: (names: string[]) => void): Promise<PickedFile[]> {
   if (supportsFileSystemAccess) {
     try {
       const handles = await fsa.showOpenFilePicker!({ multiple: true, types: MD_TYPES, id: 'md-open' })
+      onPicked?.(handles.map((h) => h.name))
       return Promise.all(handles.map(readHandle))
     } catch (e) {
       if (isAbort(e)) return []
