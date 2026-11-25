@@ -4,7 +4,7 @@ import { renderMarkdown } from '../lib/markdown'
 import { hydrateDiagrams } from '../lib/diagram'
 import { hydrateCode } from '../lib/highlight'
 import { useTheme } from '../lib/useTheme'
-import type { Tab } from '../lib/useTabs'
+import { useTabs, type Tab } from '../lib/useTabs'
 import UiButton from './ui/UiButton.vue'
 import FocusControls from './FocusControls.vue'
 import { indentEdit } from '../lib/indent'
@@ -96,6 +96,7 @@ function endDrag() {
 const textarea = ref<HTMLTextAreaElement>()
 const preview = ref<HTMLElement>()
 
+const { state: tabsState } = useTabs()
 const html = computed(() => renderMarkdown(props.tab.content))
 
 // Mermaid diagrams: the preview HTML carries placeholders; draw them after
@@ -238,6 +239,14 @@ onBeforeUnmount(endDrag)
 
 <template>
   <section class="workspace">
+    <div v-if="tabsState.storageError" class="banner" role="alert">
+      <span class="banner-mark" aria-hidden="true">⚠</span>
+      <span>
+        <strong>Drafts aren't being backed up.</strong> The browser can't write this site's storage
+        ({{ tabsState.storageError }}) — often a nearly full disk. Save your files (or copy unsaved
+        text somewhere) before closing tabs or the browser.
+      </span>
+    </div>
     <div v-if="tab.access === 'needs-access'" class="banner" role="status">
       <span class="banner-mark" aria-hidden="true">⚠</span>
       <span>

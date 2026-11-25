@@ -50,6 +50,8 @@ const state = reactive({
   tabs: [] as Tab[],
   activeId: null as string | null,
   ready: false,
+  /** Why the last write of tabs + drafts to the browser's storage failed; null when it works. */
+  storageError: null as string | null,
 })
 
 const active = computed(() => state.tabs.find((t) => t.id === state.activeId) ?? null)
@@ -82,8 +84,14 @@ async function persist() {
   }))
   try {
     await set(STORE_KEY, { tabs, activeId: state.activeId })
+    if (state.storageError) logDebug('Drafts are being kept in the browser again')
+    state.storageError = null
   } catch (e) {
-    logDebug(`Could not store tabs locally: ${(e as Error).message}`, 'warn')
+    const msg = (e as Error).message
+    // Shown as a banner, not just a log line: unsaved drafts aren't backed up while it lasts.
+    if (state.storageError !== msg)
+      logDebug(`Could not store tabs locally: ${msg} — the browser couldn't write this site's storage (often a full disk, or Edge/Chrome's site storage is damaged). Unsaved drafts aren't backed up until it works again.`, 'error')
+    state.storageError = msg
   }
 }
 
@@ -121,7 +129,9 @@ async function refreshFromDisk(t: Tab, ask: boolean): Promise<boolean> {
   if (!t.handle) return false
   const was = t.access
   try {
-    const perm = await permissionOf(t.handle, ask)
+    // A background check only needs to read the file (Open and Choose file grant
+    // just that); Reconnect asks for read + write, so Save works right after it.
+    const perm = await permissionOf(t.handle, ask, undefined, ask ? 'readwrite' : 'read')
     if (perm !== 'granted') {
       t.access = 'needs-access'
       if (ask) logDebug(`Reconnect ${t.name}: ${accessProblem(t.name, perm)}`, 'warn')
@@ -158,6 +168,23 @@ async function refreshFromDisk(t: Tab, ask: boolean): Promise<boolean> {
   }
 }
 
+/**
+ * Ask for write access straight after a file is picked — the pick is the click
+ * the browser's prompt needs — so the user answers once, up front, and Save
+ * and the background checks just work until something really disconnects.
+ * If the browser declines (or won't prompt here), the file stays open and
+ * Save asks again later.
+ */
+async function askWriteAccess(handle: FileSystemFileHandle, what: string) {
+  try {
+    const a = await permissionOf(handle, true, undefined, 'readwrite')
+    if (a === 'granted') logDebug(`${what}: write access to ${handle.name} granted`)
+    else logDebug(`${what}: write access to ${handle.name} not granted yet (${a}) — Save will ask`, 'warn')
+  } catch (e) {
+    logDebug(`${what}: couldn't ask for write access to ${handle.name} (${errorText(e)}) — Save will ask`, 'warn')
+  }
+}
+
 /** Reconnect a restored tab to its file (shows the browser's permission prompt). */
 const reconnecting = new Set<string>()
 async function reconnect(t: Tab) {
@@ -186,6 +213,7 @@ async function relink(t: Tab): Promise<boolean> {
       logDebug(`Choose file for ${t.name}: cancelled`)
       return false
     }
+    await askWriteAccess(f.handle, 'Choose file')
     const keepDraft = isDirty(t)
     const old = t.name
     t.handle = f.handle
@@ -270,6 +298,7 @@ async function openFiles() {
     return
   }
   if (!files.length) return logDebug('Open: cancelled')
+  for (const f of files) if (f.handle) await askWriteAccess(f.handle, 'Open')
   for (const f of files) await addPicked(f)
   logDebug(`Opened ${files.map((f) => f.name).join(', ')}${files[0].handle ? '' : ' (read-only copy: this browser saves by downloading)'}`)
 }

@@ -60,7 +60,13 @@ How files work (see `src/lib/fileAccess.ts`, `src/lib/useTabs.ts`):
   whether it holds the picked file at once, with one 2 s limit — `findOpenTab`); **Choose file…** on the banner re-links
   the tab through the file picker (no permission prompt needed), keeping the draft. **Every file
   operation logs its step and outcome** to the page log (open, save, save as, reconnect, choose file,
-  lost access, file gone, PDF export) — keep it that way for new ones. Linked files are re-read on window focus, so edits made in
+  lost access, file gone, PDF export) — keep it that way for new ones. **Read vs write access:** the pickers grant only *read*, so right after a pick, Open and Choose file ask
+  for `'readwrite'` (`askWriteAccess` — the pick is the click the prompt needs): the user answers once, up front,
+  and never sees Reconnect until something really disconnects (the user's design). If the browser declines, the
+  file still opens and Save asks. Background re-checks (tab switch, window focus, restore) ask only for `'read'` —
+  checking readwrite there flagged just-opened tabs "Lost access" on the next tab switch. **If the browser can't write its storage** (IndexedDB
+  "Failed to write blobs" — seen on the user's Edge; a full disk or damaged site storage), `state.storageError` is
+  set and the workspace shows a "Drafts aren't being backed up" banner until a write succeeds again. Linked files are re-read on window focus, so edits made in
   other apps show up (unless the tab has unsaved edits — then the draft wins).
 - **Safari / Firefox / phones:** no File System Access API. Open uses a file input; Save
   downloads a copy. Drafts still persist in IndexedDB.

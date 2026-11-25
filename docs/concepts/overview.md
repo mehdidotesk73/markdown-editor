@@ -55,6 +55,10 @@ To see every effect, open the guide *Focus* (`docs/focus-shadow-showcase.md` in 
 
 A: Chrome, Edge, Brave, Arc and Opera on a computer. Safari, Firefox and phone browsers can't write to files on your device, so there **Save** downloads a copy of the file instead.
 
+**Q: Why does the browser ask about editing when I open a file?**
+
+A: Opening a file lets the page *read* it; saving needs permission to *edit* it. Markdown Lab asks for both at once, right when you open the file, so you answer one prompt and Save just works from then on. Tick **Allow on every visit** in that prompt and the browser keeps the permission across visits too.
+
 **Q: I reloaded the page and see "Reconnect". Why?**
 
 A: For your security the browser forgets permission to a file when the page reloads. Your tabs and any unsaved text are kept — click **Reconnect** and allow access, and saving works again.
@@ -62,6 +66,10 @@ A: For your security the browser forgets permission to a file when the page relo
 **Q: I clicked Reconnect (or Save) and nothing happened.**
 
 A: The browser didn't show its permission prompt, or refused. After a few seconds **View logs** says which. Click **Choose file…** on the same banner and pick the file again: that links the tab without the prompt, and your unsaved text is kept. Opening the same file with **Open** does the same. If it's somewhere else now, **Save as…** saves your text to a new file. If the log says a file **didn't finish opening**, it's usually in a OneDrive (or other cloud) folder and not downloaded to this computer, or another app has it locked: open the folder in File Explorer, right-click the file and choose **Always keep on this device**, then click **Reconnect** again.
+
+**Q: A banner says "Drafts aren't being backed up".**
+
+A: Your browser can't write to the storage it keeps for this site, so unsaved text isn't being kept in case the page closes. Most often the computer's main drive is nearly full: free some space and the banner goes away by itself. If there's plenty of space, the browser's storage for this site may be damaged. Save every file first (or copy any unsaved text somewhere), then clear this site's data in the browser's settings and open your files again.
 
 **Q: I edited the file in another app. Will the editor see it?**
 
