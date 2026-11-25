@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { permissionOf, accessProblem, step } from './fileAccess'
+import { permissionOf, accessProblem, step, STEP_WAIT_MS, PERMISSION_WAIT_MS } from './fileAccess'
 
 function handle(query: PermissionState, request: () => Promise<PermissionState>) {
   return {
@@ -43,9 +43,9 @@ describe('asking the browser for access to a file', () => {
   it('gives up on a check of access that never answers, naming the step', async () => {
     vi.useFakeTimers()
     const h = { name: 'notes.md', queryPermission: () => new Promise(() => {}), requestPermission: vi.fn() } as unknown as FileSystemFileHandle
-    const answer = permissionOf(h, true, 1000).catch((e: Error) => e)
-    await vi.advanceTimersByTimeAsync(1000)
-    expect(String(await answer)).toMatch(/Checking access to notes\.md didn't finish/)
+    const answer = permissionOf(h, true).catch((e: Error) => e)
+    await vi.advanceTimersByTimeAsync(STEP_WAIT_MS)
+    expect(String(await answer)).toMatch(/Checking access to notes\.md didn't finish within 5 s/)
     vi.useRealTimers()
   })
 
@@ -55,8 +55,13 @@ describe('asking the browser for access to a file', () => {
     await vi.advanceTimersByTimeAsync(500)
     const e = (await p) as Error
     expect(e.name).toBe('StalledError')
-    expect(e.message).toMatch(/^Reading a\.md didn't finish within 15 s\. .*OneDrive/)
+    expect(e.message).toMatch(/^Reading a\.md didn't finish within 0.5 s\. .*OneDrive/)
     expect(await step(Promise.resolve(7), 'Reading', 'a.md', 500)).toBe(7)
     vi.useRealTimers()
+  })
+
+  it('waits 5 s on the disk but 30 s on the person reading the permission prompt', () => {
+    expect(STEP_WAIT_MS).toBe(5_000)
+    expect(PERMISSION_WAIT_MS).toBe(30_000)
   })
 })

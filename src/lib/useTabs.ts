@@ -162,7 +162,7 @@ async function refreshFromDisk(t: Tab, ask: boolean): Promise<boolean> {
 const reconnecting = new Set<string>()
 async function reconnect(t: Tab) {
   if (reconnecting.has(t.id)) {
-    logDebug(`Reconnect ${t.name}: still waiting on the last attempt (it gives up after 15 s)`)
+    logDebug(`Reconnect ${t.name}: still waiting on the last attempt`)
     return
   }
   reconnecting.add(t.id)

@@ -134,7 +134,7 @@ describe('Reconnect', () => {
     await s.reconnect(s.tab(0))
     expect(s.tab(0).access).toBe('needs-access')
     expect(s.log()).toContain('[log] Reconnect a.md: access granted — reading the file…')
-    expect(s.log().some((l) => l.startsWith("[error] Reconnect a.md: Opening a.md didn't finish within 15 s.") && l.includes('OneDrive'))).toBe(true)
+    expect(s.log().some((l) => l.startsWith("[error] Reconnect a.md: Opening a.md didn't finish within 5 s.") && l.includes('OneDrive'))).toBe(true)
   })
 
   it('still finishes restoring, and says so, when a file stalls on load', async () => {
