@@ -559,7 +559,7 @@ onBeforeUnmount(endDrag)
   }
   /* Narrow panes: a shorter track. */
   .zoom {
-    --slider-width: 3rem;
+    --slider-width: 2.25rem;
   }
 }
 </style>

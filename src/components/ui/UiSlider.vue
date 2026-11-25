@@ -55,8 +55,8 @@ const onReset = () => props.reset !== undefined && emit('update:modelValue', pro
 input {
   -webkit-appearance: none;
   appearance: none;
-  width: var(--slider-width, 6.5rem);
-  min-width: 2.5rem;
+  width: var(--slider-width, 3.25rem);
+  min-width: 2rem;
   height: 1rem;
   margin: 0;
   background: transparent;
