@@ -200,6 +200,8 @@ function endDrag(e: PointerEvent, cancelled = false) {
   dragId.value = null
   dragOffset.value = 0
   if (!cancelled && to !== d.from) emit('reorder', d.id, to)
+  // Glide the well home — also when the order didn't change (nothing else would move it).
+  void relayout()
 }
 
 function onTabClick(t: Tab) {
