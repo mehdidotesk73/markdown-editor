@@ -402,6 +402,10 @@ look wrong in a shot taken <0.25 s later. Wait out the transition before judging
 
 ## Version History
 
+### v0.16.0 — 2026-11-25
+- **Changed:** The preview wraps to the full width of its pane — it was capped at 48rem, so widening the pane past that only added margin
+- **Added:** Preview zoom (− / dropdown 50–200% / + in the Preview header), remembered per viewer; scales the rendered text from its base size, and the preview re-levels with the editor after a change
+
 ### v0.15.0 — 2026-11-23
 - **Fixed:** Reconnect and Save could do nothing, with nothing in the log (user, on another computer after a weekend, every tab ⚠). Two silent paths: Reconnect ignored any answer but "granted", and a permission prompt the browser never answers left both buttons waiting forever. Now the request times out after 15 s and the log says what the browser answered and what to do
 - **Added:** **Choose file…** on the Reconnect banner — re-links the tab by picking the file again (the picker grants access without the permission prompt); unsaved edits are kept. Opening a file that's already in a waiting tab re-links that tab too

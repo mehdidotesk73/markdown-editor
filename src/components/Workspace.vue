@@ -11,7 +11,8 @@ import { indentEdit } from '../lib/indent'
 import { getView, saveView, clampSelection } from '../lib/tabView'
 import { edgeOf, editorLineAt, previewTopOf, scrollFor, segmentAtLine, wordFractionAt, wordMiddleAt } from '../lib/scrollSync'
 import { editorMetrics, editorWordBoxes, previewAnchors, previewWordBoxes } from '../lib/scrollSyncDom'
-import { FolderOpen, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Plug } from '@lucide/vue'
+import { FolderOpen, Minus, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Plug, Plus } from '@lucide/vue'
+import { previewZoom, stepZoom, ZOOM_STEPS } from '../lib/previewZoom'
 import { useFocusShadow } from '../lib/focus/useFocusShadow'
 
 // The split view for one tab: markdown source on the left, rendered preview
@@ -191,6 +192,9 @@ async function restoreView() {
 // middle is, say, 70% of the way through its block's words; the preview is
 // centred on the word 70% through the same block.
 
+// A zoom change moves every block: put the preview back level with the editor.
+watch(previewZoom, () => void nextTick(() => requestAnimationFrame(syncPreview)))
+
 function syncPreview() {
   const ta = textarea.value
   const pv = preview.value
@@ -314,6 +318,27 @@ onBeforeUnmount(endDrag)
           />
           <span class="pane-title">Preview</span>
           <span class="pane-meta" />
+          <div class="zoom" role="group" aria-label="Preview text size">
+            <UiButton
+              size="compact"
+              :icon-left="Minus"
+              aria-label="Smaller text"
+              title="Smaller text"
+              :disabled="previewZoom <= ZOOM_STEPS[0]"
+              @click="previewZoom = stepZoom(previewZoom, -1)"
+            />
+            <select v-model.number="previewZoom" aria-label="Preview zoom" title="Preview text size">
+              <option v-for="z in ZOOM_STEPS" :key="z" :value="z">{{ z }}%</option>
+            </select>
+            <UiButton
+              size="compact"
+              :icon-left="Plus"
+              aria-label="Larger text"
+              title="Larger text"
+              :disabled="previewZoom >= ZOOM_STEPS[ZOOM_STEPS.length - 1]"
+              @click="previewZoom = stepZoom(previewZoom, 1)"
+            />
+          </div>
           <FocusControls :supported="shadowSupported" :count="focusFrame?.count ?? 0" />
         </header>
         <div
@@ -323,7 +348,7 @@ onBeforeUnmount(endDrag)
           @scroll="onPreviewScroll"
         >
           <!-- eslint-disable-next-line vue/no-v-html — sanitized by DOMPurify in lib/markdown.ts -->
-          <article class="md-body" v-html="html" />
+          <article class="md-body" :style="{ fontSize: `${previewZoom / 100}rem` }" v-html="html" />
           <p v-if="!tab.content.trim()" class="empty-preview">Nothing to preview yet.</p>
         </div>
       </div>
@@ -463,9 +488,30 @@ onBeforeUnmount(endDrag)
   overflow: auto;
   padding: 1.2rem 1.6rem 40vh;
 }
+/* Lines run the full width of the pane: widen the pane for longer lines. */
 .preview-scroll .md-body {
-  max-width: 48rem;
-  margin: 0 auto;
+  margin: 0;
+}
+.zoom {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+.zoom select {
+  height: 1.5rem;
+  padding: 0 0.25rem;
+  border: 1px solid var(--btn-border);
+  border-radius: var(--btn-radius);
+  background: var(--btn-bg);
+  color: var(--btn-text);
+  font: inherit;
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+.zoom select:focus-visible {
+  outline: 2px solid var(--accent-blue);
+  outline-offset: 1px;
 }
 .empty-preview {
   color: var(--paper-muted);
@@ -537,6 +583,10 @@ onBeforeUnmount(endDrag)
   }
   .preview-scroll {
     padding: 0.8rem 0.8rem 2rem;
+  }
+  /* Narrow panes: the dropdown alone sets the zoom. */
+  .zoom :deep(.ui-btn) {
+    display: none;
   }
 }
 </style>
