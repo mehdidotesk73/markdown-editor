@@ -13,6 +13,7 @@ const fs = vi.hoisted(() => ({
   pick: [] as unknown[],
   saveTarget: null as unknown,
   replacement: null as unknown,
+  readStalls: false,
 }))
 
 vi.mock('idb-keyval', () => ({
@@ -28,6 +29,7 @@ vi.mock('./fileAccess', async (importOriginal) => {
     supportsFileSystemAccess: true,
     permissionOf: vi.fn(async (_h: FileSystemFileHandle, ask = false): Promise<Access> => (ask ? (fs.request as Access) : (fs.permission as Access))),
     readFile: vi.fn(async (h: FileSystemFileHandle): Promise<PickedFile> => {
+      if (fs.readStalls) throw new real.StalledError('Opening', h.name)
       const f = fs.disk.get(h.name)
       if (!f) throw notFound(h.name)
       return { name: h.name, text: f.text, lastModified: f.lastModified, handle: h }
@@ -72,6 +74,7 @@ beforeEach(() => {
   fs.pick = []
   fs.saveTarget = null
   fs.replacement = null
+  fs.readStalls = false
 })
 
 describe('restoring tabs after a reload', () => {
@@ -117,8 +120,26 @@ describe('Reconnect', () => {
     const s = await load([{ name: 'a.md', content: 'A', saved: 'A' }])
     await s.reconnect(s.tab(0))
     expect(s.tab(0).access).toBe('needs-access')
-    expect(s.log()).toContain('[log] Reconnect a.md: asking the browser for access…')
+    expect(s.log()).toContain('[log] Reconnect a.md: checking access…')
     expect(s.log().some((l) => l.startsWith('[warn] Reconnect a.md:') && why.test(l))).toBe(true)
+  })
+
+  it('names the step when reading the file stalls (e.g. an online-only OneDrive file)', async () => {
+    const s = await load([{ name: 'a.md', content: 'A', saved: 'A' }])
+    fs.readStalls = true
+    await s.reconnect(s.tab(0))
+    expect(s.tab(0).access).toBe('needs-access')
+    expect(s.log()).toContain('[log] Reconnect a.md: access granted — reading the file…')
+    expect(s.log().some((l) => l.startsWith("[error] Reconnect a.md: Opening a.md didn't finish within 15 s.") && l.includes('OneDrive'))).toBe(true)
+  })
+
+  it('still finishes restoring, and says so, when a file stalls on load', async () => {
+    fs.permission = 'granted'
+    fs.readStalls = true
+    const s = await load([{ name: 'a.md', content: 'A', saved: 'A' }])
+    expect(s.tab(0).access).toBe('needs-access')
+    expect(s.log().some((l) => l.startsWith("[warn] Restore a.md: Opening a.md didn't finish"))).toBe(true)
+    expect(s.log().some((l) => l.startsWith('[log] Restored 1 tab(s): 0 linked, 1 need reconnecting'))).toBe(true)
   })
 
   it('drops the link, keeping the text, when the file is gone', async () => {

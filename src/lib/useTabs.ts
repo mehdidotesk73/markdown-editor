@@ -127,6 +127,7 @@ async function refreshFromDisk(t: Tab, ask: boolean): Promise<boolean> {
       else if (was === 'linked') logDebug(`Lost access to ${t.name} (browser now says "${perm}") — click Reconnect.`, 'warn')
       return false
     }
+    if (ask) logDebug(`Reconnect ${t.name}: access granted — reading the file…`)
     const f = await readFile(t.handle)
     t.access = 'linked'
     t.name = f.name
@@ -146,6 +147,9 @@ async function refreshFromDisk(t: Tab, ask: boolean): Promise<boolean> {
       t.handle = null
       t.access = 'unlinked'
       t.saved = ''
+    } else if ((e as Error).name === 'StalledError') {
+      t.access = 'needs-access'
+      logDebug(`${ask ? 'Reconnect' : 'Restore'} ${t.name}: ${(e as Error).message}`, ask ? 'error' : 'warn')
     } else {
       logDebug(`Could not read ${t.name}: ${errorText(e)}`, ask ? 'error' : 'warn')
     }
@@ -154,9 +158,19 @@ async function refreshFromDisk(t: Tab, ask: boolean): Promise<boolean> {
 }
 
 /** Reconnect a restored tab to its file (shows the browser's permission prompt). */
+const reconnecting = new Set<string>()
 async function reconnect(t: Tab) {
-  logDebug(`Reconnect ${t.name}: asking the browser for access…`)
-  await refreshFromDisk(t, true)
+  if (reconnecting.has(t.id)) {
+    logDebug(`Reconnect ${t.name}: still waiting on the last attempt (it gives up after 15 s)`)
+    return
+  }
+  reconnecting.add(t.id)
+  logDebug(`Reconnect ${t.name}: checking access…`)
+  try {
+    await refreshFromDisk(t, true)
+  } finally {
+    reconnecting.delete(t.id)
+  }
 }
 
 /**

@@ -402,6 +402,10 @@ look wrong in a shot taken <0.25 s later. Wait out the transition before judging
 
 ## Version History
 
+### v0.16.1 — 2026-11-25
+- **Fixed:** Reconnect still hung silently on the user's Edge, where access was already granted ("Allow on every visit"): the log showed "asking the browser for access…" and nothing more, and the "Restored N tabs" line never appeared — a step *after* the permission prompt (checking access or reading the file) never finished. Every step on a file now has a 15 s limit (`step()` → `StalledError` naming the step), and the log says which step stalled and what to check (online-only OneDrive file, disconnected drive, a lock by another app). Reconnect logs "access granted — reading the file…" between steps, and a second click while one is waiting says so instead of stacking up
+- **Lesson:** a timeout on one step isn't enough — every await on the browser or the disk needs one, or the failure moves to the next step and stays invisible
+
 ### v0.16.0 — 2026-11-25
 - **Changed:** The preview wraps to the full width of its pane — it was capped at 48rem, so widening the pane past that only added margin
 - **Added:** Preview zoom — a low-profile slider in the Preview header (50–200%, value beside it, double-click the value to reset), remembered per viewer; scales the rendered text from its base size, and the preview re-levels with the editor after a change. First built as − / dropdown / +; the user preferred a slider like ReUI's. New shared `UiSlider`. Mermaid diagrams scale with it too: they're sized in px and pin their own text at 16px, so `em` on the SVG resolved against Mermaid's style, not the preview's — they scale by a `--zoom` variable instead
