@@ -402,6 +402,12 @@ look wrong in a shot taken <0.25 s later. Wait out the transition before judging
 
 ## Version History
 
+### v0.16.2 — 2026-11-25
+- **Found:** On the user's Edge the log showed "Could not store tabs locally: Failed to write blobs" — Edge couldn't write this site's IndexedDB (Chromium's error when the disk is nearly full or the site's storage is damaged). Same machine: permission checks never finished. The app didn't change; the browser's storage on that computer did
+- **Changed:** "Could not store tabs locally" is logged once, as an error (red badge), instead of a warning on every keystroke. A banner for it was tried and dropped — the user judged it unnecessary
+- **Fixed:** A just-opened file showed "Lost access" as soon as the user switched tabs (the user found the pattern): the pickers grant only *read*, and the check on tab switch / window focus asked for read + write
+- **Changed:** Open and Choose file ask for write access right after the pick (the user's design), so one prompt up front makes a tab fully work; declined → the tab shows ⚠ at once. All checks (tab switch, window focus on every tab, restore) ask for read + write, so every tab's ⚠ is accurate together and the user fixes them all before writing — the user rejected read-only background checks for that reason
+
 ### v0.16.1 — 2026-11-25
 - **Fixed:** Reconnect still hung silently on the user's Edge, where access was already granted ("Allow on every visit"): the log showed "asking the browser for access…" and nothing more, and the "Restored N tabs" line never appeared — a step *after* the permission prompt (checking access or reading the file) never finished. Every step on a file now has a 5 s limit (`step()` → `StalledError` naming the step; first 15 s, which the user rightly found too long for a local read), the permission prompt 30 s (the user's reading time), and the log says which step stalled and what to check (online-only OneDrive file, disconnected drive, a lock by another app). Reconnect logs "access granted — reading the file…" between steps, and a second click while one is waiting says so instead of stacking up
 - **Fixed:** Open could be held up by stuck tabs — it compared the picked file with each open tab one after another, with no limit. Now all tabs are asked at once with one 2 s limit; a tab that doesn't answer counts as a different file

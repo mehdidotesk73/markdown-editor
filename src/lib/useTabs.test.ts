@@ -14,11 +14,15 @@ const fs = vi.hoisted(() => ({
   saveTarget: null as unknown,
   replacement: null as unknown,
   readStalls: false,
+  storeFails: false,
+  granted: new Set<string>(),
 }))
 
 vi.mock('idb-keyval', () => ({
   get: vi.fn(async () => fs.stored),
-  set: vi.fn(async () => {}),
+  set: vi.fn(async () => {
+    if (fs.storeFails) throw new Error('Failed to write blobs')
+  }),
 }))
 
 vi.mock('./fileAccess', async (importOriginal) => {
@@ -27,7 +31,12 @@ vi.mock('./fileAccess', async (importOriginal) => {
   return {
     ...real,
     supportsFileSystemAccess: true,
-    permissionOf: vi.fn(async (_h: FileSystemFileHandle, ask = false): Promise<Access> => (ask ? (fs.request as Access) : (fs.permission as Access))),
+    permissionOf: vi.fn(async (h: FileSystemFileHandle, ask = false): Promise<Access> => {
+      if (fs.granted.has(h.name)) return 'granted' // granted earlier in this session
+      const a = (ask ? fs.request : fs.permission) as Access
+      if (ask && a === 'granted') fs.granted.add(h.name)
+      return a
+    }),
     readFile: vi.fn(async (h: FileSystemFileHandle): Promise<PickedFile> => {
       if (fs.readStalls) throw new real.StalledError('Opening', h.name)
       const f = fs.disk.get(h.name)
@@ -35,7 +44,7 @@ vi.mock('./fileAccess', async (importOriginal) => {
       return { name: h.name, text: f.text, lastModified: f.lastModified, handle: h }
     }),
     writeFile: vi.fn(async (h: FileSystemFileHandle, text: string) => {
-      const access = fs.permission === 'granted' ? 'granted' : (fs.request as Access)
+      const access = fs.permission === 'granted' || fs.granted.has(h.name) ? 'granted' : (fs.request as Access)
       if (access !== 'granted') throw new real.NoAccessError(access, h.name)
       fs.disk.set(h.name, { text, lastModified: 99 })
       return 99
@@ -79,6 +88,8 @@ beforeEach(() => {
   fs.saveTarget = null
   fs.replacement = null
   fs.readStalls = false
+  fs.storeFails = false
+  fs.granted = new Set()
 })
 
 describe('restoring tabs after a reload', () => {
@@ -157,12 +168,20 @@ describe('Reconnect', () => {
 
 describe('Choose file… (re-link by picking the file again)', () => {
   it('links the picked file and keeps the draft', async () => {
-    fs.request = 'no-answer'
     const s = await load([{ name: 'a.md', content: 'my draft', saved: 'A' }])
     fs.replacement = { name: 'a.md', text: 'A on disk', lastModified: 5, handle: fileHandle('a.md') }
     expect(await s.relink(s.tab(0))).toBe(true)
     expect(s.tab(0)).toMatchObject({ access: 'linked', content: 'my draft', saved: 'A on disk' })
     expect(s.log()).toContain('[log] Linked a.md (your unsaved edits are kept)')
+  })
+
+  it('keeps the ⚠ (and the draft) when write access still isn\'t granted', async () => {
+    fs.request = 'no-answer'
+    const s = await load([{ name: 'a.md', content: 'my draft', saved: 'A' }])
+    fs.replacement = { name: 'a.md', text: 'A on disk', lastModified: 5, handle: fileHandle('a.md') }
+    await s.relink(s.tab(0))
+    expect(s.tab(0)).toMatchObject({ access: 'needs-access', content: 'my draft', saved: 'A on disk' })
+    expect(s.log().some((l) => l.startsWith('[warn] Choose file: write access to a.md not granted (no-answer)'))).toBe(true)
   })
 
   it('logs a cancel', async () => {
@@ -240,5 +259,71 @@ describe('Save and Save as', () => {
     expect(s.tab(0).name).toBe('copy.md')
     expect(fs.disk.get('copy.md')!.text).toBe('A on disk')
     expect(s.log()).toContain('[log] Save as: saved copy.md (9 characters)')
+  })
+})
+
+describe('background checks and the browser storage', () => {
+  it('flags lost write access on every open tab when the window regains focus, not only the active one', async () => {
+    fs.permission = 'granted'
+    const s = await load([
+      { name: 'a.md', content: 'A', saved: 'A' },
+      { name: 'b.md', content: 'B', saved: 'B' },
+    ])
+    expect(s.state.tabs.map((t) => t.access)).toEqual(['linked', 'linked'])
+    fs.permission = 'prompt' // the browser forgot write access
+    await s.refreshAll()
+    expect(s.state.tabs.map((t) => t.access)).toEqual(['needs-access', 'needs-access'])
+    expect(s.log()).toContain('[warn] Lost access to b.md (browser now says "prompt") — click Reconnect.')
+  })
+
+  it("logs once (as an error) when drafts can't be stored in the browser, and again when it works", async () => {
+    vi.useFakeTimers()
+    try {
+      const s = await load([{ name: 'a.md', content: 'A', saved: 'A' }])
+      fs.storeFails = true
+      s.tab(0).content = 'edit 1'
+      await vi.advanceTimersByTimeAsync(400)
+      s.tab(0).content = 'edit 2'
+      await vi.advanceTimersByTimeAsync(400)
+      expect(s.log().filter((l) => l.startsWith('[error] Could not store tabs locally: Failed to write blobs'))).toHaveLength(1)
+      fs.storeFails = false
+      s.tab(0).content = 'edit 3'
+      await vi.advanceTimersByTimeAsync(400)
+      expect(s.log()).toContain('[log] Drafts are being kept in the browser again')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+})
+
+describe('asking for write access when a file is picked', () => {
+  it('asks once on Open, so later checks and Save need no Reconnect', async () => {
+    const s = await load([])
+    fs.disk.set('c.md', { text: 'C', lastModified: 1 })
+    fs.pick = [{ name: 'c.md', text: 'C', lastModified: 1, handle: fileHandle('c.md') }]
+    await s.openFiles()
+    expect(s.log()).toContain('[log] Open: write access to c.md granted')
+    await s.refreshAll() // switching tabs / window focus
+    expect(s.tab(0).access).toBe('linked')
+    s.tab(0).content = 'C edited'
+    expect(await s.save(s.tab(0))).toBe(true)
+    expect(s.log()).not.toContain('[log] Save c.md: asking the browser for access first…')
+    expect(s.log().some((l) => l.includes('Lost access'))).toBe(false)
+  })
+
+  it('still opens the file when write access is declined, marked ⚠ straight away', async () => {
+    fs.request = 'denied'
+    const s = await load([])
+    fs.pick = [{ name: 'c.md', text: 'C', lastModified: 1, handle: fileHandle('c.md') }]
+    await s.openFiles()
+    expect(s.tab(0)).toMatchObject({ name: 'c.md', content: 'C', access: 'needs-access' })
+    expect(s.log()).toContain('[warn] Open: write access to c.md not granted (denied) — the tab shows ⚠; click Reconnect to allow editing')
+  })
+
+  it('asks on Choose file too', async () => {
+    const s = await load([{ name: 'a.md', content: 'A', saved: 'A' }])
+    fs.replacement = { name: 'a.md', text: 'A on disk', lastModified: 5, handle: fileHandle('a.md') }
+    await s.relink(s.tab(0))
+    expect(s.log()).toContain('[log] Choose file: write access to a.md granted')
   })
 })

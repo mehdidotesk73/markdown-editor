@@ -142,7 +142,11 @@ export const PERMISSION_WAIT_MS = 30_000
  * 'no-answer' after PERMISSION_WAIT_MS instead of leaving the caller waiting
  * forever.
  */
-export async function permissionOf(handle: FileSystemFileHandle, ask = false, waitMs = PERMISSION_WAIT_MS): Promise<Access> {
+export async function permissionOf(
+  handle: FileSystemFileHandle,
+  ask = false,
+  waitMs = PERMISSION_WAIT_MS,
+): Promise<Access> {
   const h = handle as FsaHandle
   if (typeof h.queryPermission !== 'function') return 'granted'
   const mode: PermissionMode = { mode: 'readwrite' }
