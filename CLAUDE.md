@@ -30,7 +30,9 @@ UI structure:
   The preview's lines run the **full width of the pane** (no max-width cap — the user wants text to wrap to
   whatever room there is). A **zoom slider** in the Preview header (50–200% in 5s, value shown beside it, double-click
   the value → 100%; `lib/previewZoom.ts`, localStorage `md-editor:preview-zoom`) scales `.md-body`'s font size;
-  everything in it is in em, so headings, code and math follow. The user chose a low-profile slider (like
+  everything in it is in em, so headings, code and math follow. Mermaid diagrams are sized in px with their own
+  16px text (em inside the SVG can't follow), so `scaleWithText` (`diagram.ts`) rewrites their size as
+  `min(100%, Npx × var(--zoom))`; `--zoom` is set on the preview's `.md-body` (1 elsewhere). The user chose a low-profile slider (like
   ReUI's) over − / dropdown / +. **Sliders go through `components/ui/UiSlider.vue`** (hairline track, filled
   part, small round thumb, value beside it, tokens only).
   Each tab remembers its cursor/selection and both panes' scroll (`lib/tabView.ts`, localStorage

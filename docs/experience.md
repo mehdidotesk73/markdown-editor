@@ -404,7 +404,7 @@ look wrong in a shot taken <0.25 s later. Wait out the transition before judging
 
 ### v0.16.0 — 2026-11-25
 - **Changed:** The preview wraps to the full width of its pane — it was capped at 48rem, so widening the pane past that only added margin
-- **Added:** Preview zoom — a low-profile slider in the Preview header (50–200%, value beside it, double-click the value to reset), remembered per viewer; scales the rendered text from its base size, and the preview re-levels with the editor after a change. First built as − / dropdown / +; the user preferred a slider like ReUI's. New shared `UiSlider`
+- **Added:** Preview zoom — a low-profile slider in the Preview header (50–200%, value beside it, double-click the value to reset), remembered per viewer; scales the rendered text from its base size, and the preview re-levels with the editor after a change. First built as − / dropdown / +; the user preferred a slider like ReUI's. New shared `UiSlider`. Mermaid diagrams scale with it too: they're sized in px and pin their own text at 16px, so `em` on the SVG resolved against Mermaid's style, not the preview's — they scale by a `--zoom` variable instead
 
 ### v0.15.0 — 2026-11-23
 - **Fixed:** Reconnect and Save could do nothing, with nothing in the log (user, on another computer after a weekend, every tab ⚠). Two silent paths: Reconnect ignored any answer but "granted", and a permission prompt the browser never answers left both buttons waiting forever. Now the request times out after 15 s and the log says what the browser answered and what to do

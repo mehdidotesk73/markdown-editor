@@ -339,7 +339,7 @@ onBeforeUnmount(endDrag)
           @scroll="onPreviewScroll"
         >
           <!-- eslint-disable-next-line vue/no-v-html — sanitized by DOMPurify in lib/markdown.ts -->
-          <article class="md-body" :style="{ fontSize: `${previewZoom / 100}rem` }" v-html="html" />
+          <article class="md-body" :style="{ fontSize: `${previewZoom / 100}rem`, '--zoom': previewZoom / 100 }" v-html="html" />
           <p v-if="!tab.content.trim()" class="empty-preview">Nothing to preview yet.</p>
         </div>
       </div>

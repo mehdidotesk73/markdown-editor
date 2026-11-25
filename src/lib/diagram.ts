@@ -100,6 +100,26 @@ function previewStyle(): DiagramStyle {
 const previewCache = new Map<string, string | null>()
 
 /**
+ * Mermaid sizes a diagram in px (max-width, or width when it isn't set to
+ * fill), and pins its own text at 16px, so em inside the SVG can't follow the
+ * preview. Scale the px by --zoom instead (set on the preview's .md-body by
+ * the zoom slider; 1 elsewhere), so diagrams grow and shrink with the text.
+ * Never wider than the pane.
+ */
+export function scaleWithText(svg: SVGSVGElement | null) {
+  if (!svg) return
+  const px = (v: string | null) => (v && /^[\d.]+(px)?$/.test(v.trim()) ? parseFloat(v) : null)
+  const max = px(svg.style.maxWidth)
+  const width = px(svg.getAttribute('width'))
+  if (max) svg.style.maxWidth = `min(100%, calc(${max}px * var(--zoom, 1)))`
+  else if (width) {
+    svg.removeAttribute('width')
+    svg.removeAttribute('height')
+    svg.style.width = `min(100%, calc(${width}px * var(--zoom, 1)))`
+  }
+}
+
+/**
  * Fill every `.mermaid-block` placeholder in the preview with its diagram.
  * Rendered SVGs are cached per look and source, so re-renders of the preview
  * on each keystroke swap them in at once and only an edited diagram redraws.
@@ -122,6 +142,7 @@ export async function hydrateDiagrams(root: HTMLElement): Promise<void> {
     if (!el.isConnected) continue
     if (svg) {
       el.innerHTML = svg
+      scaleWithText(el.querySelector('svg'))
       el.classList.add('is-rendered')
       el.classList.remove('is-error')
     } else {
